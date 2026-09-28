@@ -1,0 +1,1626 @@
+[
+  {
+    "label": "10th Power",
+    "description": "An exact 10th power",
+    "score": 25000025,
+    "odds": "1 / 250,000",
+    "rarity": "mythic"
+  },
+  {
+    "label": "11th Power",
+    "description": "An exact 11th power",
+    "score": 25000025,
+    "odds": "1 / 250,000",
+    "rarity": "mythic"
+  },
+  {
+    "label": "13th Power",
+    "description": "An exact 13th power",
+    "score": 33333367,
+    "odds": "1 / 333,334",
+    "rarity": "mythic"
+  },
+  {
+    "label": "17776",
+    "description": "What football will look like in the future",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "17th Power",
+    "description": "An exact 17th power",
+    "score": 33333367,
+    "odds": "1 / 333,334",
+    "rarity": "mythic"
+  },
+  {
+    "label": "19th Power",
+    "description": "An exact 19th power",
+    "score": 33333367,
+    "odds": "1 / 333,334",
+    "rarity": "mythic"
+  },
+  {
+    "label": "2 Consecutive Numbers",
+    "description": "Two consecutive integers concatenated",
+    "score": 50505,
+    "odds": "1 / 505",
+    "rarity": "rare"
+  },
+  {
+    "label": "2 Consecutive Numbers (Contains)",
+    "description": "Contains two adjacent consecutive integers",
+    "score": 1659,
+    "odds": "1 / 17",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "2 Consecutive Numbers (Nearby)",
+    "description": "Contains two separated consecutive integers",
+    "score": 1575,
+    "odds": "1 / 16",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "2nd Power",
+    "description": "An exact 2th power",
+    "score": 99900,
+    "odds": "1 / 999",
+    "rarity": "rare"
+  },
+  {
+    "label": "3 Consecutive Numbers",
+    "description": "Three consecutive integers concatenated",
+    "score": 555556,
+    "odds": "1 / 5,556",
+    "rarity": "epic"
+  },
+  {
+    "label": "3 Consecutive Numbers (Contains)",
+    "description": "Contains three consecutive integers in a row",
+    "score": 157978,
+    "odds": "1 / 1,580",
+    "rarity": "epic"
+  },
+  {
+    "label": "3 Consecutive Numbers (Scrambled)",
+    "description": "Three consecutive integers out of order",
+    "score": 277778,
+    "odds": "1 / 2,778",
+    "rarity": "epic"
+  },
+  {
+    "label": "3rd Power",
+    "description": "An exact 3th power",
+    "score": 990100,
+    "odds": "1 / 9,901",
+    "rarity": "epic"
+  },
+  {
+    "label": "4 Consecutive Numbers",
+    "description": "Four consecutive integers concatenated",
+    "score": 25000025,
+    "odds": "1 / 250,000",
+    "rarity": "mythic"
+  },
+  {
+    "label": "4 Consecutive Numbers (Contains)",
+    "description": "Contains four consecutive integers",
+    "score": 2631582,
+    "odds": "1 / 26,316",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "4 Consecutive Numbers (Scrambled)",
+    "description": "Four consecutive integers out of order",
+    "score": 2272730,
+    "odds": "1 / 22,727",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "4th Power",
+    "description": "An exact 4th power",
+    "score": 3125003,
+    "odds": "1 / 31,250",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "58008",
+    "description": "Calculator spelling",
+    "score": 5000005,
+    "odds": "1 / 50,000",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "5th Power",
+    "description": "An exact 5th power",
+    "score": 6250006,
+    "odds": "1 / 62,500",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "6767",
+    "description": "Contains 6767",
+    "score": 334448,
+    "odds": "1 / 3,344",
+    "rarity": "epic"
+  },
+  {
+    "label": "6th Power",
+    "description": "An exact 6th power",
+    "score": 9090918,
+    "odds": "1 / 90,909",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "7th Power",
+    "description": "An exact 7th power",
+    "score": 12500013,
+    "odds": "1 / 125,000",
+    "rarity": "mythic"
+  },
+  {
+    "label": "8008",
+    "description": "Contains 8008",
+    "score": 333334,
+    "odds": "1 / 3,333",
+    "rarity": "epic"
+  },
+  {
+    "label": "80085",
+    "description": "Calculator spelling",
+    "score": 5000005,
+    "odds": "1 / 50,000",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "8th Power",
+    "description": "An exact 8th power",
+    "score": 16666683,
+    "odds": "1 / 166,667",
+    "rarity": "mythic"
+  },
+  {
+    "label": "9th Power",
+    "description": "An exact 9th power",
+    "score": 20000020,
+    "odds": "1 / 200,000",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Alternator",
+    "description": "Odd and even digits alternate",
+    "score": 2845,
+    "odds": "1 / 28",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Always",
+    "description": "24/7/365",
+    "score": 50000050,
+    "odds": "1 / 500,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Ascension",
+    "description": "Every digit strictly rises",
+    "score": 219298,
+    "odds": "1 / 2,193",
+    "rarity": "epic"
+  },
+  {
+    "label": "Balanced",
+    "description": "Both halves have the same digit sum",
+    "score": 1959,
+    "odds": "1 / 20",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Beryllium",
+    "description": "Contains exactly one 4",
+    "score": 282,
+    "odds": "1 / 3",
+    "rarity": "common"
+  },
+  {
+    "label": "Big Brother",
+    "description": "Contains 1984",
+    "score": 333334,
+    "odds": "1 / 3,333",
+    "rarity": "epic"
+  },
+  {
+    "label": "Binary Soul",
+    "description": "Only zeroes and ones",
+    "score": 1538463,
+    "odds": "1 / 15,385",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "Blackjack",
+    "description": "Digit sum is exactly 21",
+    "score": 2521,
+    "odds": "1 / 25",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Bookends",
+    "description": "Matching two-digit bookends",
+    "score": 10010,
+    "odds": "1 / 100",
+    "rarity": "rare"
+  },
+  {
+    "label": "Boron",
+    "description": "Contains exactly one 5",
+    "score": 282,
+    "odds": "1 / 3",
+    "rarity": "common"
+  },
+  {
+    "label": "Botanist",
+    "description": "Contains 420",
+    "score": 25006,
+    "odds": "1 / 250",
+    "rarity": "rare"
+  },
+  {
+    "label": "Brainrot",
+    "description": "Six-seven, three times",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Calendar",
+    "description": "Contains 365",
+    "score": 25006,
+    "odds": "1 / 250",
+    "rarity": "rare"
+  },
+  {
+    "label": "Canyon",
+    "description": "Descent, plateau allowed, then climb",
+    "score": 1184,
+    "odds": "1 / 12",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Carbon",
+    "description": "Contains exactly one 6",
+    "score": 282,
+    "odds": "1 / 3",
+    "rarity": "common"
+  },
+  {
+    "label": "Cascade",
+    "description": "Every digit rises by one",
+    "score": 3333337,
+    "odds": "1 / 33,333",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "Century",
+    "description": "Ends in 00",
+    "score": 10000,
+    "odds": "1 / 100",
+    "rarity": "rare"
+  },
+  {
+    "label": "Clean",
+    "description": "Ends in zero",
+    "score": 1000,
+    "odds": "1 / 10",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Colossal",
+    "description": "Greater than 999,000",
+    "score": 100000,
+    "odds": "1 / 1,000",
+    "rarity": "epic"
+  },
+  {
+    "label": "Contiguous Fives",
+    "description": "Five identical digits in a row",
+    "score": 552487,
+    "odds": "1 / 5,525",
+    "rarity": "epic"
+  },
+  {
+    "label": "Contiguous Full House",
+    "description": "An adjacent triple and pair",
+    "score": 30111,
+    "odds": "1 / 301",
+    "rarity": "rare"
+  },
+  {
+    "label": "Contiguous Pair",
+    "description": "Two identical digits side-by-side",
+    "score": 249,
+    "odds": "1 / 2",
+    "rarity": "common"
+  },
+  {
+    "label": "Contiguous Quads",
+    "description": "Four identical digits in a row",
+    "score": 37023,
+    "odds": "1 / 370",
+    "rarity": "rare"
+  },
+  {
+    "label": "Contiguous Sixes",
+    "description": "Six identical digits in a row",
+    "score": 10000010,
+    "odds": "1 / 100,000",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Contiguous Three Pair",
+    "description": "Three adjacent pairs",
+    "score": 154321,
+    "odds": "1 / 1,543",
+    "rarity": "epic"
+  },
+  {
+    "label": "Contiguous Trips",
+    "description": "Three identical digits in a row",
+    "score": 2784,
+    "odds": "1 / 28",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Contiguous Two Pair",
+    "description": "Two adjacent pairs",
+    "score": 3957,
+    "odds": "1 / 40",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Crescendo",
+    "description": "Chunks form a geometric sequence",
+    "score": 208334,
+    "odds": "1 / 2,083",
+    "rarity": "epic"
+  },
+  {
+    "label": "Decay",
+    "description": "Every digit strictly falls",
+    "score": 119474,
+    "odds": "1 / 1,195",
+    "rarity": "epic"
+  },
+  {
+    "label": "Deep Void",
+    "description": "Two zeroes in a row",
+    "score": 2784,
+    "odds": "1 / 28",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Deep Void (3)",
+    "description": "Three zeroes in a row",
+    "score": 37023,
+    "odds": "1 / 370",
+    "rarity": "rare"
+  },
+  {
+    "label": "Deep Void (4)",
+    "description": "Four zeroes in a row",
+    "score": 552487,
+    "odds": "1 / 5,525",
+    "rarity": "epic"
+  },
+  {
+    "label": "Deep Void (5)",
+    "description": "Five zeroes in a row",
+    "score": 10000010,
+    "odds": "1 / 100,000",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Deeper Meaning",
+    "description": "Contains 4242",
+    "score": 334448,
+    "odds": "1 / 3,344",
+    "rarity": "epic"
+  },
+  {
+    "label": "Devil",
+    "description": "Contains 666",
+    "score": 27027,
+    "odds": "1 / 270",
+    "rarity": "rare"
+  },
+  {
+    "label": "Divisible by 3",
+    "description": "Every digit is divisible by three",
+    "score": 24414,
+    "odds": "1 / 244",
+    "rarity": "rare"
+  },
+  {
+    "label": "Double Hop",
+    "description": "Two digits repeat two places later",
+    "score": 5321,
+    "odds": "1 / 53",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Double Nine",
+    "description": "Ends in 99",
+    "score": 10000,
+    "odds": "1 / 100",
+    "rarity": "rare"
+  },
+  {
+    "label": "Dozen",
+    "description": "Divisible by twelve",
+    "score": 1200,
+    "odds": "1 / 12",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Duality",
+    "description": "Exactly two distinct digits",
+    "score": 21654,
+    "odds": "1 / 217",
+    "rarity": "rare"
+  },
+  {
+    "label": "Dunes",
+    "description": "Digits loosely alternate up and down",
+    "score": 364,
+    "odds": "1 / 4",
+    "rarity": "common"
+  },
+  {
+    "label": "E Slice (3)",
+    "description": "Contains 271",
+    "score": 25006,
+    "odds": "1 / 250",
+    "rarity": "rare"
+  },
+  {
+    "label": "E Slice (4)",
+    "description": "Contains 2718",
+    "score": 333334,
+    "odds": "1 / 3,333",
+    "rarity": "epic"
+  },
+  {
+    "label": "E Slice (5)",
+    "description": "Five digits of e",
+    "score": 5000005,
+    "odds": "1 / 50,000",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "Echo",
+    "description": "The first half repeats",
+    "score": 100100,
+    "odds": "1 / 1,001",
+    "rarity": "epic"
+  },
+  {
+    "label": "Eight",
+    "description": "The number eight",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Eighty-Six",
+    "description": "Contains 86",
+    "score": 2024,
+    "odds": "1 / 20",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Eleven",
+    "description": "Divisible by eleven",
+    "score": 1100,
+    "odds": "1 / 11",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Emergency",
+    "description": "Contains 911",
+    "score": 25006,
+    "odds": "1 / 250",
+    "rarity": "rare"
+  },
+  {
+    "label": "Eon",
+    "description": "Ends in 00000",
+    "score": 10000010,
+    "odds": "1 / 100,000",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Epoch",
+    "description": "Ends in 0000",
+    "score": 1000001,
+    "odds": "1 / 10,000",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "Equation",
+    "description": "Its digits can form a true equation",
+    "score": 7720,
+    "odds": "1 / 77",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Equilibrium",
+    "description": "Matching first and last digits",
+    "score": 1000,
+    "odds": "1 / 10",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Error 404",
+    "description": "Contains 404",
+    "score": 25006,
+    "odds": "1 / 250",
+    "rarity": "rare"
+  },
+  {
+    "label": "Euler's Number",
+    "description": "The opening digits of e",
+    "score": 25000025,
+    "odds": "1 / 250,000",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Even",
+    "description": "An even number",
+    "score": 200,
+    "odds": "1 / 2",
+    "rarity": "common"
+  },
+  {
+    "label": "Even Spacing",
+    "description": "Digits form an arithmetic sequence",
+    "score": 862070,
+    "odds": "1 / 8,621",
+    "rarity": "epic"
+  },
+  {
+    "label": "Even Spacing (Absolute)",
+    "description": "Equal distance between neighbors",
+    "score": 90992,
+    "odds": "1 / 910",
+    "rarity": "rare"
+  },
+  {
+    "label": "Exact 80085",
+    "description": "Calculator spelling classic",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Exact Boob",
+    "description": "Calculator spelling",
+    "score": 50000050,
+    "odds": "1 / 500,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Exact Botanist",
+    "description": "Exactly 420",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Exact Calendar",
+    "description": "Days in a common year",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Exact Devil",
+    "description": "Exactly 666",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Exact Eighty-Six",
+    "description": "Exactly 86",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Exact Emergency",
+    "description": "Exactly 911",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Exact Hell",
+    "description": "HELL on an upside-down calculator",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Exact Jackpot",
+    "description": "Triple sevens",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Exact Leet",
+    "description": "Elite in leetspeak",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Exact Meaning",
+    "description": "The answer to life, the universe and everything",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Exact Nice",
+    "description": "Exactly 69",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Exact Orientation",
+    "description": "The basics",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Exact Six-Seven",
+    "description": "Exactly 67",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Factorial",
+    "description": "An exact factorial",
+    "score": 11111122,
+    "odds": "1 / 111,111",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Feather",
+    "description": "Digit sum is under 15",
+    "score": 2667,
+    "odds": "1 / 27",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Fibonacci Number",
+    "description": "Part of the Fibonacci sequence",
+    "score": 3333337,
+    "odds": "1 / 33,333",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "Firefly",
+    "description": "One digit differs from all the others",
+    "score": 82237,
+    "odds": "1 / 822",
+    "rarity": "rare"
+  },
+  {
+    "label": "Five",
+    "description": "The number five",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Five Digits",
+    "description": "5 digits long",
+    "score": 1111,
+    "odds": "1 / 11",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Five of a Kind",
+    "description": "Five matching digits",
+    "score": 198020,
+    "odds": "1 / 1,980",
+    "rarity": "epic"
+  },
+  {
+    "label": "Fluorine",
+    "description": "Contains exactly one 9",
+    "score": 282,
+    "odds": "1 / 3",
+    "rarity": "common"
+  },
+  {
+    "label": "Flush",
+    "description": "All digits share parity",
+    "score": 2845,
+    "odds": "1 / 28",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Four",
+    "description": "The number four",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Four Digits",
+    "description": "4 digits long",
+    "score": 11111,
+    "odds": "1 / 111",
+    "rarity": "rare"
+  },
+  {
+    "label": "Four of a Kind",
+    "description": "Four matching digits",
+    "score": 8436,
+    "odds": "1 / 84",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Framed Double",
+    "description": "Two pairs framed by different digits",
+    "score": 15242,
+    "odds": "1 / 152",
+    "rarity": "rare"
+  },
+  {
+    "label": "Framed Pair",
+    "description": "A pair surrounded by two different digits",
+    "score": 137174,
+    "odds": "1 / 1,372",
+    "rarity": "epic"
+  },
+  {
+    "label": "Framed Quad",
+    "description": "A quadruple surrounded by two different digits",
+    "score": 137174,
+    "odds": "1 / 1,372",
+    "rarity": "epic"
+  },
+  {
+    "label": "Framed Triple",
+    "description": "A triple surrounded by two different digits",
+    "score": 137174,
+    "odds": "1 / 1,372",
+    "rarity": "epic"
+  },
+  {
+    "label": "Full Day",
+    "description": "Seconds in one day",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Full House",
+    "description": "A triple and a pair",
+    "score": 2397,
+    "odds": "1 / 24",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Funny Number",
+    "description": "A very specific crossover",
+    "score": 50000050,
+    "odds": "1 / 500,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Funny Numbers",
+    "description": "Contains both 69 and 420",
+    "score": 1666668,
+    "odds": "1 / 16,667",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "Gap One",
+    "description": "First and last differ by one",
+    "score": 529,
+    "odds": "1 / 5",
+    "rarity": "common"
+  },
+  {
+    "label": "Ghost",
+    "description": "Contains exactly one zero",
+    "score": 309,
+    "odds": "1 / 3",
+    "rarity": "common"
+  },
+  {
+    "label": "Golden Ratio",
+    "description": "The opening digits of φ",
+    "score": 33333367,
+    "odds": "1 / 333,334",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Grounded",
+    "description": "Last digit is higher than the first",
+    "score": 250,
+    "odds": "1 / 3",
+    "rarity": "common"
+  },
+  {
+    "label": "Groundhog Day",
+    "description": "The same day, again",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Harshad Number",
+    "description": "Divisible by its digit sum",
+    "score": 1048,
+    "odds": "1 / 10",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Heavy",
+    "description": "Digit sum is at least 45",
+    "score": 33300,
+    "odds": "1 / 333",
+    "rarity": "rare"
+  },
+  {
+    "label": "Helium",
+    "description": "Contains exactly one 2",
+    "score": 282,
+    "odds": "1 / 3",
+    "rarity": "common"
+  },
+  {
+    "label": "Hell",
+    "description": "Contains 7734",
+    "score": 333334,
+    "odds": "1 / 3,333",
+    "rarity": "epic"
+  },
+  {
+    "label": "Hello",
+    "description": "HELLO on an upside-down calculator",
+    "score": 11111122,
+    "odds": "1 / 111,111",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Heterogeneous",
+    "description": "Every digit is unique",
+    "score": 593,
+    "odds": "1 / 6",
+    "rarity": "common"
+  },
+  {
+    "label": "High Roller",
+    "description": "Only high digits, five through nine",
+    "score": 5120,
+    "odds": "1 / 51",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Hills",
+    "description": "Digits alternate up and down",
+    "score": 733,
+    "odds": "1 / 7",
+    "rarity": "common"
+  },
+  {
+    "label": "Homogeneous",
+    "description": "Every digit is the same",
+    "score": 2222224,
+    "odds": "1 / 22,222",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "Hopscotch",
+    "description": "A digit repeats two places later",
+    "score": 312,
+    "odds": "1 / 3",
+    "rarity": "common"
+  },
+  {
+    "label": "Hotbox",
+    "description": "Double 420",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Hydrogen",
+    "description": "Contains exactly one 1",
+    "score": 282,
+    "odds": "1 / 3",
+    "rarity": "common"
+  },
+  {
+    "label": "Infernal",
+    "description": "Six sixes",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Jackpot",
+    "description": "Contains 777",
+    "score": 27027,
+    "odds": "1 / 270",
+    "rarity": "rare"
+  },
+  {
+    "label": "Jackpot Five",
+    "description": "Five sevens in a row",
+    "score": 5263163,
+    "odds": "1 / 52,632",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "Jackpot Four",
+    "description": "Four sevens in a row",
+    "score": 357143,
+    "odds": "1 / 3,571",
+    "rarity": "epic"
+  },
+  {
+    "label": "Jackpot Six",
+    "description": "A double jackpot",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Leet",
+    "description": "Contains 1337",
+    "score": 333334,
+    "odds": "1 / 3,333",
+    "rarity": "epic"
+  },
+  {
+    "label": "Liftoff",
+    "description": "First digit is higher than the last",
+    "score": 200,
+    "odds": "1 / 2",
+    "rarity": "common"
+  },
+  {
+    "label": "Lithium",
+    "description": "Contains exactly one 3",
+    "score": 282,
+    "odds": "1 / 3",
+    "rarity": "common"
+  },
+  {
+    "label": "Low Ball",
+    "description": "Only low digits, zero through four",
+    "score": 6400,
+    "odds": "1 / 64",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Lucky Seven",
+    "description": "Contains at least one seven",
+    "score": 213,
+    "odds": "1 / 2",
+    "rarity": "common"
+  },
+  {
+    "label": "Lucky Seven (Divisible)",
+    "description": "Divisible by seven",
+    "score": 700,
+    "odds": "1 / 7",
+    "rarity": "common"
+  },
+  {
+    "label": "Mayday",
+    "description": "Emergency, repeated",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Meaning of Life",
+    "description": "Contains 42",
+    "score": 2024,
+    "odds": "1 / 20",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Mesa",
+    "description": "Climb, plateau allowed, then descent",
+    "score": 1568,
+    "odds": "1 / 16",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Metronome",
+    "description": "Chunks form an arithmetic sequence",
+    "score": 17784,
+    "odds": "1 / 178",
+    "rarity": "rare"
+  },
+  {
+    "label": "Millennium",
+    "description": "Ends in 000",
+    "score": 100000,
+    "odds": "1 / 1,000",
+    "rarity": "epic"
+  },
+  {
+    "label": "Mini Echo",
+    "description": "A two-digit sequence repeats",
+    "score": 3704,
+    "odds": "1 / 37",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Mini Scramble",
+    "description": "A short span rearranges into consecutive digits",
+    "score": 579,
+    "odds": "1 / 6",
+    "rarity": "common"
+  },
+  {
+    "label": "Mirror Bookends",
+    "description": "Mirrored two-digit bookends",
+    "score": 10010,
+    "odds": "1 / 100",
+    "rarity": "rare"
+  },
+  {
+    "label": "Mountain",
+    "description": "Strict climb, then descent",
+    "score": 5885,
+    "odds": "1 / 59",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Neighbors",
+    "description": "Contains two neighboring values",
+    "score": 161,
+    "odds": "1 / 2",
+    "rarity": "common"
+  },
+  {
+    "label": "Nice",
+    "description": "Contains 69",
+    "score": 2024,
+    "odds": "1 / 20",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Nine",
+    "description": "The number nine",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Nitrogen",
+    "description": "Contains exactly one 7",
+    "score": 282,
+    "odds": "1 / 3",
+    "rarity": "common"
+  },
+  {
+    "label": "Not Found",
+    "description": "The web's most famous error",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Odd",
+    "description": "An odd number",
+    "score": 200,
+    "odds": "1 / 2",
+    "rarity": "common"
+  },
+  {
+    "label": "One",
+    "description": "The number one",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Orientation",
+    "description": "Contains 101",
+    "score": 25006,
+    "odds": "1 / 250",
+    "rarity": "rare"
+  },
+  {
+    "label": "Orwellian",
+    "description": "Big Brother is watching",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Ouroboros",
+    "description": "A number raised to itself",
+    "score": 14285729,
+    "odds": "1 / 142,857",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Oxygen",
+    "description": "Contains exactly one 8",
+    "score": 282,
+    "odds": "1 / 3",
+    "rarity": "common"
+  },
+  {
+    "label": "Pair",
+    "description": "At least one repeated digit",
+    "score": 120,
+    "odds": "1 / 1",
+    "rarity": "common"
+  },
+  {
+    "label": "Paired Bookends",
+    "description": "A pair at both ends",
+    "score": 11122,
+    "odds": "1 / 111",
+    "rarity": "rare"
+  },
+  {
+    "label": "Palindrome",
+    "description": "Reads the same both ways",
+    "score": 50025,
+    "odds": "1 / 500",
+    "rarity": "rare"
+  },
+  {
+    "label": "Pi",
+    "description": "The opening digits of π",
+    "score": 25000025,
+    "odds": "1 / 250,000",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Pi Slice (3)",
+    "description": "Contains 314",
+    "score": 25006,
+    "odds": "1 / 250",
+    "rarity": "rare"
+  },
+  {
+    "label": "Pi Slice (4)",
+    "description": "Contains 3141",
+    "score": 333334,
+    "odds": "1 / 3,333",
+    "rarity": "epic"
+  },
+  {
+    "label": "Pi Slice (5)",
+    "description": "Five digits of π",
+    "score": 5000005,
+    "odds": "1 / 50,000",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "Pocket Mirror",
+    "description": "Contains a four- or five-digit palindrome",
+    "score": 2124,
+    "odds": "1 / 21",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Power of Five",
+    "description": "An exact power of 5",
+    "score": 11111122,
+    "odds": "1 / 111,111",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Power of Seven",
+    "description": "An exact power of 7",
+    "score": 12500013,
+    "odds": "1 / 125,000",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Power of Three",
+    "description": "An exact power of 3",
+    "score": 7692315,
+    "odds": "1 / 76,923",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "Power of Two",
+    "description": "An exact power of 2",
+    "score": 5000005,
+    "odds": "1 / 50,000",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "Prime Number",
+    "description": "Divisible only by one and itself",
+    "score": 1274,
+    "odds": "1 / 13",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Pronic Number",
+    "description": "A product of consecutive integers",
+    "score": 100000,
+    "odds": "1 / 1,000",
+    "rarity": "epic"
+  },
+  {
+    "label": "Quad Nine",
+    "description": "Ends in 9999",
+    "score": 1000001,
+    "odds": "1 / 10,000",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "Quarter-Century",
+    "description": "Ends in 25",
+    "score": 10000,
+    "odds": "1 / 100",
+    "rarity": "rare"
+  },
+  {
+    "label": "Quartet",
+    "description": "Exactly four distinct digits",
+    "score": 290,
+    "odds": "1 / 3",
+    "rarity": "common"
+  },
+  {
+    "label": "Quint Nine",
+    "description": "Ends in 99999",
+    "score": 10000010,
+    "odds": "1 / 100,000",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Rhyme",
+    "description": "A longer sequence repeats",
+    "score": 1872,
+    "odds": "1 / 19",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Royal Flush",
+    "description": "Five rising digits",
+    "score": 5000005,
+    "odds": "1 / 50,000",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "Scramble",
+    "description": "Consecutive integers mixed out of order",
+    "score": 22722,
+    "odds": "1 / 227",
+    "rarity": "rare"
+  },
+  {
+    "label": "Secret Agent",
+    "description": "Contains 007",
+    "score": 34614,
+    "odds": "1 / 346",
+    "rarity": "rare"
+  },
+  {
+    "label": "Semi-Century",
+    "description": "Ends in 50",
+    "score": 10000,
+    "odds": "1 / 100",
+    "rarity": "rare"
+  },
+  {
+    "label": "Semi-Clean",
+    "description": "Ends in five",
+    "score": 1000,
+    "odds": "1 / 10",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Semi-Eon",
+    "description": "Ends in 50000",
+    "score": 10000010,
+    "odds": "1 / 100,000",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Semi-Epoch",
+    "description": "Ends in 5000",
+    "score": 1000001,
+    "odds": "1 / 10,000",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "Semi-Millennium",
+    "description": "Ends in 500",
+    "score": 100000,
+    "odds": "1 / 1,000",
+    "rarity": "epic"
+  },
+  {
+    "label": "Sequence (3)",
+    "description": "Three consecutive digits",
+    "score": 1716,
+    "odds": "1 / 17",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Sequence (4)",
+    "description": "Four consecutive digits",
+    "score": 25907,
+    "odds": "1 / 259",
+    "rarity": "rare"
+  },
+  {
+    "label": "Sequence (6)",
+    "description": "Six consecutive digits",
+    "score": 11111122,
+    "odds": "1 / 111,111",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Seven",
+    "description": "The number seven",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Single Digit",
+    "description": "The whole number is one digit",
+    "score": 10000010,
+    "odds": "1 / 100,000",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Six",
+    "description": "The number six",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Six Digits",
+    "description": "6 digits long",
+    "score": 111,
+    "odds": "1 / 1",
+    "rarity": "common"
+  },
+  {
+    "label": "Six-Seven",
+    "description": "Contains 67",
+    "score": 2024,
+    "odds": "1 / 20",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Slopes",
+    "description": "Digits never increase",
+    "score": 12582,
+    "odds": "1 / 126",
+    "rarity": "rare"
+  },
+  {
+    "label": "Snake Eyes",
+    "description": "Exactly two ones",
+    "score": 2121,
+    "odds": "1 / 21",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Spy Number",
+    "description": "Digit sum equals digit product",
+    "score": 1030929,
+    "odds": "1 / 10,309",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "Steps",
+    "description": "Digits never decrease",
+    "score": 20202,
+    "odds": "1 / 202",
+    "rarity": "rare"
+  },
+  {
+    "label": "Straight",
+    "description": "Five consecutive digits",
+    "score": 454546,
+    "odds": "1 / 4,545",
+    "rarity": "epic"
+  },
+  {
+    "label": "Straight Flush",
+    "description": "Five consecutive same-parity digits",
+    "score": 1449277,
+    "odds": "1 / 14,493",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "Strobogrammatic",
+    "description": "Looks the same upside down",
+    "score": 502513,
+    "odds": "1 / 5,025",
+    "rarity": "epic"
+  },
+  {
+    "label": "Tau Slice (4)",
+    "description": "Contains 6283",
+    "score": 333334,
+    "odds": "1 / 3,333",
+    "rarity": "epic"
+  },
+  {
+    "label": "Tau Slice (5)",
+    "description": "Five digits of τ",
+    "score": 5000005,
+    "odds": "1 / 50,000",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "The Fabled One Million",
+    "description": "The only seven-digit result",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Three",
+    "description": "The number three",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Three Digits",
+    "description": "3 digits long",
+    "score": 111111,
+    "odds": "1 / 1,111",
+    "rarity": "epic"
+  },
+  {
+    "label": "Three of a Kind",
+    "description": "Three matching digits",
+    "score": 724,
+    "odds": "1 / 7",
+    "rarity": "common"
+  },
+  {
+    "label": "Three Pair",
+    "description": "Three different pairs",
+    "score": 10288,
+    "odds": "1 / 103",
+    "rarity": "rare"
+  },
+  {
+    "label": "Three-Quarter-Century",
+    "description": "Ends in 75",
+    "score": 10000,
+    "odds": "1 / 100",
+    "rarity": "rare"
+  },
+  {
+    "label": "Trinity",
+    "description": "Exactly three distinct digits",
+    "score": 1265,
+    "odds": "1 / 13",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Triple Nine",
+    "description": "Ends in 999",
+    "score": 100000,
+    "odds": "1 / 1,000",
+    "rarity": "epic"
+  },
+  {
+    "label": "Turtle",
+    "description": "Neighboring digits stay within one",
+    "score": 36049,
+    "odds": "1 / 360",
+    "rarity": "rare"
+  },
+  {
+    "label": "Two",
+    "description": "The number two",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Two Digits",
+    "description": "2 digits long",
+    "score": 1111112,
+    "odds": "1 / 11,111",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "Two Pair",
+    "description": "Two different pairs",
+    "score": 377,
+    "odds": "1 / 4",
+    "rarity": "common"
+  },
+  {
+    "label": "Universal Answer",
+    "description": "The answer, repeated",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Valley",
+    "description": "Strict descent, then climb",
+    "score": 4199,
+    "odds": "1 / 42",
+    "rarity": "uncommon"
+  },
+  {
+    "label": "Very Nice",
+    "description": "Contains 6969",
+    "score": 334448,
+    "odds": "1 / 3,344",
+    "rarity": "epic"
+  },
+  {
+    "label": "Very Very Nice",
+    "description": "Nice, three times",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Void",
+    "description": "Contains no zeroes",
+    "score": 167,
+    "odds": "1 / 2",
+    "rarity": "common"
+  },
+  {
+    "label": "Waterfall",
+    "description": "Every digit falls by one",
+    "score": 2857146,
+    "odds": "1 / 28,571",
+    "rarity": "anomaly"
+  },
+  {
+    "label": "Yes",
+    "description": "The opening digits of τ",
+    "score": 33333367,
+    "odds": "1 / 333,334",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Zero",
+    "description": "The number zero",
+    "score": 100000100,
+    "odds": "1 / 1,000,001",
+    "rarity": "mythic"
+  },
+  {
+    "label": "Zipper",
+    "description": "Two alternating digits",
+    "score": 246914,
+    "odds": "1 / 2,469",
+    "rarity": "epic"
+  }
+]

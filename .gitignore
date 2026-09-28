@@ -1,0 +1,7 @@
+node_modules/
+.amp/in/
+*.jpg
+/ui-*.png
+npm-debug.log*
+.DS_Store
+Thumbs.db

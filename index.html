@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#08060d" />
+    <meta name="description" content="Roll a number. Discover everything hiding inside it." />
+    <title>NUMBER//ZERO</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="noise" aria-hidden="true"></div>
+    <div class="ambient-orbs" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="roll-atmosphere" aria-hidden="true"><i></i><i></i><i></i></div>
+    <main class="game-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Number Zero home">NUMBER<span>//</span>ZERO</a>
+        <p class="strapline">A MILLION POSSIBILITIES. ZERO PRESSURE.</p>
+        <div class="fairness"><i></i><span>FAIR ROLL</span><strong>0–1,000,000</strong></div>
+        <div class="global-wallet"><span>BALANCE</span><strong id="global-balance">0.00 CR</strong></div>
+      </header>
+
+      <nav class="mode-tabs" aria-label="Play mode" role="tablist">
+        <button class="active" type="button" role="tab" aria-selected="true" data-mode="sandbox"><span>01</span><strong>SANDBOX</strong><small>Free million-number rolls</small></button>
+        <button type="button" role="tab" aria-selected="false" data-mode="store"><span>02</span><strong>CASE STORE</strong><small>Buy unopened cases</small></button>
+        <button type="button" role="tab" aria-selected="false" data-mode="inventory"><span>03</span><strong>INVENTORY</strong><small>Open cases and capsules</small></button>
+        <button type="button" role="tab" aria-selected="false" data-mode="duel"><span>04</span><strong>CASE BATTLES</strong><small>Classic, Crazy, Clutch, Terminal + Share</small></button>
+      </nav>
+
+      <section class="opening-context" id="opening-context" hidden>
+        <button id="back-inventory" type="button">← INVENTORY</button>
+        <div class="opening-item-art"><i></i><img id="opening-icon" src="assets/icons/1f3c5.png" alt="" /></div>
+        <div><p class="kicker">DEDICATED OPENING CHAMBER</p><h1 id="opening-trait">TRAIT CAPSULE</h1><p id="opening-description">Your restricted number pool is ready.</p></div>
+        <div class="opening-wallet"><span>BALANCE</span><strong id="opening-balance">0.00</strong><small id="opening-payout-status">AUTO-PAYOUT READY</small></div>
+      </section>
+
+      <section class="machine" id="machine" aria-labelledby="machine-title">
+        <div class="eyebrow" id="machine-title"><span>◈ GLOBAL SIGNAL</span><span class="online">● ONLINE</span></div>
+        <div class="play-grid">
+          <aside class="stats-panel" aria-label="Game statistics">
+            <div><span>Total rolls</span><strong id="total-rolls">0</strong></div>
+            <div><span>Best score</span><strong id="best-score">0</strong></div>
+            <div><span>Badges found</span><strong id="badge-count">0</strong></div>
+          </aside>
+
+          <div class="stage">
+            <div class="reels" id="reels" aria-live="polite" aria-label="Rolled number">
+              <div class="reel"><span>0</span></div><div class="reel"><span>0</span></div>
+              <div class="reel"><span>0</span></div><div class="reel"><span>0</span></div>
+              <div class="reel"><span>0</span></div><div class="reel"><span>0</span></div>
+              <div class="reel reel-hidden" aria-hidden="true"><span>0</span></div>
+            </div>
+            <div class="number-caption"><span id="status-text">SIGNAL READY</span><span id="score-preview">PURE CHANCE</span></div>
+            <button class="roll-button" id="roll-button" type="button">
+              <span class="button-copy">ROLL NUMBER</span><span class="button-arrow">→</span>
+            </button>
+          </div>
+
+          <aside class="controls-panel" aria-label="Game options">
+            <button id="sound-toggle" class="control" type="button" aria-pressed="true"><span>◖))</span><b>Sound<small>On</small></b></button>
+            <button id="music-toggle" class="control" type="button" aria-pressed="true"><span>♫</span><b>Music<small>Ambient</small></b></button>
+            <button id="motion-toggle" class="control" type="button" aria-pressed="false"><span>◉</span><b>Fast reveal<small>Off</small></b></button>
+          </aside>
+        </div>
+      </section>
+
+      <section class="economy" id="case-bay" aria-labelledby="cases-title" hidden>
+        <div class="economy-head">
+          <div><p class="kicker">435 CASES · 13 COLLECTIONS · FULLY AUDITED</p><h1 id="cases-title">CASE//DISTRICT</h1><p>Explore 100 new variable-pool cases across the existing collections—from focused 3-item quickdraws to chaotic 24-item gauntlets—plus High Roller, Maximum Volatility, and Caseception specials.</p></div>
+          <div class="wallet"><span>YOUR BALANCE</span><strong id="credit-balance">0.00</strong><small>CREDITS</small></div>
+          <button class="daily-roll" id="daily-roll" type="button"><span>DAILY SIGNAL</span><strong>ROLL FOR 15K–25K</strong><small id="daily-status">AVAILABLE NOW</small></button>
+        </div>
+        <article class="featured-case" id="featured-case"></article>
+        <div class="catalog-bar">
+          <div class="category-chips" id="category-chips" aria-label="Case categories"></div>
+          <label class="case-search"><span>⌕</span><input id="case-search" type="search" placeholder="Search 435 cases…" /></label>
+          <select id="case-sort" aria-label="Sort cases"><option value="featured">Featured</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option><option value="risk">Risk: low to high</option></select>
+        </div>
+        <div class="catalog-status"><strong id="catalog-count">435 CASES</strong><span>SELECT A CASE TO INSPECT ITS COMPLETE TWO-STAGE ODDS</span></div>
+        <div class="catalog-layout">
+          <div class="case-grid" id="case-grid" aria-label="Cases"></div>
+          <aside class="case-detail" id="case-detail" aria-live="polite"></aside>
+        </div>
+        <div class="case-creator-bar"><div><strong>COMMUNITY CASE LAB</strong><span>Add any number of trait outcomes or import a case file. Every result pays the same fixed linear rate: 1,000 EP = 1 CR.</span></div><button id="case-builder-open" type="button">+ CREATE CASE</button><button id="case-import-open" type="button">↑ IMPORT JSON</button><input id="case-import-file" type="file" accept="application/json,.json" hidden /></div>
+        <div class="economy-note"><span>◇ 2% BONUS → GOLD SPIN OR CASE-INSIDE-A-CASE</span><span>98% MODELED RTP</span><span>VIRTUAL CREDITS · NO CASH VALUE</span></div>
+      </section>
+
+      <section class="inventory" id="inventory-panel" hidden aria-labelledby="inventory-title">
+        <div class="inventory-head">
+          <div><p class="kicker">YOUR COLLECTION</p><h1 id="inventory-title">CASE INVENTORY</h1><p>Opening a sealed case now flows straight from the trait draw into its restricted number roll.</p></div>
+          <div class="inventory-metrics"><div class="inventory-count"><strong id="inventory-count">0</strong><span>ITEMS</span></div><div class="inventory-balance"><strong id="inventory-balance">0.00</strong><span>CREDITS</span></div></div>
+        </div>
+        <div class="inventory-grid" id="inventory-grid"></div>
+        <button class="store-link" type="button" data-go-store>+ BUY MORE CASES</button>
+      </section>
+
+      <section class="duel" id="duel-panel" hidden aria-labelledby="duel-title">
+        <div class="duel-head"><p class="kicker">LIVE BOT ARENA · WINNER TAKES THE VIRTUAL POT</p><h1 id="duel-title">CASE//BATTLES</h1><p>Enter an audited case sequence against verified house bots. Gold Coins and Caseception inner cases trigger their own visible bonus spins inside each player's live lane.</p></div>
+        <div class="battle-creation-wizard" id="battle-creator">
+          <div class="creation-checkout-banner">
+            <div class="checkout-selection"><span>SELECTED CASE LOOP</span><div class="checkout-case-accumulator" id="battle-case-accumulator"></div></div>
+            <div class="checkout-total"><span>TOTAL COST</span><strong id="battle-creator-total">0.00 CR</strong><small id="battle-creator-rounds">0 ROUNDS</small></div>
+            <button id="duel-start" type="button">LAUNCH BATTLE <span>→</span></button>
+          </div>
+          <div class="creation-filter-row">
+            <label class="search-input-wrapper"><span>⌕</span><input id="battle-case-search" type="search" placeholder="Search the case registry…" /></label>
+            <select id="battle-price-filter" aria-label="Filter cases by price"><option value="all">All prices</option><option value="starter">Starter · under 500 CR</option><option value="low">Low · 500–1K CR</option><option value="mid">Mid · 1K–5K CR</option><option value="high">High · 5K–20K CR</option><option value="elite">Elite · 20K+ CR</option></select>
+            <select id="battle-mode" aria-label="Battle mode"><option value="classic">Classic · highest total</option><option value="crazy">Crazy · lowest total</option><option value="clutch">Clutch · best single pull</option><option value="terminal">Terminal · final pull wins</option><option value="share">Share · split all winnings</option></select>
+            <select id="battle-bots" aria-label="Battle format"><option value="1">1v1 · solo</option><option value="2">1v1v1 · 3-way</option><option value="3">1v1v1v1 · 4-way</option><option value="2v2">2v2 · teams</option><option value="3v3">3v3 · teams</option><option value="2v2v2">2v2v2 · three teams</option></select>
+            <select id="battle-speed-select" aria-label="Battle speed"><option value="standard">Standard speed</option><option value="turbo">Fast speed</option></select>
+            <button id="battle-clear-cases" type="button">CLEAR</button>
+          </div>
+          <div class="creator-selection-grid" id="battle-case-grid" aria-label="Cases available for this battle"></div>
+          <dialog class="battle-case-inspector" id="battle-case-inspector"><button class="battle-inspector-close" type="button" aria-label="Close case details">×</button><div id="battle-case-inspector-content"></div></dialog>
+          <select id="battle-case" hidden aria-hidden="true"></select><select id="duel-length" hidden aria-hidden="true"><option value="1">1</option><option value="3" selected>3</option><option value="5">5</option><option value="10">10</option></select>
+        </div>
+        <div class="battle-live-shell" id="battle-live-shell" hidden>
+          <div class="battle-active-header">
+            <div class="battle-round-counter"><span class="label">MATCH PROGRESS</span><strong class="count" id="battle-round-count">ROUND 0 / 0</strong><small id="battle-current-case">WAITING FOR PLAYERS</small></div>
+            <div class="battle-cases-timeline" id="battle-cases-timeline" aria-label="Battle case timeline"></div>
+            <div class="battle-header-total"><span>TOTAL CASE VALUE</span><strong id="battle-sequence-total">0.00 CR</strong></div>
+          </div>
+          <div class="battle-winner-banner" id="battle-winner-banner" hidden><span id="battle-winner-kicker">BATTLE COMPLETE</span><strong id="battle-winner-title">WINNER</strong><p id="battle-winner-roster"></p><b id="battle-winner-payout">0.00 CR POT</b><small id="battle-winner-credit">SETTLEMENT COMPLETE</small><button id="battle-new" type="button">RETURN TO BATTLE MENU</button></div>
+          <div class="battle-command"><div><span>ROUND</span><strong id="duel-round">CONFIGURE THE BATTLE</strong></div><div><span>LIVE POT</span><strong id="battle-pot">0.00 CR</strong></div><div><span>MODE</span><strong id="battle-mode-live">—</strong></div><div><span>SPEED</span><strong id="battle-speed">STANDARD</strong></div><div class="battle-wallet"><span>YOUR CREDITS</span><strong id="battle-balance">0.00 CR</strong></div></div>
+          <div class="battle-ledger"><span>ENTRY <b id="battle-entry">—</b></span><span>SETTLEMENT <b>AUTOMATIC</b></span><span>WINS · YOU <b id="duel-wins-1">0</b>—<b id="duel-wins-2">0</b> BOT</span></div>
+          <div class="duel-arena" id="duel-arena"></div>
+          <div class="battle-feed"><header><span>ARENA FEED</span><b id="battle-status">OFFLINE</b></header><div id="battle-feed" aria-live="polite"><p><b>SYSTEM</b> Configure a battle to enter the arena.</p></div></div>
+          <button class="duel-roll" id="duel-roll" type="button" disabled>AUTO-ROUND ENGINE IDLE <span>⚡</span></button>
+        </div>
+      </section>
+
+      <section class="rewards" id="rewards-panel" aria-labelledby="rewards-title">
+        <div class="section-heading">
+          <div><p class="kicker">RESULT ANALYSIS</p><h1 id="rewards-title">BADGE SIGNAL</h1></div>
+          <p id="result-summary">Roll a number to scan it for patterns.</p>
+        </div>
+        <div class="number-rarity-result" id="number-rarity" hidden aria-live="polite"></div>
+        <div class="badge-grid" id="badge-grid" aria-live="polite">
+          <div class="empty-state"><span>◇</span><p>Every number has a story.<br />Yours is waiting.</p></div>
+        </div>
+      </section>
+
+      <section class="rarity-key" aria-label="Rarity levels">
+        <span>BADGE RARITY</span>
+        <ol><li class="common">Common</li><li class="uncommon">Uncommon</li><li class="rare">Rare</li><li class="epic">Epic</li><li class="anomaly">Anomaly</li><li class="mythic">Mythic</li></ol>
+        <button id="odds-button" type="button">HOW IT WORKS +</button>
+      </section>
+
+      <dialog id="odds-dialog">
+        <button class="dialog-close" type="button" aria-label="Close">×</button>
+        <p class="kicker">RARITY GUIDE</p><h2>HOW RARE WAS YOUR ROLL?</h2>
+        <p>In Sandbox, every integer from 0 through 1,000,000 has exactly the same chance: <strong>1 in 1,000,001</strong>. Badges do not change your roll—they simply spot patterns in the number you already got. Trait Cases use their disclosed restricted pools instead.</p>
+        <section class="rarity-guide-section">
+          <h3>NUMBER RARITY</h3><p>Your roll’s overall rarity is based on its total EP compared with all 1,000,001 possible rolls.</p>
+          <ul class="rarity-table number-scale"><li><b>Trash</b><span>Bottom 1%</span></li><li><b>Common</b><span>Bottom 50%</span></li><li><b>Uncommon</b><span>Top 50–25%</span></li><li><b>Rare</b><span>Top 25–10%</span></li><li><b>Epic</b><span>Top 10–5%</span></li><li><b>Anomaly</b><span>Top 5–1%</span></li><li><b>Mythic</b><span>Top 1%</span></li></ul>
+        </section>
+        <section class="rarity-guide-section">
+          <h3>BADGE RARITY</h3><p>Each badge’s tier is based on how often that individual pattern appears. Rarer badges award more EP.</p>
+          <ul class="rarity-table"><li><b>Common</b><span>&gt;10% of rolls</span></li><li><b>Uncommon</b><span>1–10%</span></li><li><b>Rare</b><span>0.1–1%</span></li><li><b>Epic</b><span>0.01–0.1%</span></li><li><b>Anomaly</b><span>0.001–0.01%</span></li><li><b>Mythic</b><span>&lt;0.001% · 1 in 100,000+</span></li></ul>
+        </section>
+        <section class="rarity-guide-section">
+          <h3>TRAIT CASES</h3><p>Each built-in case has a distinct theme and audited pool. Exactly 20,000 of 1,000,001 trigger values start a second spin: standard cases use a Gold Coin, while the 10 Caseception specials open a separately weighted four-trait inner case. Both paths are included in the displayed final odds and fair price. Every 1,000 EP always pays 1 CR.</p>
+        </section>
+        <section class="rarity-guide-section">
+          <h3>CASE BATTLES</h3><p>Every player opens the selected case each round and the combined virtual payout forms the winner’s pot. Gold Coins and inner cases visibly trigger their appropriate bonus lane before scoring continues. Classic uses cumulative EP, Crazy rewards the lower cumulative EP, Clutch uses each player’s best single pull, and Terminal uses only the final pull.</p>
+        </section>
+        <p class="dialog-note">Badges stack. The machine begins with six reels; leading zeroes vanish after landing, and the seventh reel appears only for 1,000,000.</p>
+      </dialog>
+      <dialog id="admin-dialog" class="admin-dialog">
+        <button class="admin-close" type="button" aria-label="Close">×</button>
+        <div class="admin-title"><div><p class="kicker">LOCAL OPERATIONS · F1</p><h2>CONTROL//ROOM</h2></div><span>● LOCAL SESSION</span></div>
+        <div class="admin-dashboard"><div class="admin-balance"><span>VIRTUAL BALANCE</span><strong id="admin-balance">0.00</strong><small>CREDITS · NO CASH VALUE</small></div><div class="admin-live-stats"><span>ROLLS<b id="admin-rolls">0</b></span><span>CASES<b id="admin-cases">0</b></span><span>INVENTORY<b id="admin-inventory">0</b></span><span>AUTO PAY<b>ON</b></span></div></div>
+        <section class="admin-section"><header><strong>BALANCE TOOLS</strong><span>Adjust this local browser profile</span></header><div class="admin-credit-row"><input id="admin-credit-amount" aria-label="Credits to add" type="number" min="1" step="1000" value="10000" /><button class="admin-add" id="admin-add-credits" type="button">ADD CREDITS</button></div><div class="admin-presets"><button type="button" data-admin-credit="1000">+1K</button><button type="button" data-admin-credit="10000">+10K</button><button type="button" data-admin-credit="100000">+100K</button><button type="button" data-admin-credit="1000000">+1M</button></div></section>
+        <section class="admin-section"><header><strong>OPENING TEST LAB</strong><span>Configure the next sealed case</span></header><div class="admin-case-row"><select id="admin-case-select" aria-label="Case to grant"></select><button id="admin-grant-case" type="button">GRANT CASE</button></div><div class="admin-test-actions"><button id="admin-force-gold" type="button"><b>◇</b><span>FORCE BONUS<small>Gold or inner case</small></span></button><button id="admin-force-mythic" type="button"><b>◆</b><span>FORCE MYTHIC<small>Golden-tier item</small></span></button><button id="admin-reset-daily" type="button"><b>↻</b><span>RESET DAILY<small>Make reward available</small></span></button></div></section>
+        <section class="admin-section danger-zone"><header><strong>SESSION DATA</strong><span>Destructive local controls</span></header><div><button id="admin-clear-inventory" type="button">CLEAR INVENTORY</button><button id="admin-reset-profile" type="button">RESET ENTIRE PROFILE</button></div></section>
+        <p class="admin-status" id="admin-status">Controls affect this browser only. Nothing here has real-world value.</p>
+      </dialog>
+      <dialog id="case-builder-dialog" class="case-builder-dialog">
+        <button class="case-builder-close" type="button" aria-label="Close">×</button>
+        <p class="kicker">COMMUNITY CASE LAB</p><h2>BUILD A TRAIT CASE</h2>
+        <div class="builder-fields"><label>CASE NAME<input id="builder-name" maxlength="40" value="Community Cache" /></label><label>AUTO PRICE<input id="builder-cost" type="text" value="CALCULATING…" readonly /></label><label>ACCENT<input id="builder-accent" type="color" value="#53e7ff" /></label><label>CASE ART<select id="builder-image"><option value="assets/case-nano.png">Nano</option><option value="assets/case-signal.png" selected>Signal</option><option value="assets/case-nova.png">Nova</option><option value="assets/case-singularity.png">Singularity</option></select></label></div>
+        <div class="builder-help"><span>Add any trait, choose its display rarity, and enter the exact odds. Duplicate traits are allowed.</span><strong id="builder-odds-total">0% / 100%</strong></div>
+        <div class="builder-traits" id="builder-traits"></div>
+        <button class="builder-add-trait" id="builder-add-trait" type="button">+ ADD TRAIT OUTCOME</button>
+        <div class="builder-economy"><span>EXPECTED EP<strong id="builder-expected">—</strong></span><span>LINEAR RATE<strong id="builder-denominator">1,000 EP / CR</strong></span><span>MODELED RTP<strong>98.00%</strong></span></div>
+        <p class="builder-status" id="builder-status">Economy updates automatically from the selected number pools.</p>
+        <div class="builder-actions"><button id="builder-export" type="button">↓ DOWNLOAD JSON</button><button id="builder-save" type="button">CREATE & ADD TO STORE</button></div>
+      </dialog>
+    </main>
+    <div class="case-opening" id="case-opening" hidden aria-live="assertive"></div>
+    <div class="rare-trait-room" id="rare-trait-room" hidden aria-live="assertive"></div>
+    <div class="rarity-ceremony" id="rarity-ceremony" hidden aria-live="assertive"></div>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

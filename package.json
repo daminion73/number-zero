@@ -1,0 +1,15 @@
+{
+  "name": "number-zero",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "lucide-static": "^1.48.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.55.0"
+  }
+}
