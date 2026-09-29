@@ -2,6 +2,8 @@
 
 A polished browser-based number rolling and case-battle game with a linear virtual-credit economy.
 
+**Play online:** <https://daminion73.github.io/number-zero/>
+
 ## Features
 
 - One-million-number rolls with pattern badges and rarity analysis

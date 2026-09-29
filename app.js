@@ -921,6 +921,19 @@ function battleTeamName(teamIndex) {
   return members.length === 1 ? duelMatch.players[members[0]].username : `TEAM ${String.fromCharCode(65 + teamIndex)}`;
 }
 
+function renderBattleSettlementBreakdown(payout, sharing, winner) {
+  const playerCount = duelMatch.players.length;
+  const splitCount = sharing || winner < 0 ? playerCount : duelMatch.teams[winner].length;
+  const formula = sharing
+    ? `${formatCredits(duelMatch.payoutPot)} CR ÷ ${splitCount} PLAYERS = ${formatCredits(payout)} CR EACH`
+    : payout > 0
+    ? `${formatCredits(duelMatch.payoutPot)} CR ÷ ${splitCount} ${splitCount === 1 ? "WINNER" : sharing ? "PLAYERS" : "RECIPIENTS"} = ${formatCredits(payout)} CR ${sharing ? "EACH" : "TO YOU"}`
+    : `${formatCredits(duelMatch.payoutPot)} CR PAID TO ${battleTeamName(winner)}`;
+  const breakdown = $("#battle-settlement-breakdown");
+  breakdown.style.setProperty("--ledger-columns", playerCount === 4 ? 2 : Math.min(playerCount, 3));
+  breakdown.innerHTML = `<header><span>POT SOURCE LEDGER</span><b>${duelMatch.length} ROUND${duelMatch.length === 1 ? "" : "S"} · ${playerCount} PLAYERS</b></header><div>${duelMatch.players.map((player, index) => `<article class="${index === 0 ? "you" : ""}" style="--player:${BOT_COLORS[player.team % BOT_COLORS.length]}"><i>${index === 0 ? "Y" : `B${index}`}</i><span><strong>${escapeHtml(player.username)}</strong><small>${duelMatch.totals[index].toLocaleString()} TOTAL EP</small></span><b>+${formatCredits(duelMatch.contributions[index])} CR</b></article>`).join("")}</div><footer><span>SETTLEMENT FORMULA</span><strong>${formula}</strong></footer>`;
+}
+
 function battlePlayerMarkup(profile, index) {
   const playerNumber = index + 1;
   const isPlayer = index === 0;
@@ -1230,6 +1243,7 @@ async function runGroupBattle() {
   results.forEach((result, index) => {
     duelMatch.totals[index] += result.score;
     duelMatch.histories[index].push(result.score);
+    duelMatch.contributions[index] = Math.round((duelMatch.contributions[index] + result.payout) * 100) / 100;
     duelMatch.payoutPot = Math.round((duelMatch.payoutPot + result.payout) * 100) / 100;
   });
   await Promise.all([
@@ -1282,6 +1296,7 @@ async function runGroupBattle() {
     $("#battle-winner-title").textContent = sharing ? "POT SHARED" : winner < 0 ? "DRAW" : `${winnerName} WINS`;
     $("#battle-winner-roster").textContent = winnerRoster;
     $("#battle-winner-payout").textContent = `${formatCredits(duelMatch.payoutPot)} CR POT`;
+    renderBattleSettlementBreakdown(payout, sharing, winner);
     $("#battle-winner-credit").textContent = sharing ? `YOUR EQUAL SHARE · +${formatCredits(payout)} CR AUTO-PAID` : payout > 0 ? `+${formatCredits(payout)} CR AUTO-PAID TO YOU` : `${winnerName} CLAIMED THE FULL SETTLEMENT`;
     button.textContent = "BATTLE COMPLETE";
     ["#duel-start", "#battle-mode", "#battle-bots", "#battle-speed-select"].forEach((selector) => { $(selector).disabled = false; });
@@ -1315,7 +1330,7 @@ function startGroupBattle() {
   state.balance = Math.round((state.balance - entry) * 100) / 100;
   const bots = [...BOT_PROFILES].sort(() => Math.random() - .5).slice(0, botCount);
   const players = [{ username: "YOU", level: 37, badge: "NUMBER HUNTER" }, ...bots].map((player, index) => ({ ...player, team: format.teams.findIndex((members) => members.includes(index)) }));
-  duelMatch = { cases, caseItem, format, teams: format.teams, mode: $("#battle-mode").value, length, round: 0, totals: Array(players.length).fill(0), histories: Array.from({ length: players.length }, () => []), payoutPot: 0, active: false, joining: true, settled: false, turbo: $("#battle-speed-select").value === "turbo", players };
+  duelMatch = { cases, caseItem, format, teams: format.teams, mode: $("#battle-mode").value, length, round: 0, totals: Array(players.length).fill(0), histories: Array.from({ length: players.length }, () => []), contributions: Array(players.length).fill(0), payoutPot: 0, active: false, joining: true, settled: false, turbo: $("#battle-speed-select").value === "turbo", players };
   document.body.classList.add("battle-focus");
   $("#battle-creator").hidden = true;
   $("#battle-live-shell").hidden = false;

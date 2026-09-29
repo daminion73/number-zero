@@ -1729,11 +1729,26 @@ body.battle-focus { overflow: hidden; }
 .battle-winner-banner::after { inset: 18px; border: 1px solid color-mix(in srgb, var(--winner) 35%, #26333d); clip-path: polygon(0 0, 90px 0, 90px 2px, 2px 2px, 2px 90px, 0 90px, 0 0, 100% 0, 100% 90px, calc(100% - 2px) 90px, calc(100% - 2px) 2px, calc(100% - 90px) 2px, calc(100% - 90px) 0, 100% 0, 100% 100%, calc(100% - 90px) 100%, calc(100% - 90px) calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) calc(100% - 90px), 100% calc(100% - 90px), 100% 100%, 0 100%, 0 calc(100% - 90px), 2px calc(100% - 90px), 2px calc(100% - 2px), 90px calc(100% - 2px), 90px 100%, 0 100%); }
 .battle-winner-banner > * { position: relative; z-index: 1; }
 .battle-winner-banner > span { color: var(--winner); font-size: 9px; letter-spacing: .34em; text-shadow: 0 0 18px var(--winner); }
-.battle-winner-banner > strong { margin: 14px 0 5px; font-size: clamp(48px, 8vw, 110px); letter-spacing: -.025em; text-shadow: 0 0 45px color-mix(in srgb, var(--winner) 55%, transparent), 0 10px 35px #000; }
+.battle-winner-banner > strong { margin: 10px 0 3px; font-size: clamp(44px, 6vw, 76px); letter-spacing: -.025em; text-shadow: 0 0 45px color-mix(in srgb, var(--winner) 55%, transparent), 0 10px 35px #000; }
 .battle-winner-banner p { color: #b1bdc5; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
-.battle-winner-banner > b { position: relative; top: auto; right: auto; margin-top: 28px; color: var(--winner); font-size: clamp(58px, 10vw, 150px); line-height: .82; letter-spacing: -.04em; transform: none; text-shadow: 0 0 55px color-mix(in srgb, var(--winner) 60%, transparent), 0 12px 45px #000; }
-.battle-winner-banner > small { margin-top: 22px; color: white; font-size: 9px; font-weight: 800; letter-spacing: .2em; }
-.battle-winner-banner > button { min-width: 270px; margin-top: 28px; padding: 14px 22px; border: 1px solid var(--winner); border-radius: 4px; color: #071005; cursor: pointer; background: var(--winner); box-shadow: 0 0 28px color-mix(in srgb, var(--winner) 32%, transparent); font-size: 9px; font-weight: 900; letter-spacing: .12em; }
+.battle-winner-banner > b { position: relative; top: auto; right: auto; margin-top: 18px; color: var(--winner); font-size: clamp(46px, 7vw, 88px); line-height: .82; letter-spacing: -.04em; transform: none; text-shadow: 0 0 55px color-mix(in srgb, var(--winner) 60%, transparent), 0 12px 45px #000; }
+.battle-settlement-breakdown { width: min(820px, calc(100vw - 40px)); margin-top: 20px; border: 1px solid color-mix(in srgb, var(--winner) 35%, #32404a); border-radius: 6px; overflow: hidden; text-align: left; background: #060a0ed9; box-shadow: 0 18px 60px #0008, inset 0 1px #ffffff0b; backdrop-filter: blur(12px); }
+.battle-settlement-breakdown > header, .battle-settlement-breakdown > footer { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 8px 11px; }
+.battle-settlement-breakdown > header { border-bottom: 1px solid #28343d; color: #8997a1; font-size: 7px; font-weight: 800; letter-spacing: .16em; }
+.battle-settlement-breakdown > header b { color: var(--winner); }
+.battle-settlement-breakdown > div { display: grid; grid-template-columns: repeat(var(--ledger-columns, 2), minmax(0, 1fr)); gap: 1px; background: #26323b; }
+.battle-settlement-breakdown article { min-width: 0; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 8px; background: #090e13; }
+.battle-settlement-breakdown article.you { background: color-mix(in srgb, var(--winner) 7%, #090e13); }
+.battle-settlement-breakdown article i { width: 27px; aspect-ratio: 1; display: grid; place-items: center; border: 1px solid var(--player); color: var(--player); font: 900 8px/1 "Barlow Condensed", sans-serif; font-style: normal; }
+.battle-settlement-breakdown article span, .battle-settlement-breakdown article strong, .battle-settlement-breakdown article small { min-width: 0; display: block; }
+.battle-settlement-breakdown article span strong { overflow: hidden; color: white; font: 900 12px/1 "Barlow Condensed", sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+.battle-settlement-breakdown article span small { margin-top: 3px; color: #7f8c96; font-size: 6px; }
+.battle-settlement-breakdown article > b { color: var(--player); font: 900 11px/1 "Barlow Condensed", sans-serif; white-space: nowrap; }
+.battle-settlement-breakdown > footer { border-top: 1px solid #28343d; }
+.battle-settlement-breakdown > footer span { color: #7f8c96; font-size: 6px; letter-spacing: .14em; }
+.battle-settlement-breakdown > footer strong { color: white; font: 900 13px/1 "Barlow Condensed", sans-serif; }
+.battle-winner-banner > small { margin-top: 14px; color: white; font-size: 9px; font-weight: 800; letter-spacing: .2em; }
+.battle-winner-banner > button { min-width: 270px; margin-top: 16px; padding: 12px 22px; border: 1px solid var(--winner); border-radius: 4px; color: #071005; cursor: pointer; background: var(--winner); box-shadow: 0 0 28px color-mix(in srgb, var(--winner) 32%, transparent); font-size: 9px; font-weight: 900; letter-spacing: .12em; }
 @keyframes settlement-ring { to { transform: rotate(360deg); } }
 @keyframes settlement-fade-in {
   from { opacity: 0; backdrop-filter: blur(0) saturate(1); }
@@ -1774,6 +1789,9 @@ body.battle-focus { overflow: hidden; }
   .battle-winner-banner { padding: 18px; }
   .battle-winner-banner > strong { font-size: 48px; }
   .battle-winner-banner > b { margin-top: 20px; font-size: 54px; }
+  .battle-settlement-breakdown { width: calc(100vw - 24px); max-height: 38vh; overflow-y: auto; }
+  .battle-settlement-breakdown > div { grid-template-columns: 1fr 1fr; }
+  .battle-settlement-breakdown > footer { align-items: flex-start; flex-direction: column; gap: 4px; }
 }
 
 /* Fully custom case odds editor */
