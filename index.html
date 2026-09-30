@@ -7,6 +7,8 @@
     <meta name="description" content="Roll a number. Discover everything hiding inside it." />
     <title>NUMBER//ZERO</title>
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="experience.css" />
+    <link rel="stylesheet" href="multiplayer.css" />
   </head>
   <body>
     <div class="noise" aria-hidden="true"></div>
@@ -17,14 +19,15 @@
         <a class="brand" href="#" aria-label="Number Zero home">NUMBER<span>//</span>ZERO</a>
         <p class="strapline">A MILLION POSSIBILITIES. ZERO PRESSURE.</p>
         <div class="fairness"><i></i><span>FAIR ROLL</span><strong>0–1,000,000</strong></div>
-        <div class="global-wallet"><span>BALANCE</span><strong id="global-balance">0.00 CR</strong></div>
+        <div class="global-wallet"><span>PRACTICE BALANCE</span><strong id="global-balance">0.00 CR</strong></div>
       </header>
 
       <nav class="mode-tabs" aria-label="Play mode" role="tablist">
         <button class="active" type="button" role="tab" aria-selected="true" data-mode="sandbox"><span>01</span><strong>SANDBOX</strong><small>Free million-number rolls</small></button>
         <button type="button" role="tab" aria-selected="false" data-mode="store"><span>02</span><strong>CASE STORE</strong><small>Buy unopened cases</small></button>
         <button type="button" role="tab" aria-selected="false" data-mode="inventory"><span>03</span><strong>INVENTORY</strong><small>Open cases and capsules</small></button>
-        <button type="button" role="tab" aria-selected="false" data-mode="duel"><span>04</span><strong>CASE BATTLES</strong><small>Classic, Crazy, Clutch, Terminal + Share</small></button>
+        <button type="button" role="tab" aria-selected="false" data-mode="online"><span>04</span><strong>LIVE BATTLES</strong><small>Join players · invite friends</small></button>
+        <button type="button" role="tab" aria-selected="false" data-mode="duel"><span>05</span><strong>BATTLE BUILDER</strong><small>Publish online or practise</small></button>
       </nav>
 
       <section class="opening-context" id="opening-context" hidden>
@@ -95,12 +98,12 @@
       </section>
 
       <section class="duel" id="duel-panel" hidden aria-labelledby="duel-title">
-        <div class="duel-head"><p class="kicker">LIVE BOT ARENA · WINNER TAKES THE VIRTUAL POT</p><h1 id="duel-title">CASE//BATTLES</h1><p>Enter an audited case sequence against verified house bots. Gold Coins and Caseception inner cases trigger their own visible bonus spins inside each player's live lane.</p></div>
+        <div class="duel-head"><p class="kicker">YOUR CASES · YOUR FORMAT · YOUR ARENA</p><h1 id="duel-title">BUILD//BATTLE</h1><p>Choose up to 20 built-in cases to publish a public online battle, then invite players or add house bots. Practice mode uses this browser's separate credits and simulated opponents. Custom cases stay in practice.</p></div>
         <div class="battle-creation-wizard" id="battle-creator">
           <div class="creation-checkout-banner">
             <div class="checkout-selection"><span>SELECTED CASE LOOP</span><div class="checkout-case-accumulator" id="battle-case-accumulator"></div></div>
             <div class="checkout-total"><span>TOTAL COST</span><strong id="battle-creator-total">0.00 CR</strong><small id="battle-creator-rounds">0 ROUNDS</small></div>
-            <button id="duel-start" type="button">LAUNCH BATTLE <span>→</span></button>
+            <button id="duel-start" type="button">PRACTICE WITH BOTS <span>→</span></button>
           </div>
           <div class="creation-filter-row">
             <label class="search-input-wrapper"><span>⌕</span><input id="battle-case-search" type="search" placeholder="Search the case registry…" /></label>

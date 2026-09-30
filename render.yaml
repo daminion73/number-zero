@@ -1,0 +1,29 @@
+# Free web service; durable data lives in Turso, never on Render's filesystem.
+services:
+  - type: web
+    name: number-zero
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/config
+    autoDeployTrigger: "off"
+    envVars:
+      - key: NODE_VERSION
+        value: "22.20.0"
+      - key: NODE_ENV
+        value: production
+      - key: DEV_AUTH
+        value: "0"
+      - key: HOST
+        value: "0.0.0.0"
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: https://daminion73.github.io
+      - key: GOOGLE_CLIENT_ID
+        sync: false

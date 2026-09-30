@@ -1,0 +1,310 @@
+.experience-bar {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 18px;
+  margin-top: 10px;
+  padding: 10px 14px;
+  border: 1px solid #2b3b45;
+  border-radius: 8px;
+  background: #0b1219e8;
+}
+.experience-progress-copy {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 3px 12px;
+  min-width: 0;
+}
+.experience-progress-copy strong,
+.experience-next strong {
+  color: var(--cyan);
+  font:
+    800 12px/1 "Barlow Condensed",
+    sans-serif;
+  letter-spacing: 0.12em;
+}
+.experience-progress-copy span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.experience-progress-copy progress {
+  grid-column: 1/-1;
+  width: 100%;
+  height: 3px;
+  border: 0;
+  accent-color: var(--lime);
+  background: #292333;
+}
+.experience-open,
+.experience-next button,
+.experience-drawer button {
+  border: 1px solid #514363;
+  border-radius: 7px;
+  padding: 8px 10px;
+  color: white;
+  cursor: pointer;
+  background: #100d17;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+.experience-open {
+  border-color: #718d30;
+  color: var(--lime);
+}
+.experience-changed {
+  animation: experience-pulse 0.65s ease-out;
+}
+@keyframes experience-pulse {
+  35% {
+    border-color: var(--lime);
+    box-shadow: 0 0 16px #c7ff3625;
+  }
+}
+.experience-drawer {
+  width: min(680px, calc(100% - 24px));
+  max-height: min(680px, calc(100vh - 30px));
+  padding: 20px;
+  border: 1px solid #59486f;
+  border-radius: 16px;
+  color: var(--ink);
+  background: #0d0a13;
+  box-shadow: 0 30px 100px #000c;
+}
+.experience-drawer::backdrop {
+  background: #050308c9;
+  backdrop-filter: blur(4px);
+}
+.experience-drawer header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+}
+.experience-kicker {
+  margin: 0 0 4px;
+  color: var(--lime);
+  font-size: 8px;
+  letter-spacing: 0.16em;
+}
+.experience-drawer h2 {
+  margin: 0;
+  font:
+    900 30px/1 "Barlow Condensed",
+    sans-serif;
+}
+.experience-close {
+  min-width: 34px;
+  font-size: 18px !important;
+}
+.experience-intro {
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.5;
+}
+.experience-controls {
+  display: flex;
+  gap: 8px;
+  padding: 10px 0;
+  border-block: 1px solid #292333;
+}
+.experience-filters {
+  display: flex;
+  gap: 10px;
+  margin: 16px 0;
+}
+.experience-filters input,
+.experience-filters select {
+  min-width: 0;
+  padding: 10px;
+  color: #d7e5ed;
+  background: #0b131b;
+  border: 1px solid #384e5c;
+  border-radius: 5px;
+  font:
+    10px "DM Mono",
+    monospace;
+}
+.experience-filters input {
+  flex: 1;
+}
+.experience-discovery-list {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+}
+.experience-branch {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 1px solid #292333;
+  border-radius: 9px;
+  background: #09070e;
+}
+.experience-branch strong,
+.experience-branch span {
+  display: block;
+}
+.experience-branch strong {
+  font:
+    800 16px/1 "Barlow Condensed",
+    sans-serif;
+  text-transform: uppercase;
+}
+.experience-branch span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 7px;
+  text-transform: uppercase;
+}
+.experience-favorite {
+  color: #ffd43b !important;
+  font-size: 15px !important;
+}
+.experience-inspect {
+  border-color: #527a7f !important;
+  color: var(--cyan) !important;
+}
+.experience-browse {
+  width: 100%;
+  border-color: #718d30 !important;
+  color: var(--lime) !important;
+}
+.experience-next {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+  margin: 26px 0 10px;
+  padding: 12px 15px;
+  border: 1px solid #30283b;
+  border-radius: 10px;
+  background: #0b0911;
+}
+.experience-next strong,
+.experience-next span {
+  display: block;
+}
+.experience-next span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 8px;
+}
+body[data-experience-extras="hidden"] .experience-next {
+  display: none;
+}
+body {
+  --world-accent: #5cabc0;
+}
+body[data-experience-mode="store"] {
+  --world-accent: #9b8bd8;
+}
+body[data-experience-mode="inventory"] {
+  --world-accent: #a2c175;
+}
+body[data-experience-mode="online"],
+body[data-experience-mode="duel"] {
+  --world-accent: #52c0cc;
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      ellipse at 8% 35%,
+      color-mix(in srgb, var(--world-accent) 11%, transparent),
+      transparent 40%
+    ),
+    radial-gradient(
+      ellipse at 90% 85%,
+      color-mix(in srgb, var(--world-accent) 8%, transparent),
+      transparent 42%
+    );
+  opacity: 0.65;
+}
+.noise {
+  z-index: 0;
+  opacity: 0.025;
+}
+.ambient-orbs {
+  transition: opacity 0.3s;
+  will-change: auto;
+}
+.ambient-orbs i {
+  animation-duration: 32s;
+}
+.ambient-orbs i:nth-child(1),
+.ambient-orbs i:nth-child(2) {
+  background: var(--world-accent);
+}
+body[data-experience-focus="true"] .ambient-orbs,
+body[data-experience-focus="true"] .roll-atmosphere {
+  opacity: 0.08;
+}
+body[data-ambience="paused"] .ambient-orbs *,
+body[data-ambience="paused"] .roll-atmosphere *,
+body[data-ambience="paused"] .roll-atmosphere::before,
+body[data-ambience="paused"] .roll-atmosphere::after,
+body[data-experience-focus="true"] .ambient-orbs *,
+body[data-experience-focus="true"] .roll-atmosphere::before {
+  animation-play-state: paused !important;
+}
+body[data-experience-mode="online"] .roll-atmosphere {
+  opacity: 0.2;
+}
+body[data-experience-mode="online"][data-online-state="running"]
+  .roll-atmosphere {
+  opacity: 0.48;
+}
+@media (prefers-reduced-motion: reduce) {
+  .experience-changed {
+    animation: none;
+  }
+  .ambient-orbs *,
+  .roll-atmosphere *,
+  .roll-atmosphere::before,
+  .roll-atmosphere::after {
+    animation: none !important;
+  }
+}
+@media (max-width: 650px) {
+  .experience-bar {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .experience-progress-copy {
+    grid-column: 1/-1;
+    grid-template-columns: 1fr;
+  }
+  .experience-progress-copy span {
+    white-space: normal;
+  }
+  .experience-open {
+    width: 100%;
+  }
+  .experience-progress-copy progress {
+    grid-column: auto;
+  }
+  .experience-next {
+    grid-template-columns: 1fr;
+  }
+  .experience-next button {
+    width: 100%;
+  }
+  .experience-drawer {
+    padding: 14px;
+  }
+  .experience-branch {
+    grid-template-columns: 1fr auto;
+  }
+  .experience-inspect {
+    grid-column: 1/-1;
+  }
+}

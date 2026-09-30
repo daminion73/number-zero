@@ -1,0 +1,8 @@
+.git
+.amp
+node_modules
+data
+.env*
+tests
+*.jpg
+ui-*.png

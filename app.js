@@ -1,5 +1,7 @@
 import { badgeHighlights, evaluateBadges, numberRarity, preciseNumberRank, secureRandomNumber } from "./badges.js";
 import { battleWinner, CASES, EP_PER_CREDIT, TRAITS, TRAIT_ICONS, casePayout, createCase, dailyReward, drawCaseDrop, drawCaseOutcome, drawGoldDrop, epToCredits, generateTraitNumber, localDayKey, splitBattlePot } from "./economy.js";
+import { initExperience } from "./experience.js";
+import { initMultiplayer } from "./multiplayer.js";
 
 const $ = (selector) => document.querySelector(selector);
 const reels = [...document.querySelectorAll(".reel")];
@@ -33,6 +35,8 @@ let soundOn = true;
 let musicOn = true;
 let fastReveal = false;
 let currentMode = "sandbox";
+let experience, multiplayer;
+const modeScrollPositions = new Map();
 let selectedCaseId = "nano";
 let selectedCategory = "All";
 let duelMatch = { length: 0, round: 0, totals: [0, 0], histories: [[], []], payoutPot: 0, active: false };
@@ -92,6 +96,7 @@ function renderStats() {
   document.querySelectorAll("button[data-buy-case]").forEach((button) => {
     button.disabled = rolling || state.balance + 0.0001 < CASES.find((item) => item.id === button.dataset.buyCase).cost;
   });
+  experience?.update();
 }
 
 function caseImage(item) {
@@ -278,7 +283,8 @@ function renderInventory() {
 }
 
 function setMode(mode, scroll = false) {
-  if (mode !== "duel" && (duelMatch.active || duelMatch.joining || duelMatch.settled)) return;
+  if (mode !== "duel" && (duelMatch.active || duelMatch.joining || duelMatch.settled)) return false;
+  if (currentMode !== mode) modeScrollPositions.set(currentMode, window.scrollY);
   currentMode = mode;
   const openingMode = mode === "opening";
   if (!openingMode && mode !== "sandbox") {
@@ -288,6 +294,7 @@ function setMode(mode, scroll = false) {
   caseBay.hidden = mode !== "store";
   inventoryPanel.hidden = mode !== "inventory";
   duelPanel.hidden = mode !== "duel";
+  if ($("#online-panel")) $("#online-panel").hidden = mode !== "online";
   machine.hidden = !["sandbox", "opening"].includes(mode);
   rewardsPanel.hidden = !["sandbox", "opening"].includes(mode);
   openingContext.hidden = !openingMode;
@@ -304,8 +311,10 @@ function setMode(mode, scroll = false) {
     scorePreview.textContent = openingMode ? "TRAIT-LOCKED POOL" : "PURE CHANCE";
   }
   if (mode === "inventory") renderInventory();
-  const target = { store: caseBay, inventory: inventoryPanel, duel: duelPanel, opening: openingContext }[mode] || machine;
-  if (scroll) target.scrollIntoView({ behavior: fastReveal ? "auto" : "smooth", block: "start" });
+  experience?.setMode(mode);
+  multiplayer?.setMode(mode);
+  if (scroll) window.scrollTo({ top: modeScrollPositions.get(mode) || 0, behavior: "instant" });
+  return true;
 }
 
 modeTabs.forEach((button) => button.addEventListener("click", () => {
@@ -852,7 +861,7 @@ caseBay.addEventListener("click", (event) => {
   const buyButton = event.target.closest("button[data-buy-case]");
   if (viewButton) {
     const item = CASES.find((candidate) => candidate.id === viewButton.dataset.viewCase);
-    if (item) renderCaseDetail(item, true);
+    if (item) { experience?.discoverCase(item.id); renderCaseDetail(item, true); }
   }
   if (buyButton) {
     const item = CASES.find((candidate) => candidate.id === buyButton.dataset.buyCase);
@@ -1415,6 +1424,7 @@ function renderBattleCreatorCases() {
 function inspectBattleCase(caseId) {
   const item = CASES.find((candidate) => candidate.id === caseId);
   if (!item) return;
+  experience?.discoverCase(caseId);
   $("#battle-case-inspector-content").innerHTML = `<header style="--case-accent:${item.accent};--case-secondary:${item.secondary}"><div class="battle-inspector-art">${caseImage(item)}</div><div><span>${item.category} · ${item.risk.toUpperCase()} RISK</span><h2>${escapeHtml(item.name)}</h2><strong>${formatCredits(item.cost)} CR</strong></div><button type="button" data-add-battle-case="${item.id}">+ ADD TO BATTLE</button></header><div class="battle-inspector-odds"><span>CASE CONTENTS</span><b>FINAL ODDS</b></div><ol>${item.drops.map((drop) => `<li class="${drop.rarity}"><img src="${traitImage(drop.id)}" alt="" /><span><strong>${escapeHtml(drop.name)}</strong><small>${drop.rarity} · ${Math.round(drop.expectedEp).toLocaleString()} AVG EP</small></span><b>${formatChance(drop.finalChance)}%</b></li>`).join("")}</ol>`;
   $("#battle-case-inspector").showModal();
 }
@@ -1571,3 +1581,18 @@ $("#admin-reset-profile").addEventListener("click", () => {
   if (!confirm("Reset all local NUMBER//ZERO progress and credits?")) return;
   localStorage.removeItem("number-zero-state"); location.reload();
 });
+
+experience = initExperience({
+  getState: () => state,
+  navigate: (mode) => setMode(mode, true),
+  inspectCase: (id) => {
+    const item = CASES.find((candidate) => candidate.id === id);
+    if (item && setMode("store", true)) { renderCaseDetail(item); caseDetail.scrollIntoView({ behavior: "instant", block: "start" }); }
+  },
+});
+multiplayer = initMultiplayer({
+  navigate: (mode) => setMode(mode, true),
+  caseImage,
+  getBattleSelection: () => ({ caseIds: [...battleCaseIds], mode: $("#battle-mode").value, format: $("#battle-bots").value, speed: $("#battle-speed-select").value }),
+});
+experience.setMode(currentMode);

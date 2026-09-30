@@ -1,0 +1,702 @@
+.network-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 9px 4px;
+  border-bottom: 1px solid #26343f;
+  color: #9caab5;
+  font-size: 9px;
+}
+.network-bar button {
+  border: 0;
+  color: #d6e2e9;
+  background: transparent;
+  cursor: pointer;
+  font-size: 9px;
+}
+.network-bar #account-button {
+  margin-left: auto;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--lime);
+}
+.network-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.network-link i {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: #7c8791;
+}
+.network-bar[data-connected="true"] .network-link i {
+  background: #b8f954;
+  box-shadow: 0 0 10px #b8f94c44;
+}
+html {
+  scroll-padding-top: 180px;
+}
+.topbar,
+.mode-tabs {
+  background: #0b1118;
+}
+.mode-tabs {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.online-panel {
+  margin-top: 24px;
+}
+.online-panel[hidden],
+.online-room[hidden] {
+  display: none;
+}
+.online-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 0;
+}
+.online-heading h1 {
+  margin: 5px 0;
+  font:
+    900 clamp(36px, 5vw, 62px) / 1 "Barlow Condensed",
+    sans-serif;
+  letter-spacing: -0.035em;
+}
+.online-heading p:not(.kicker),
+.online-room-heading p:not(.kicker) {
+  color: #9cacb9;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.online-panel button,
+.account-dialog button {
+  padding: 11px 14px;
+  border: 1px solid #344652;
+  border-radius: 5px;
+  background: #101923;
+  color: #deebf0;
+  cursor: pointer;
+  font:
+    700 10px/1.3 "DM Mono",
+    monospace;
+}
+button.mp-primary,
+.online-panel button.mp-primary,
+.account-dialog button.mp-primary {
+  border: 1px solid #c5fa52;
+  background: #c5fa52;
+  color: #132009;
+  padding: 14px 18px;
+  font:
+    800 11px/1.3 "DM Mono",
+    monospace;
+  cursor: pointer;
+  border-radius: 5px;
+}
+.online-panel button:hover,
+.account-dialog button:hover {
+  border-color: #b6f849;
+}
+.online-panel button:disabled,
+.account-dialog button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+.online-panel button:focus-visible,
+.account-dialog button:focus-visible,
+.network-bar button:focus-visible,
+.experience-drawer button:focus-visible {
+  outline: 2px solid #53e7ff;
+  outline-offset: 4px;
+}
+.online-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-block: 1px solid #25323d;
+}
+.online-filters,
+.online-feed-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.online-filters button[aria-pressed="true"] {
+  color: #c5fa52;
+  border-color: #718b38;
+  background: #172016;
+}
+.online-message {
+  min-height: 2em;
+  margin: 15px 0;
+  font-size: 10px;
+  line-height: 1.6;
+  color: #8fa5b2;
+}
+.online-message.is-error {
+  color: #ff9da7;
+}
+.online-battles {
+  display: grid;
+  gap: 10px;
+}
+.online-battle-card {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) auto auto;
+  gap: 20px;
+  align-items: center;
+  padding: 15px 20px 15px 12px;
+  border: 1px solid #2b3d49;
+  background: linear-gradient(100deg, #121e25, #0b1017);
+  border-radius: 9px;
+}
+.online-case-thumb {
+  height: 84px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  background: radial-gradient(ellipse, #53e7ff14, transparent 70%);
+}
+.online-case-thumb .case-sprite {
+  width: 80px;
+  height: 80px;
+  position: relative;
+  inset: auto;
+}
+.online-battle-copy h2 {
+  margin: 8px 0;
+  color: #f3f7f9;
+  font:
+    800 24px/1 "Barlow Condensed",
+    sans-serif;
+}
+.online-battle-copy h2 span {
+  color: #8797a5;
+  font-size: 17px;
+}
+.online-battle-copy p,
+.online-battle-copy small {
+  margin: 0;
+  color: #98a8b4;
+  font-size: 9px;
+}
+.online-state {
+  display: inline-block;
+  margin-right: 12px;
+  padding: 4px 6px;
+  color: #bbf858;
+  background: #b8ef4510;
+  font-size: 8px;
+}
+.online-battle-card[data-state="running"] .online-state {
+  color: #53e7ff;
+  background: #53e7ff10;
+}
+.online-battle-card[data-state="settled"] .online-state {
+  color: #ae9dbf;
+  background: #a876cc10;
+}
+.online-entry {
+  text-align: right;
+}
+.online-entry strong {
+  font-size: 15px;
+  color: #eef3f6;
+}
+.online-entry small {
+  font-size: 9px;
+  color: #8db375;
+}
+.online-entry span {
+  display: block;
+  color: #798e9c;
+  font-size: 8px;
+  margin-top: 6px;
+}
+.online-empty {
+  padding: 48px 22px;
+  text-align: center;
+  border: 1px dashed #31424d;
+  background: #0c141ab0;
+  border-radius: 10px;
+}
+.online-empty > span {
+  color: #53e7ff;
+  font-size: 34px;
+}
+.online-empty h2 {
+  font:
+    800 32px/1 "Barlow Condensed",
+    sans-serif;
+}
+.online-empty p {
+  max-width: 540px;
+  margin: 16px auto 24px;
+  color: #91a4b2;
+  font-size: 11px;
+  line-height: 1.9;
+}
+.online-footnote {
+  color: #8b9eac;
+  font-size: 9px;
+  line-height: 1.9;
+  margin: 20px 0;
+}
+.online-room {
+  padding: 24px;
+  border: 1px solid #395261;
+  border-radius: 10px;
+  background:
+    radial-gradient(ellipse at top, #15333b66, transparent 60%), #0a1017;
+  margin-bottom: 24px;
+  scroll-margin-top: 16px;
+}
+.online-room-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+}
+.online-room-heading h2 {
+  margin: 7px 0;
+  font:
+    900 clamp(28px, 4vw, 44px) / 1 "Barlow Condensed",
+    sans-serif;
+}
+.online-room-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 0;
+  border-block: 1px solid #283b48;
+  font-size: 10px;
+  color: #b5c7d1;
+}
+.online-sequence {
+  display: flex;
+  gap: 8px;
+  overflow: auto;
+  padding: 16px 0;
+}
+.online-sequence span {
+  flex: none;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+  padding: 9px;
+  border: 1px solid #2b3d49;
+  color: #9cabb6;
+  border-radius: 4px;
+}
+.online-sequence span.complete {
+  color: #b8f44e;
+  border-color: #425e34;
+}
+.online-seats {
+  display: grid;
+  grid-template-columns: repeat(var(--online-seats), minmax(0, 1fr));
+  gap: 10px;
+}
+.online-seat {
+  min-width: 0;
+  border: 1px solid #314451;
+  border-radius: 8px;
+  background: #0c151e;
+  padding: 15px 10px;
+  text-align: center;
+}
+.online-seat.vacant {
+  border-style: dashed;
+  background: #0b1319;
+}
+.online-seat.winner {
+  border-color: #a4d552;
+  background: linear-gradient(#1a2a1855, #0b131b);
+}
+.online-seat-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 5px;
+  color: #8cabbc;
+  font-size: 7px;
+}
+.online-avatar {
+  display: grid;
+  place-items: center;
+  width: 45px;
+  height: 45px;
+  margin: 22px auto 12px;
+  border: 1px solid #3a667a;
+  border-radius: 50%;
+  color: #7bd8ef;
+  background: #143344;
+  font:
+    800 22px "Barlow Condensed",
+    sans-serif;
+}
+.online-seat h3 {
+  overflow-wrap: anywhere;
+  font:
+    800 20px/1.3 "Barlow Condensed",
+    sans-serif;
+  margin: 8px 0;
+}
+.online-seat h3 em {
+  color: #c2fc53;
+  font:
+    700 8px "DM Mono",
+    monospace;
+}
+.online-seat-actions {
+  display: grid;
+  gap: 8px;
+}
+.online-seat button {
+  width: 100%;
+  font-size: 9px;
+  padding: 10px 5px;
+}
+.online-reveal {
+  min-height: 142px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 7px;
+  padding: 15px 0;
+}
+.online-reveal:has(img) {
+  animation: online-reveal-in 0.45s ease-out both;
+}
+@keyframes online-reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(9px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.online-reveal img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+.online-reveal strong {
+  color: #d7f2fc;
+  font:
+    800 clamp(20px, 2.6vw, 36px) "Barlow Condensed",
+    sans-serif;
+}
+.online-reveal span {
+  color: #abc1ce;
+  font-size: 9px;
+}
+.online-reveal small {
+  color: #829aa9;
+  font-size: 8px;
+  line-height: 1.6;
+}
+.online-pending span {
+  max-width: 160px;
+  color: #75919f;
+  font-size: 8px;
+  line-height: 1.8;
+}
+.online-room[data-state="running"] .online-pending {
+  animation: online-await 2.8s ease-in-out infinite alternate;
+}
+@keyframes online-await {
+  to {
+    opacity: 0.45;
+  }
+}
+.online-bonus {
+  color: #ffda7b;
+  font-size: 8px;
+}
+.online-score {
+  border-top: 1px solid #2c414e;
+  padding: 12px 0 0;
+}
+.online-score span {
+  display: block;
+  color: #7394a5;
+  font-size: 8px;
+}
+.online-score b {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+}
+.online-payout {
+  margin-top: 14px;
+  color: #c4f57c;
+  font-size: 8px;
+}
+.online-payout strong {
+  display: block;
+  font-size: 14px;
+  margin-top: 7px;
+}
+.online-room-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  padding-top: 24px;
+  color: #8aa2b0;
+  font-size: 10px;
+}
+.online-history {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #30434d;
+  font-size: 9px;
+  color: #95aab7;
+}
+.online-history summary {
+  cursor: pointer;
+  padding: 8px 0;
+}
+.online-history h3 {
+  color: #c0d5df;
+  font-size: 10px;
+  margin-top: 22px;
+}
+.online-history p {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  line-height: 1.7;
+}
+.account-dialog {
+  width: min(430px, calc(100% - 28px));
+  max-height: 90vh;
+  padding: 28px;
+  border: 1px solid #415764;
+  border-radius: 12px;
+  color: #e3eff4;
+  background: #0c151d;
+}
+.account-dialog::backdrop {
+  background: #03080bcc;
+  backdrop-filter: blur(5px);
+}
+.account-dialog h2 {
+  margin: 12px 0;
+  font:
+    900 36px/1 "Barlow Condensed",
+    sans-serif;
+  overflow-wrap: anywhere;
+}
+.account-dialog p {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #a1b2bd;
+}
+.account-dialog .account-close {
+  float: right;
+  font-size: 20px;
+  padding: 2px 9px;
+}
+#account-content {
+  display: grid;
+  gap: 14px;
+  font-size: 11px;
+  line-height: 1.8;
+}
+.account-wallet {
+  padding: 22px 0;
+  border-block: 1px solid #2b404d;
+}
+.account-wallet small {
+  display: block;
+  color: #8da7b6;
+  font-size: 9px;
+}
+.account-wallet strong {
+  display: block;
+  font:
+    800 38px "Barlow Condensed",
+    sans-serif;
+  color: #c6fc56;
+}
+.account-wallet em {
+  font:
+    700 12px "DM Mono",
+    monospace;
+}
+.account-stats {
+  display: flex;
+  gap: 24px;
+  color: #91a8b5;
+  font-size: 8px;
+}
+.account-stats b {
+  color: white;
+  font-size: 16px;
+  display: block;
+}
+.dev-login {
+  display: grid;
+  gap: 10px;
+  border: 1px dashed #8b7038;
+  padding: 14px;
+  color: #dfc583;
+  font-size: 8px;
+}
+.dev-login input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
+  padding: 10px;
+  background: #070f16;
+  color: white;
+  border: 1px solid #38505e;
+  font:
+    12px "DM Mono",
+    monospace;
+}
+.account-status {
+  color: #d5e8bd !important;
+}
+.creation-checkout-banner {
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+}
+.creation-checkout-banner #duel-start {
+  width: auto;
+  grid-column: auto;
+  padding: 14px 12px;
+  color: #a6b8c5;
+  background: #14202a;
+  border-color: #38505e;
+  font-size: 9px;
+}
+.publish-status {
+  color: #ffc2a2;
+  font-size: 11px;
+  line-height: 1.7;
+}
+body[data-ambience="paused"] .online-pending {
+  animation: none !important;
+}
+@media (min-width: 1000px) {
+  .creation-checkout-banner {
+    gap: 15px;
+  }
+}
+@media (max-width: 1000px) {
+  .creation-checkout-banner {
+    grid-template-columns: 1fr 1fr;
+  }
+  .online-seats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .network-note {
+    display: none;
+  }
+  .mode-tabs button {
+    padding: 10px;
+    column-gap: 5px;
+  }
+  .mode-tabs strong {
+    font-size: 14px;
+  }
+  .mode-tabs small {
+    display: none;
+  }
+  .online-battle-card {
+    gap: 12px;
+  }
+}
+@media (max-width: 650px) {
+  .network-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .network-bar #account-button {
+    max-width: 100%;
+    margin-left: 0;
+  }
+  .mode-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .online-heading,
+  .online-toolbar,
+  .online-room-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .online-heading {
+    padding: 12px 0;
+  }
+  .online-battle-card {
+    grid-template-columns: 64px minmax(0, 1fr);
+    padding: 12px;
+  }
+  .online-case-thumb,
+  .online-case-thumb .case-sprite {
+    width: 60px;
+    height: 60px;
+  }
+  .online-entry {
+    text-align: left;
+  }
+  .online-battle-card > button {
+    justify-self: end;
+  }
+  .online-battle-copy h2 {
+    font-size: 22px;
+  }
+  .online-seats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .online-room {
+    padding: 14px;
+  }
+  .online-seat-label {
+    flex-wrap: wrap;
+  }
+  .online-room-actions > button {
+    width: 100%;
+  }
+  .online-footnote {
+    font-size: 9px;
+  }
+}
+@media (max-width: 650px) {
+  .online-seats > :last-child:nth-child(odd) {
+    grid-column: 1/-1;
+  }
+  .online-reveal small,
+  .online-seat-label,
+  .online-pending span {
+    font-size: 9px;
+  }
+  .creation-checkout-banner {
+    position: relative;
+    top: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .online-pending,
+  .online-reveal {
+    animation: none !important;
+  }
+}
