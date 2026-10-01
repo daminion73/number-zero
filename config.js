@@ -1,3 +1,5 @@
-// Leave empty when the Node server serves this frontend. For GitHub Pages,
-// set this to the HTTPS origin of your deployed backend (no trailing /api).
-export const API_BASE = "";
+// GitHub Pages uses the hosted API; Render and local previews stay same-origin.
+export const API_BASE =
+  location.hostname === "daminion73.github.io"
+    ? "https://number-zero.onrender.com"
+    : "";

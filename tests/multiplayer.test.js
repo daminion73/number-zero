@@ -109,7 +109,13 @@ test("public lobby, static allowlist, exact CORS and Google credential rejection
     "/assets/%2e%2e%2fserver.js",
   ])
     assert.equal((await f.request(path)).status, 404, path);
-  for (const path of ["/", "/experience.js", "/multiplayer.js", "/config.js"])
+  for (const path of [
+    "/",
+    "/privacy.html",
+    "/experience.js",
+    "/multiplayer.js",
+    "/config.js",
+  ])
     assert.equal((await f.request(path)).status, 200, path);
   const blocked = await f.request("/api/config", undefined, null, {
     Origin: "https://evil.example",

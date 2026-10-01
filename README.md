@@ -2,9 +2,11 @@
 
 A polished browser-based number rolling and case-battle game with a linear virtual-credit economy.
 
-**Static frontend:** <https://daminion73.github.io/number-zero/>
+**Play (app + multiplayer API):** <https://number-zero.onrender.com/>
 
-GitHub Pages serves files, not a Node server. The Render configuration below hosts the entire app and its multiplayer backend together. Adding the configuration to GitHub does not create a Render service; an authenticated operator must approve its initial deployment.
+**Alternative frontend:** <https://daminion73.github.io/number-zero/>
+
+GitHub Pages connects to the Render backend through `config.js`. Render and local previews use same-origin requests. The free backend may take about a minute to wake after inactivity. The public privacy notice is at [privacy.html](privacy.html).
 
 ## Features
 
@@ -57,7 +59,7 @@ The server verifies Google's signature, audience, issuer and expiration using `g
 
 ### Render Free + Turso Free (selected hosts)
 
-The root `render.yaml` configures one **free** Node service, with no paid disk. Accounts, sessions, wallets and battles live in **Turso's free libSQL database**, so Render restarts do not erase them. The service hosts the frontend and API at the same HTTPS origin; keep `API_BASE` empty. Render startup refuses to use an ephemeral local database if the Turso URL is missing.
+The root `render.yaml` configures one **free** Node service, with no paid disk. Accounts, sessions, wallets and battles live in **Turso's free libSQL database**, so Render restarts do not erase them. The service hosts the frontend and API at the same HTTPS origin; `config.js` keeps API requests same-origin there. Render startup refuses to use an ephemeral local database if the Turso URL is missing.
 
 [Render Free](https://render.com/docs/free) sleeps after 15 idle minutes and takes about a minute to wake up. Its 750 monthly instance hours are shared across your workspace. [Turso Free](https://turso.tech/pricing) currently includes 5 GB storage, 500 million rows read and 10 million rows written per month. These are hobby tiers, not an uptime guarantee. Render also limits bandwidth, builds and unusually high outbound traffic (including external database calls). Keep paid upgrades/overages disabled and review both dashboards' limits; traffic can cause suspension. No keep-alive traffic is needed.
 
