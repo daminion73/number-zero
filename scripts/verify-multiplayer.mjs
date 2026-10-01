@@ -47,6 +47,20 @@ async function checkOverflow(page) {
     false,
     "Horizontal viewport overflow",
   );
+  const header = await page.locator(".topbar").boundingBox();
+  const wallet = await page.locator(".global-wallet").boundingBox();
+  const neighbour = (await page.locator(".fairness").isVisible())
+    ? await page.locator(".fairness").boundingBox()
+    : await page.locator(".brand").boundingBox();
+  assert.ok(
+    wallet.x >= neighbour.x + neighbour.width,
+    "Wallet does not overlap header labels",
+  );
+  assert.ok(
+    wallet.y >= header.y &&
+      wallet.y + wallet.height <= header.y + header.height,
+    "Wallet stays inside the sticky header",
+  );
 }
 async function captureRoom(page, name, fullPage = false) {
   await page

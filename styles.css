@@ -1319,8 +1319,10 @@ body::before {
 .topbar .fairness { margin-right: 0; }
 .global-wallet {
   min-width: 152px;
-  top: 21px;
-  right: max(18px, calc((100vw - 1480px) / 2 + 18px));
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
   padding: 8px 13px;
   border-color: #475764;
   background: linear-gradient(145deg, #111821f5, #080c11f5);
@@ -1545,7 +1547,7 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
   .game-shell { width: calc(100% - 12px); padding-top: 6px; }
   .topbar { min-height: 58px; grid-template-columns: 1fr; padding: 0 128px 0 12px; }
   .brand { font-size: 29px; }
-  .global-wallet { min-width: 116px; top: 14px; right: 12px; }
+  .global-wallet { min-width: 116px; }
   .mode-tabs { top: 58px; }
   .mode-tabs button { min-height: 50px; padding: 10px 11px; }
   .mode-tabs button > span, .mode-tabs small { display: none; }
