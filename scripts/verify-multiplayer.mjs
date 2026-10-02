@@ -47,6 +47,12 @@ async function checkOverflow(page) {
     false,
     "Horizontal viewport overflow",
   );
+  if (await page.locator(".online-arena:visible").count()) {
+    const arena = await page.locator(".online-arena").boundingBox();
+    const viewport = page.viewportSize();
+    assert.ok(arena.x >= 0 && arena.y >= 0 && arena.x + arena.width <= viewport.width && arena.y + arena.height <= viewport.height);
+    return;
+  }
   const header = await page.locator(".topbar").boundingBox();
   const wallet = await page.locator(".global-wallet").boundingBox();
   const neighbour = (await page.locator(".fairness").isVisible())
@@ -68,12 +74,12 @@ async function captureRoom(page, name, fullPage = false) {
     .evaluate((room) =>
       room.scrollIntoView({ behavior: "instant", block: "start" }),
     );
-  const heading = await page.locator(".online-room-heading").boundingBox();
-  const navigation = await page.locator(".mode-tabs").boundingBox();
-  assert.ok(
-    heading.y >= navigation.y + navigation.height,
-    "Opened room heading clears sticky navigation",
-  );
+  if (await page.locator(".online-arena:visible").count()) await checkOverflow(page);
+  else {
+    const heading = await page.locator(".online-room-heading").boundingBox();
+    const navigation = await page.locator(".mode-tabs").boundingBox();
+    assert.ok(heading.y >= navigation.y + navigation.height, "Opened room heading clears sticky navigation");
+  }
   if (fullPage) await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: join(artifacts, name), fullPage });
 }
@@ -114,23 +120,24 @@ try {
     "Running battles show reconnect guidance, not a refund confirmation",
   );
   await captureRoom(host, "multiplayer-running.png");
-  await host.locator(".online-case-lane").first().waitFor({ timeout: 15000 });
+  await host.locator(".online-case-lane .rolling").first().waitFor({ timeout: 15000 });
   await guest.reload();
   await guest
     .locator('.online-room[data-state="settled"]')
     .waitFor({ timeout: 25000 });
   await host
     .locator('.online-room[data-state="settled"]')
-    .waitFor({ timeout: 15000 });
+    .waitFor({ timeout: 60000 });
   await captureRoom(host, "multiplayer-settled.png");
-  const hostText = await host.locator(".online-room-meta").innerText(),
-    guestText = await guest.locator(".online-room-meta").innerText();
-  assert.equal(
+  const hostText = await host.locator(".online-pot, .battle-round-counter .count").allTextContents(),
+    guestText = await guest.locator(".online-pot, .battle-round-counter .count").allTextContents();
+  assert.deepEqual(
     hostText,
     guestText,
     "Independent clients agree on settled pot and round count",
   );
   assert.equal(await host.locator(".online-payout").count(), 3);
+  await host.locator('[data-room-action="results"]').click();
   await host.locator(".online-history summary").click();
   assert.equal(await host.locator(".online-history section").count(), 3);
   await checkOverflow(host);
@@ -140,6 +147,8 @@ try {
   await mobile.locator('.online-room[data-state="settled"]').waitFor();
   await checkOverflow(mobile);
   await captureRoom(mobile, "multiplayer-mobile.png", true);
+  await mobile.getByRole("button", { name: "RETURN TO BATTLE MENU", exact: true }).click();
+  assert.equal(await mobile.locator("#online-room").isVisible(), false);
   await mobile.locator('[data-mode="sandbox"]').click();
   await mobile
     .getByRole("button", { name: "EXPLORE COLLECTION", exact: true })

@@ -686,9 +686,11 @@ async function animateRouletteTrack(track, viewport, targetIndex, seed, audioTra
 // These reels decorate an already-authoritative server round. Never draw a result here.
 async function animateOnlineRound(room, battle, round, signal) {
   const item = CASES.find((candidate) => candidate.id === round.caseId);
-  const target = 28;
+  const target = 34;
   const turbo = battle.speed === "turbo" || fastReveal;
   const bonus = round.results.filter((result) => result.bonus);
+  const status = room.querySelector(".online-playback-status");
+  status.textContent = `ROUND ${round.index + 1} · OPENING ${item.name.toUpperCase()}`;
   const spin = async (results, bonusSpin = false) => {
     await Promise.all(results.map((result, index) => {
       const viewport = room.querySelector(`[data-opening-seat="${result.seat}"]`);
@@ -696,26 +698,86 @@ async function animateOnlineRound(room, battle, round, signal) {
       const drop = item.drops.find((candidate) => candidate.id === result.trait);
       const trigger = caseBonusTrigger(item);
       const winner = result.bonus && !bonusSpin ? trigger : drop;
-      const draw = () => bonusSpin ? drawGoldDrop(item, Math.random()) : drawCaseDrop(item, Math.random());
+      const draw = () => bonusSpin ? drawGoldDrop(item, Math.random()) : Math.random() < .02 ? trigger : drawCaseDrop(item, Math.random());
       const candidates = [...Array.from({ length: target }, draw), winner, ...Array.from({ length: 6 }, draw)];
       track.innerHTML = candidates.map(rouletteCard).join("");
       viewport.dataset.phase = bonusSpin ? "bonus" : "opening";
-      viewport.querySelector(".online-spin-label").textContent = bonusSpin
+      viewport.closest(".duel-player").querySelector(".online-spin-label").textContent = bonusSpin
         ? item.bonusType === "nested" ? "INNER CASE · BONUS SPIN" : "GOLD COIN · BONUS SPIN"
         : "OPENING CASE";
-      const duration = turbo ? 650 : bonus.length ? 1000 : 2300;
+      if (bonusSpin) {
+        viewport.classList.add(item.bonusType === "nested" ? "nested-bonus-active" : "gold-bonus-active");
+        viewport.insertAdjacentHTML("beforeend", item.bonusType === "nested" ? `<div class="battle-gold-trigger battle-nested-trigger"><b>${caseImage(item)}</b><span>INNER CASE<small>BONUS SPIN</small></span></div>` : '<div class="battle-gold-trigger"><b class="gold-medallion">G</b><span>GOLD COIN<small>BONUS SPIN</small></span></div>');
+      }
+      const duration = turbo ? 950 : bonusSpin ? 3900 : 5200;
       return animateRouletteTrack(track, viewport, target, `${battle.id}:${round.index}:${result.seat}:${bonusSpin}`, index === 0, duration, signal);
     }));
   };
   await spin(round.results);
   if (signal.aborted) return;
   if (bonus.length) {
-    await new Promise((resolve) => setTimeout(resolve, turbo ? 160 : 350));
+    await new Promise((resolve) => setTimeout(resolve, turbo ? 180 : 520));
     if (signal.aborted) return;
     await spin(bonus, true);
   }
-  if (!signal.aborted)
-    await new Promise((resolve) => setTimeout(resolve, turbo ? 160 : 250));
+  if (signal.aborted) return;
+  room.querySelectorAll(".battle-gold-trigger").forEach((node) => node.remove());
+  room.querySelectorAll(".online-case-lane").forEach((node) => {
+    node.classList.remove("gold-bonus-active", "nested-bonus-active");
+    node.dataset.phase = "digits";
+    node.closest(".duel-player").querySelector(".online-spin-label").textContent = "ROLLING NUMBER";
+  });
+  status.textContent = "TRAITS LOCKED · ROLLING NUMBERS";
+  const nodes = round.results.map((result) => room.querySelector(`#online-duel-number-${result.seat + 1}`));
+  await animateBattleDigits(nodes, round.results.map((result) => result.number), turbo, signal);
+  if (signal.aborted) return;
+  const counts = round.results.flatMap((result) => {
+    const n = result.seat + 1;
+    const previous = battle.rounds.reduce((sum, r) => sum + r.results.find((v) => v.seat === result.seat).score, 0);
+    room.querySelector(`#online-duel-score-${n}`).textContent = `${result.name.toUpperCase()} · ${result.score.toLocaleString()} EP · ${formatCredits(result.payout)} CR`;
+    room.querySelector(`#online-duel-badges-${n}`).innerHTML = onlineBattleBadges(result);
+    return [
+      animateBattleValue(room.querySelector(`#online-duel-total-${n}`), previous, previous + result.score, "", signal),
+      animateBattleValue(room.querySelector(`#online-duel-credit-${n}`), epToCredits(previous), epToCredits(previous + result.score), " CR", signal),
+    ];
+  });
+  const previousPot = battle.rounds.reduce((sum, r) => sum + r.results.reduce((n, result) => n + result.payout, 0), 0);
+  counts.push(animateBattleValue(room.querySelector(".online-pot"), previousPot, previousPot + round.results.reduce((n, result) => n + result.payout, 0), " CR", signal));
+  await Promise.all(counts);
+}
+
+async function animateBattleDigits(numberNodes, numbers, turbo, signal) {
+  const cells = numberNodes.map((node) => [...node.children]);
+  const timer = setInterval(() => cells.forEach((row) => row.slice(0, 6).forEach((cell) => { cell.textContent = Math.floor(Math.random() * 10); })), turbo ? 48 : 60);
+  const stop = () => clearInterval(timer);
+  signal?.addEventListener("abort", stop, { once: true });
+  try {
+    await new Promise((resolve) => setTimeout(resolve, turbo ? 420 : 1200));
+    stop();
+    if (signal?.aborted) return;
+    const targets = numbers.map(String);
+    for (let digit = 0; digit < Math.max(...targets.map((target) => target.length)); digit++) {
+      if (signal?.aborted) return;
+      targets.forEach((target, player) => {
+        if (digit >= target.length) return;
+        cells[player][digit].hidden = false;
+        cells[player][digit].textContent = target[digit];
+        cells[player][digit].classList.add("locked");
+        numberNodes[player].classList.toggle("seven-digit", target.length === 7);
+        numberNodes[player].style.setProperty("--duel-count", target.length);
+      });
+      tone(170 + digit * 38, .08, "triangle", .035);
+      await new Promise((resolve) => setTimeout(resolve, turbo ? 50 : 130));
+    }
+    if (signal?.aborted) return;
+    cells.forEach((row, player) => {
+      row.forEach((cell, index) => { cell.hidden = index >= targets[player].length; });
+      numberNodes[player].setAttribute("aria-label", `Rolled number ${targets[player]}`);
+    });
+  } finally {
+    stop();
+    signal?.removeEventListener("abort", stop);
+  }
 }
 
 async function showCaseSpin(item, drop, phase) {
@@ -983,14 +1045,55 @@ function renderBattleSettlementBreakdown(payout, sharing, winner) {
   breakdown.innerHTML = `<header><span>POT SOURCE LEDGER</span><b>${duelMatch.length} ROUND${duelMatch.length === 1 ? "" : "S"} · ${playerCount} PLAYERS</b></header><div>${duelMatch.players.map((player, index) => `<article class="${index === 0 ? "you" : ""}" style="--player:${BOT_COLORS[player.team % BOT_COLORS.length]}"><i>${index === 0 ? "Y" : `B${index}`}</i><span><strong>${escapeHtml(player.username)}</strong><small>${duelMatch.totals[index].toLocaleString()} TOTAL EP</small></span><b>+${formatCredits(duelMatch.contributions[index])} CR</b></article>`).join("")}</div><footer><span>SETTLEMENT FORMULA</span><strong>${formula}</strong></footer>`;
 }
 
-function battlePlayerMarkup(profile, index) {
+function battlePlayerMarkup(profile, index, view = {}) {
   const playerNumber = index + 1;
-  const isPlayer = index === 0;
+  const isPlayer = view.isPlayer ?? index === 0;
   const team = profile?.team ?? index;
   const connecting = profile?.connecting;
-  const name = isPlayer ? "YOU" : connecting || !profile ? `BOT SLOT ${index}` : profile.username;
-  const subtitle = isPlayer ? "LVL 37 · NUMBER HUNTER" : connecting || !profile ? "CONNECTING…" : `LVL ${profile.level} · ${profile.badge}`;
-  return `<article class="duel-player ${isPlayer ? "player-one" : "player-bot"}" data-player="${index}" data-team="${team}" style="--player:${BOT_COLORS[team % BOT_COLORS.length]}"><header><div class="battle-avatar ${isPlayer ? "you-avatar" : "bot-avatar"}">${isPlayer ? "Y" : `B${index}`}</div><div><small>${duelMatch.teams?.[team]?.length > 1 ? `TEAM ${String.fromCharCode(65 + team)}` : isPlayer ? "LOCAL CONTENDER" : "VERIFIED HOUSE BOT"}</small><strong id="duel-name-${playerNumber}">${escapeHtml(name)}</strong><em id="duel-bot-badge-${playerNumber}">${escapeHtml(subtitle)}</em></div><div class="battle-player-total"><span>TOTAL EP</span><b id="duel-total-${playerNumber}">0</b><small id="duel-credit-${playerNumber}">0.00 CR</small></div></header><div class="battle-case-lane" id="battle-lane-${playerNumber}"><i class="battle-lane-reticle"></i><div class="battle-lane-track"></div></div><div class="battle-result-row"><div class="duel-reels" id="duel-number-${playerNumber}">${Array.from({ length: 7 }, (_, digit) => `<i${digit === 6 ? " hidden" : ""}>0</i>`).join("")}</div><strong id="duel-score-${playerNumber}">— THIS ROUND</strong></div><div class="duel-badges" id="duel-badges-${playerNumber}">${isPlayer ? "READY" : "CONNECTING"}</div></article>`;
+  const name = view.name ?? (isPlayer ? "YOU" : connecting || !profile ? `BOT SLOT ${index}` : profile.username);
+  const subtitle = view.subtitle ?? (isPlayer ? "LVL 37 · NUMBER HUNTER" : connecting || !profile ? "CONNECTING…" : `LVL ${profile.level} · ${profile.badge}`);
+  const prefix = view.prefix || "duel", result = view.result;
+  const digits = result ? String(result.number) : "000000";
+  const teamLabel = view.teamLabel ?? (duelMatch.teams?.[team]?.length > 1 ? `TEAM ${String.fromCharCode(65 + team)}` : isPlayer ? "LOCAL CONTENDER" : "VERIFIED HOUSE BOT");
+  return `<article class="duel-player ${isPlayer ? "player-one" : "player-bot"}" data-player="${index}" data-team="${team}" style="--player:${BOT_COLORS[team % BOT_COLORS.length]}"><header><div class="battle-avatar ${isPlayer ? "you-avatar" : "bot-avatar"}">${escapeHtml(view.avatar ?? (isPlayer ? "Y" : `B${index}`))}</div><div><small>${escapeHtml(teamLabel)}</small><strong id="${prefix}-name-${playerNumber}">${escapeHtml(name)}</strong><em id="${prefix}-bot-badge-${playerNumber}">${escapeHtml(subtitle)}</em></div><div class="battle-player-total"><span>TOTAL EP</span><b id="${prefix}-total-${playerNumber}">${(view.total || 0).toLocaleString()}</b><small id="${prefix}-credit-${playerNumber}">${formatCredits(epToCredits(view.total || 0))} CR</small></div></header><div class="battle-case-lane${view.prefix ? " online-case-lane" : ""}" id="${view.prefix || "battle"}-lane-${playerNumber}" ${view.prefix ? `data-opening-seat="${index}"` : ""}><i class="battle-lane-reticle"></i><div class="battle-lane-track${result ? " online-landed-track" : ""}">${view.drop ? rouletteCard(view.drop) : ""}</div></div><div class="battle-result-row"><div class="duel-reels${digits.length === 7 ? " seven-digit" : ""}" id="${prefix}-number-${playerNumber}" aria-label="${result ? `Rolled number ${result.number}` : "Number not revealed"}">${Array.from({ length: 7 }, (_, digit) => `<i${digit >= digits.length ? " hidden" : ""}${result ? ' class="locked"' : ""}>${digits[digit] || "0"}</i>`).join("")}</div><strong id="${prefix}-score-${playerNumber}" class="${view.prefix ? "online-spin-label" : ""}">${result ? `${escapeHtml(result.name.toUpperCase())} · ${result.score.toLocaleString()} EP · ${formatCredits(result.payout)} CR` : "— THIS ROUND"}</strong></div><div class="duel-badges" id="${prefix}-badges-${playerNumber}">${view.badges ?? (isPlayer ? "READY" : "CONNECTING")}</div></article>`;
+}
+
+function onlineBattleBadges(result) {
+  return evaluateBadges(result.number).sort((a, b) => b.score - a.score).slice(0, 2).map((badge) => `<span class="${badge.rarity} revealing"><img src="${badgeGraphic(badge.label)}" alt=""><em><strong>${badge.label}</strong><small>${badge.rarity}</small></em><b>+${badge.score.toLocaleString()}</b></span>`).join("") || "NO BONUS PATTERN";
+}
+
+function renderOnlineBattle(battle, opening, user, showSettlement) {
+  const latest = battle.rounds.at(-1);
+  const currentIndex = opening?.index ?? Math.min(battle.rounds.length, battle.caseIds.length - 1);
+  const current = CASES.find((item) => item.id === battle.caseIds[currentIndex]);
+  const pot = battle.pot ?? battle.rounds.reduce((sum, round) => sum + round.results.reduce((n, r) => n + r.payout, 0), 0);
+  const totals = battle.players.map((player) => battle.rounds.reduce((sum, round) => sum + round.results.find((r) => r.seat === player.seat).score, 0));
+  const groups = groupBattleCases(battle.caseIds);
+  const players = battle.players.map((player, index) => {
+    const team = battle.teams.findIndex((seats) => seats.includes(player.seat));
+    const result = opening ? null : latest?.results.find((r) => r.seat === player.seat);
+    return battlePlayerMarkup({ team }, player.seat, {
+      prefix: "online-duel", isPlayer: !player.bot && player.id === user?.id,
+      name: player.name, avatar: player.bot ? `B${player.seat + 1}` : player.name[0].toUpperCase(),
+      subtitle: player.bot ? "HOUSE BOT" : player.id === user?.id ? "YOU · ONLINE PLAYER" : "ONLINE PLAYER",
+      teamLabel: `TEAM ${String.fromCharCode(65 + team)} · ${player.bot ? "HOUSE BOT" : "PLAYER"}`,
+      total: totals[index], result,
+      drop: result && CASES.find((item) => item.id === latest.caseId).drops.find((drop) => drop.id === result.trait),
+      badges: result ? onlineBattleBadges(result) : "READY",
+    });
+  }).join("");
+  const winner = battle.mode === "share" ? "POT SHARED" : battle.winningTeams?.length > 1 ? "TIED WINNERS" : `TEAM ${String.fromCharCode(65 + (battle.winningTeams?.[0] || 0))} WINS`;
+  return `<div class="battle-live-shell">
+    <div class="battle-active-header"><div class="battle-round-counter"><span class="label">MATCH PROGRESS</span><strong class="count">${battle.state === "settled" ? "BATTLE COMPLETE" : `ROUND ${currentIndex + 1} / ${battle.caseIds.length}`}</strong><small>${escapeHtml(current.name.toUpperCase())}</small></div><div class="battle-cases-timeline" aria-label="Battle case timeline">${groups.map((group) => {
+      const item = CASES.find((item) => item.id === group.id);
+      return `<div class="timeline-case-node ${battle.rounds.length > group.end ? "is-completed" : currentIndex >= group.start && currentIndex <= group.end ? "is-active" : ""}" style="--case-accent:${item.accent};--case-secondary:${item.secondary}" title="${escapeHtml(item.name)}"><div class="timeline-case-art">${caseImage(item)}</div><b class="case-multiplier-pill">×${group.quantity}</b><small>${escapeHtml(item.name)}</small></div>`;
+    }).join("")}</div><div class="battle-header-total"><span>TOTAL CASE VALUE</span><strong>${formatCredits(battle.entry)} CR</strong></div></div>
+    <div class="battle-command online-room-meta"><div><span>ROUND</span><strong>${battle.rounds.length}/${battle.caseIds.length} REVEALED</strong></div><div><span>${battle.state === "settled" ? "FINAL POT" : "LIVE POT"}</span><strong class="online-pot">${formatCredits(pot)} CR</strong></div><div><span>MODE</span><strong>${escapeHtml(BATTLE_FORMATS[battle.format].label)} · ${battle.mode.toUpperCase()}</strong></div><div><span>SPEED</span><strong>${battle.speed.toUpperCase()}</strong></div><div class="battle-wallet"><span>YOUR ONLINE CREDITS</span><strong class="online-balance">${user ? `${formatCredits(user.balance)} CR` : "SPECTATING"}</strong></div></div>
+    <div class="battle-ledger"><span>ENTRY <b>${formatCredits(battle.entry)} CR · ${battle.players.length} PLAYERS</b></span><span>SETTLEMENT <b>AUTOMATIC · SERVER VERIFIED</b></span></div>
+    <div class="duel-arena" data-player-count="${battle.players.length}" style="--battle-players:${battle.players.length}">${players}</div>
+    <div class="online-room-actions"><button type="button" data-room-action="close" data-focus="close">← BACK TO FEED</button><button type="button" data-room-action="share" data-focus="share">COPY INVITE LINK</button><button type="button" data-room-action="refresh" data-focus="refresh">REFRESH</button>${battle.state === "settled" ? '<button type="button" data-room-action="settlement">VIEW SETTLEMENT</button>' : '<span class="online-playback-status" role="status">Rounds resolve on the server. You can leave this page and reconnect.</span>'}</div>
+    ${battle.state === "settled" ? `<div class="battle-winner-banner ${battle.mode === "share" ? "share" : "victory"}" ${showSettlement ? "" : "hidden"}><span>BATTLE COMPLETE · SERVER SETTLED</span><strong>${winner}</strong><p>All ${battle.caseIds.length} rounds resolved</p><b>${formatCredits(pot)} CR POT</b><section class="battle-settlement-breakdown" style="--ledger-columns:${Math.min(battle.players.length, 3)}"><header><span>PLAYER SETTLEMENTS</span><b>${battle.players.length} PLAYERS</b></header><div>${battle.players.map((player, index) => `<article style="--player:${BOT_COLORS[battle.teams.findIndex((t) => t.includes(player.seat))]}"><i>${player.bot ? "BOT" : "P"}</i><span><strong>${escapeHtml(player.name)}</strong><small>${totals[index].toLocaleString()} EP · ${formatCredits(epToCredits(totals[index]))} CR PULLED</small></span><b class="online-payout"><strong>${formatCredits(battle.payouts.find((p) => p.seat === player.seat).amount)} CR</strong></b></article>`).join("")}</div><footer><span>SERVER PAID · BOT SHARES STAY WITH BOTS</span></footer></section><button type="button" data-room-action="results">INSPECT RESULTS</button><button type="button" data-room-action="close">RETURN TO BATTLE MENU</button></div>` : ""}
+  </div>`;
 }
 
 function renderBattlePlayers(profiles = []) {
@@ -998,7 +1101,7 @@ function renderBattlePlayers(profiles = []) {
   const arena = $("#duel-arena");
   arena.style.setProperty("--battle-players", players.length);
   arena.dataset.playerCount = players.length;
-  arena.innerHTML = `<div class="battle-steal" id="battle-steal" aria-hidden="true"><i></i><span>ROUND CAPTURED</span></div>${players.map(battlePlayerMarkup).join("")}`;
+  arena.innerHTML = `<div class="battle-steal" id="battle-steal" aria-hidden="true"><i></i><span>ROUND CAPTURED</span></div>${players.map((player, index) => battlePlayerMarkup(player, index)).join("")}`;
 }
 
 function appendBattleFeed(author, message, toneClass = "") {
@@ -1008,12 +1111,13 @@ function appendBattleFeed(author, message, toneClass = "") {
   feed.scrollTop = feed.scrollHeight;
 }
 
-function animateBattleValue(element, from, to, suffix = "") {
+function animateBattleValue(element, from, to, suffix = "", signal = null) {
   const duration = fastReveal ? 260 : 720;
   const started = performance.now();
   element.classList.add("counting");
   return new Promise((resolve) => {
     const update = (timestamp) => {
+      if (signal?.aborted) { resolve(); return; }
       const progress = Math.min(1, (timestamp - started) / duration);
       const eased = 1 - (1 - progress) ** 3;
       const value = from + (to - from) * eased;
@@ -1263,23 +1367,7 @@ async function runGroupBattle() {
     });
   }
 
-  const digitTimer = setInterval(() => cells.forEach((playerCells) => playerCells.slice(0, 6).forEach((cell) => { cell.textContent = Math.floor(Math.random() * 10); })), duelMatch.turbo ? 48 : 60);
-  await new Promise((resolve) => setTimeout(resolve, duelMatch.turbo ? 420 : 1_200));
-  clearInterval(digitTimer);
-  const digitTargets = numbers.map((number) => number === 1_000_000 ? "1000000" : String(number));
-  for (let digit = 0; digit < Math.max(...digitTargets.map((target) => target.length)); digit++) {
-    digitTargets.forEach((target, player) => {
-      if (digit >= target.length) return;
-      cells[player][digit].hidden = false;
-      cells[player][digit].textContent = target[digit];
-      cells[player][digit].classList.add("locked");
-      numberNodes[player].classList.toggle("seven-digit", target.length === 7);
-      numberNodes[player].style.setProperty("--duel-count", target.length);
-    });
-    tone(170 + digit * 38, .08, "triangle", .035);
-    await new Promise((resolve) => setTimeout(resolve, duelMatch.turbo ? 50 : 130));
-  }
-  cells.forEach((playerCells, player) => playerCells.forEach((cell, index) => { cell.hidden = index >= digitTargets[player].length; }));
+  await animateBattleDigits(numberNodes, numbers, duelMatch.turbo);
 
   const visibleBadges = results.map((result) => [...result.badges].sort((a, b) => b.score - a.score).slice(0, 2));
   visibleBadges.forEach((badges, player) => {
@@ -1634,6 +1722,7 @@ multiplayer = initMultiplayer({
   navigate: (mode) => setMode(mode, true),
   caseImage,
   animateRound: animateOnlineRound,
+  renderBattle: renderOnlineBattle,
   getBattleSelection: () => ({ caseIds: [...battleCaseIds], mode: $("#battle-mode").value, format: $("#battle-bots").value, speed: $("#battle-speed-select").value }),
 });
 experience.setMode(currentMode);

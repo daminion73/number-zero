@@ -1,4 +1,4 @@
-import { CASES, TRAIT_ICONS } from "./economy.js";
+import { CASES } from "./economy.js";
 import { API_BASE } from "./config.js";
 
 const $ = (selector) => document.querySelector(selector);
@@ -25,7 +25,7 @@ const modeCopy = {
   share: "Everyone shares the pot",
 };
 
-export function initMultiplayer({ navigate, getBattleSelection, caseImage, animateRound }) {
+export function initMultiplayer({ navigate, getBattleSelection, caseImage, animateRound, renderBattle }) {
   let token = sessionStorage.getItem(TOKEN_KEY) || "",
     user = null,
     config = null;
@@ -121,6 +121,8 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
     $("#account-button").textContent = user
       ? `${user.name} · ${money(user.balance)} ONLINE CR`
       : "SIGN IN / ACCOUNT ↗";
+    if ($(".online-balance") && !presentation?.controller)
+      $(".online-balance").textContent = user ? `${money(user.balance)} CR` : "SPECTATING";
     $("#account-title").textContent = user ? user.name : "ENTER THE ARENA";
     $("#account-description").textContent = user
       ? "Your server-owned wallet. Local practice tools cannot change this balance."
@@ -268,11 +270,12 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
   function renderRoom(force = false) {
     const room = $("#online-room");
     room.hidden = !selected;
+    document.body.classList.toggle("online-battle-focus", currentMode === "online" && ["running", "settled"].includes(selected?.state));
     if (presentation?.id !== selected?.id) {
       presentation?.controller?.abort();
       // Already-revealed rounds on first entry/reconnect are history, not a replay queue.
       presentation = selected
-        ? { id: selected.id, revealed: selected.rounds.length, controller: null }
+        ? { id: selected.id, revealed: selected.rounds.length, controller: null, balance: user?.balance, settlementDismissed: false }
         : null;
     }
     if (!selected) return;
@@ -284,6 +287,7 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
     }
     // Polls and account refreshes must not replace a moving reel.
     if (view.controller) return;
+    if (selected.state !== "settled") view.balance = user?.balance;
     const round = selected.rounds[view.revealed];
     if (!round) {
       paintRoom(selected, null, force);
@@ -325,7 +329,7 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
   }
   function paintRoom(b, opening = null, force = false) {
     const room = $("#online-room"),
-      signature = JSON.stringify([b, user?.id, opening?.index]);
+      signature = JSON.stringify([b, user?.id, opening?.index, presentation.settlementDismissed]);
     if (!force && roomSignature === signature) return;
     roomSignature = signature;
     const focusKey = room.contains(document.activeElement)
@@ -333,43 +337,34 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
       : null;
     const host = user?.id === b.hostId,
       member = b.players.find((p) => !p.bot && p.id === user?.id);
-    const latest = b.rounds.at(-1),
-      slots = b.teams.flat().length,
+    const slots = b.teams.flat().length,
       full = b.players.length === slots;
-    const visiblePot = b.rounds.reduce(
-      (sum, r) => sum + r.results.reduce((s, result) => s + result.payout, 0),
-      0,
-    );
     room.dataset.state = b.state;
     room.dataset.opening = opening ? String(opening.index) : "";
-    room.innerHTML = `<header class="online-room-heading"><div><p class="kicker">${esc(b.mode.toUpperCase())} · ${esc(b.format.toUpperCase())} · ${esc(b.speed.toUpperCase())}</p><h2>${b.state === "waiting" ? "YOUR SEAT IS WAITING" : b.state === "running" ? "BATTLE IN PROGRESS" : b.state === "settled" ? "BATTLE SETTLED" : "LOBBY CLOSED"}</h2><p>${esc(modeCopy[b.mode])} · ${money(b.entry)} CR entry per seat</p></div><button type="button" data-room-action="close" data-focus="close">BACK TO FEED</button></header>
-      <div class="online-room-meta"><span>${b.state === "waiting" ? `${b.players.length}/${slots} SEATS FILLED` : `${b.rounds.length}/${b.caseIds.length} ROUNDS REVEALED`}</span><span>${money(b.pot ?? visiblePot)} CR ${b.state === "settled" ? "FINAL POT" : "REVEALED POT"}</span><button type="button" data-room-action="share" data-focus="share">COPY INVITE LINK ↗</button></div>
-      <div class="online-sequence" aria-label="Battle case sequence">${b.caseIds.map((id, i) => `<span class="${i < b.rounds.length ? "complete" : opening?.index === i ? "opening" : ""}" title="${esc(itemFor(id)?.name || id)}">${i + 1}. ${esc(itemFor(id)?.name || id)}</span>`).join("")}</div>
-      ${opening ? `<div class="online-opening-heading" role="status">${caseImage(itemFor(opening.caseId))}<div><small>ROUND ${opening.index + 1} / ${b.caseIds.length} · CASE OPENING</small><strong>${esc(itemFor(opening.caseId).name)}</strong><span>Reels land before scores are revealed</span></div></div>` : ""}
+    const arena = b.state === "running" || b.state === "settled";
+    room.classList.toggle("battle-focus", arena);
+    room.classList.toggle("online-arena", arena);
+    const historyHtml = b.rounds.length ? `<details class="online-history"><summary>INSPECT ROUND HISTORY & SETTLEMENT</summary>${b.rounds.map((r) => `<section><h3>ROUND ${r.index + 1} · ${esc(itemFor(r.caseId)?.name || r.caseId)}</h3>${r.results.map((result) => `<p><b>${esc(b.players.find((p) => p.seat === result.seat)?.name)}</b><span>${result.number.toLocaleString()} · ${esc(result.name)} · ${result.score.toLocaleString()} EP · ${money(result.payout)} CR</span></p>`).join("")}</section>`).join("")}<p>Server-generated results. Tied winning teams split the pot; whole-cent remainders go to winning seats in team order. House-bot shares are not credited to players.</p></details>` : "";
+    if (arena) {
+      const displayUser = user && b.state === "running" ? { ...user, balance: presentation.balance ?? user.balance } : user;
+      room.innerHTML = renderBattle(b, opening, displayUser, !presentation.settlementDismissed) + historyHtml;
+    } else room.innerHTML = `<header class="online-room-heading"><div><p class="kicker">${esc(b.mode.toUpperCase())} · ${esc(b.format.toUpperCase())} · ${esc(b.speed.toUpperCase())}</p><h2>${b.state === "waiting" ? "YOUR SEAT IS WAITING" : "LOBBY CLOSED"}</h2><p>${esc(modeCopy[b.mode])} · ${money(b.entry)} CR entry per seat</p></div><button type="button" data-room-action="close" data-focus="close">BACK TO FEED</button></header>
+      <div class="online-room-meta"><span>${b.players.length}/${slots} SEATS FILLED</span><span>${b.caseIds.length} ROUNDS</span><button type="button" data-room-action="share" data-focus="share">COPY INVITE LINK ↗</button></div>
+      <div class="online-sequence" aria-label="Battle case sequence">${b.caseIds.map((id, i) => `<span title="${esc(itemFor(id)?.name || id)}">${i + 1}. ${esc(itemFor(id)?.name || id)}</span>`).join("")}</div>
       <div class="online-seats" style="--online-seats:${slots}">${Array.from(
         { length: slots },
         (_, seat) => {
           const player = b.players.find((p) => p.seat === seat),
             team = b.teams.findIndex((t) => t.includes(seat));
-          const result = latest?.results.find((r) => r.seat === seat),
-            total = b.rounds.reduce(
-              (sum, r) =>
-                sum + (r.results.find((v) => v.seat === seat)?.score || 0),
-              0,
-            );
-          const payout = b.payouts?.find((p) => p.seat === seat)?.amount;
-          const winner = b.winningTeams?.includes(team);
-          return `<article class="online-seat ${player ? "occupied" : "vacant"} ${winner ? "winner" : ""}"><div class="online-seat-label"><span>TEAM ${String.fromCharCode(65 + team)}</span><span>${player?.bot ? "HOUSE BOT" : player ? "PLAYER" : "OPEN SEAT"}</span></div><div class="online-avatar">${player ? esc(player.bot ? "◇" : player.name[0].toUpperCase()) : "+"}</div><h3>${esc(player?.name || "Join this seat")}${player?.id === user?.id && user ? " <em>YOU</em>" : ""}</h3>
-          ${opening ? `<div class="battle-case-lane online-case-lane" data-opening-seat="${seat}" style="--player:${itemFor(opening.caseId).accent}" aria-label="Case opening for ${esc(player.name)}"><i class="battle-lane-reticle"></i><div class="battle-lane-track" aria-hidden="true"></div><span class="online-spin-label">OPENING CASE</span></div>` : result ? `<div class="online-reveal"><img src="assets/icons/${TRAIT_ICONS[result.trait] || "1f3c5"}.png" alt=""><strong>${result.number.toLocaleString()}</strong><span>${esc(result.name)}</span>${result.bonus ? `<b class="online-bonus">${itemFor(latest.caseId)?.bonusType === "nested" ? "INNER CASE" : "GOLD BONUS"}</b>` : ""}<small>${result.score.toLocaleString()} EP · ${money(result.payout)} CR</small></div>` : `<div class="online-reveal online-pending">${b.state === "running" ? caseImage(itemFor(b.caseIds[b.rounds.length] || b.caseIds[0])) : ""}<span>${b.state === "running" ? "CASE LOADED · WAITING FOR SERVER" : player ? "READY FOR THE HOST" : "A PLAYER OR HOST-ADDED BOT"}</span></div>`}
-          ${b.rounds.length ? `<div class="online-score"><span>TOTAL EP</span><b>${total.toLocaleString()}</b></div>` : ""}
-          ${payout !== undefined ? `<div class="online-payout">${winner ? "POT SHARE" : "SETTLED"}<strong>${money(payout)} CR</strong></div>` : ""}
+          return `<article class="online-seat ${player ? "occupied" : "vacant"}"><div class="online-seat-label"><span>TEAM ${String.fromCharCode(65 + team)}</span><span>${player?.bot ? "HOUSE BOT" : player ? "PLAYER" : "OPEN SEAT"}</span></div><div class="online-avatar">${player ? esc(player.bot ? "◇" : player.name[0].toUpperCase()) : "+"}</div><h3>${esc(player?.name || "Join this seat")}${player?.id === user?.id && user ? " <em>YOU</em>" : ""}</h3>
+          <div class="online-reveal online-pending"><span>${player ? "READY FOR THE HOST" : "A PLAYER OR HOST-ADDED BOT"}</span></div>
           ${b.state === "waiting" && !player ? `<div class="online-seat-actions">${!member ? `<button type="button" data-room-action="join" data-seat="${seat}" data-focus="join-${seat}">JOIN · ${money(b.entry)} CR</button>` : ""}${host ? `<button type="button" data-room-action="bot" data-seat="${seat}" data-focus="bot-${seat}">+ ADD BOT</button>` : ""}</div>` : ""}
           ${b.state === "waiting" && host && player?.bot ? `<button type="button" data-room-action="remove-bot" data-seat="${seat}" data-focus="remove-${seat}">REMOVE BOT</button>` : ""}</article>`;
         },
       ).join("")}</div>
-      <div class="online-room-actions">${b.state === "waiting" ? (host ? `<button class="mp-primary" type="button" data-room-action="start" data-focus="start" ${full ? "" : "disabled"}>${full ? "START BATTLE →" : "FILL ALL SEATS TO START"}</button><button type="button" data-room-action="cancel" data-focus="cancel">CANCEL & REFUND EVERYONE</button>` : member ? '<button type="button" data-room-action="leave" data-focus="leave">LEAVE & REFUND MY SEAT</button>' : "<span>Sign in, choose a team, and join an open seat.</span>") : b.state === "settled" ? '<button class="mp-primary" type="button" data-room-action="build">BUILD ANOTHER BATTLE →</button><button type="button" data-room-action="collection">EXPLORE THE COLLECTION</button>' : b.state === "running" ? "<p>Rounds resolve on the server. You can leave this page and reconnect.</p>" : "<p>All reserved human entries were refunded.</p>"}</div>
+      <div class="online-room-actions">${b.state === "waiting" ? (host ? `<button class="mp-primary" type="button" data-room-action="start" data-focus="start" ${full ? "" : "disabled"}>${full ? "START BATTLE →" : "FILL ALL SEATS TO START"}</button><button type="button" data-room-action="cancel" data-focus="cancel">CANCEL & REFUND EVERYONE</button>` : member ? '<button type="button" data-room-action="leave" data-focus="leave">LEAVE & REFUND MY SEAT</button>' : "<span>Sign in, choose a team, and join an open seat.</span>") : "<p>All reserved human entries were refunded.</p>"}</div>
       ${b.state === "waiting" ? `<p class="online-footnote">Waiting lobby expires at ${new Date(b.expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}. Leaving this page does not cancel your seat. Reconnect from your account.</p>` : ""}
-      ${b.rounds.length ? `<details class="online-history"><summary>INSPECT ROUND HISTORY & SETTLEMENT</summary>${b.rounds.map((r) => `<section><h3>ROUND ${r.index + 1} · ${esc(itemFor(r.caseId)?.name || r.caseId)}</h3>${r.results.map((result) => `<p><b>${esc(b.players.find((p) => p.seat === result.seat)?.name)}</b><span>${result.number.toLocaleString()} · ${esc(result.name)} · ${result.score.toLocaleString()} EP · ${money(result.payout)} CR</span></p>`).join("")}</section>`).join("")}<p>Server-generated results. Tied winning teams split the pot; whole-cent remainders go to winning seats in team order. House-bot shares are not credited to players.</p></details>` : ""}`;
+      ${historyHtml}`;
     if (focusKey)
       room
         .querySelector(`[data-focus="${CSS.escape(focusKey)}"]`)
@@ -498,6 +493,15 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
     if (button.hasAttribute("data-create-battle")) navigate("duel");
     const command = button.dataset.roomAction;
     if (!command) return;
+    if (command === "refresh") {
+      refresh(true);
+      return;
+    }
+    if (command === "results" || command === "settlement") {
+      presentation.settlementDismissed = command === "results";
+      $("#online-room .battle-winner-banner").hidden = presentation.settlementDismissed;
+      return;
+    }
     if (command === "close") {
       selected = null;
       renderRoom();

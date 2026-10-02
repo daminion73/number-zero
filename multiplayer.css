@@ -304,82 +304,62 @@ button.mp-primary,
   color: #b8f44e;
   border-color: #425e34;
 }
-.online-sequence span.opening {
-  color: #83e9ff;
-  border-color: #4a9eb2;
-  background: #183c49;
-}
-.online-opening-heading {
+/* Share the original arena's sizing, reels, digits and player headers. */
+body.online-battle-focus { overflow: hidden; }
+.online-battle-focus .topbar,
+.online-battle-focus .mode-tabs,
+.online-battle-focus .network-bar,
+.online-battle-focus .experience-bar,
+.online-battle-focus .rarity-key,
+.online-battle-focus .strapline,
+.online-battle-focus #online-panel > :not(#online-room) { display: none; }
+.online-room.online-arena {
+  position: fixed;
+  z-index: 200;
+  inset: 6px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 12px 0 24px;
+  flex-direction: column;
+  margin: 0;
+  padding: 7px;
+  border-radius: 7px;
+  background: #080c12;
+  overflow: hidden;
 }
-.online-opening-heading > .case-sprite,
-.online-opening-heading > img,
-.online-pending .case-sprite {
-  width: 72px;
-  height: 72px;
-  flex-shrink: 0;
+.online-room.online-arena[hidden] { display: none; }
+.online-arena .battle-live-shell { flex: 1; min-height: 0; }
+.online-arena .battle-command {
+  position: static;
+  display: grid;
+  gap: 1px;
+  padding: 0;
+  border: 0;
 }
-.online-opening-heading small,
-.online-opening-heading strong,
-.online-opening-heading span {
-  display: block;
+.online-arena .online-landed-track { justify-content: center; }
+.online-arena .online-room-actions { flex: none; padding-top: 6px; gap: 6px; }
+.online-arena .online-room-actions button { width: auto; padding: 7px 10px; font-size: 8px; }
+.online-arena .online-playback-status { margin-left: auto; font-size: 8px; }
+.online-arena .online-history { flex: none; max-height: 25vh; overflow: auto; margin-top: 5px; padding-top: 0; }
+.online-arena .online-history summary { padding: 5px; }
+.online-arena .online-payout { margin: 0; }
+.online-arena .online-payout strong { margin: 0; font-size: 12px; }
+.online-arena .battle-winner-banner { overflow-y: auto; }
+@media (max-width: 650px) {
+  .online-room.online-arena { inset: 3px; padding: 3px; }
+  .online-arena .battle-command { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .online-arena .battle-wallet { display: block; grid-column: auto; text-align: right; }
+  .online-arena .battle-command strong { font-size: 11px; }
+  .online-arena .battle-wallet span { font-size: 5px; letter-spacing: 0; }
+  .online-arena .online-playback-status { width: 100%; margin: 0; font-size: 7px; }
+  .online-arena .battle-winner-banner { padding: 20px 10px; }
+  .online-arena .battle-settlement-breakdown > div { grid-template-columns: 1fr; }
+  .online-arena .duel-arena[data-player-count="2"] .battle-lane-track article { flex-basis: 94px; max-height: 180px; }
+  .online-arena .duel-arena[data-player-count="2"] .battle-lane-track article > div { width: 46px; height: 46px; }
+  .online-arena .duel-arena[data-player-count="2"] .battle-lane-track article img { width: 42px; height: 42px; }
 }
-.online-opening-heading small {
-  color: #83e9ff;
-  font-size: 9px;
-  letter-spacing: .12em;
-}
-.online-opening-heading strong {
-  margin: 5px 0;
-  font: 800 28px/1.1 "Barlow Condensed", sans-serif;
-}
-.online-opening-heading span {
-  color: #8ca7b6;
-  font-size: 9px;
-}
-.online-case-lane {
-  height: 178px;
-  margin: 18px -4px 12px;
-}
-.online-case-lane .battle-lane-track {
-  height: 144px;
-}
-.online-case-lane .battle-lane-track article {
-  flex-basis: 108px;
-  height: 120px;
-  gap: 6px;
-}
-.online-case-lane .battle-lane-track article > div {
-  width: 46px;
-  height: 46px;
-}
-.online-case-lane .battle-lane-track article img {
-  width: 42px;
-  height: 42px;
-}
-.online-spin-label {
-  position: absolute;
-  z-index: 6;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 10px 3px;
-  border-top: 1px solid #2b404e;
-  color: #a4dcec;
-  background: #0c1922;
-  font-size: 8px;
-  letter-spacing: .08em;
-}
-.online-case-lane[data-phase="bonus"] {
-  --player: #ffda7b !important;
-}
-.online-case-lane[data-phase="bonus"] .online-spin-label {
-  color: #ffda7b;
-  background: #2b2111;
+@media (prefers-reduced-motion: reduce) {
+  .online-arena .battle-winner-banner,
+  .online-arena .battle-winner-banner::before,
+  .online-arena .duel-badges span { animation: none; }
 }
 .online-seats {
   display: grid;
