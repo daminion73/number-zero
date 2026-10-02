@@ -610,7 +610,8 @@ function visualHash(value) {
   return hash >>> 0;
 }
 
-async function animateRouletteTrack(track, viewport, targetIndex, seed, audioTrack = true, durationOverride = null) {
+async function animateRouletteTrack(track, viewport, targetIndex, seed, audioTrack = true, durationOverride = null, signal = null) {
+  if (signal?.aborted) return;
   const cards = [...track.children];
   cards.forEach((card) => card.classList.remove("winner"));
   const cardWidth = cards[0].offsetWidth;
@@ -633,6 +634,7 @@ async function animateRouletteTrack(track, viewport, targetIndex, seed, audioTra
   track.style.setProperty("--shock-duration", `${shockDuration}ms`);
   track.style.transform = `translate3d(-${Math.max(0, startDistance - 45)}px,0,0)`;
   await new Promise((resolve) => setTimeout(resolve, shockDuration));
+  if (signal?.aborted) return;
 
   let monitoring = true, lastCard = -1;
   const spinStarted = performance.now();
@@ -649,7 +651,7 @@ async function animateRouletteTrack(track, viewport, targetIndex, seed, audioTra
     return 3 * inverse * inverse * parameter * .82 + 3 * inverse * parameter * parameter + parameter ** 3;
   };
   const monitorCollision = (timestamp) => {
-    if (!monitoring) return;
+    if (!monitoring || signal?.aborted) return;
     const currentX = startDistance + (targetDistance - startDistance) * easedProgress(timestamp - spinStarted);
     const currentCard = Math.floor((currentX + viewportWidth / 2 - padding) / step);
     if (audioTrack && currentCard !== lastCard) {
@@ -666,16 +668,54 @@ async function animateRouletteTrack(track, viewport, targetIndex, seed, audioTra
   track.style.transform = `translate3d(-${targetDistance}px,0,0)`;
   await new Promise((resolve) => setTimeout(resolve, spinDuration));
   monitoring = false;
+  if (signal?.aborted) return;
 
   track.classList.remove("rolling");
   await new Promise((resolve) => setTimeout(resolve, fastReveal ? 35 : 95));
+  if (signal?.aborted) return;
   track.classList.add("settling");
   const settleDuration = fastReveal ? 120 : 320;
   track.style.setProperty("--settle-duration", `${settleDuration}ms`);
   track.style.transform = `translate3d(-${centeredDistance(targetIndex)}px,0,0)`;
   await new Promise((resolve) => setTimeout(resolve, settleDuration));
+  if (signal?.aborted) return;
   track.classList.remove("settling");
   cards[targetIndex].classList.add("winner");
+}
+
+// These reels decorate an already-authoritative server round. Never draw a result here.
+async function animateOnlineRound(room, battle, round, signal) {
+  const item = CASES.find((candidate) => candidate.id === round.caseId);
+  const target = 28;
+  const turbo = battle.speed === "turbo" || fastReveal;
+  const bonus = round.results.filter((result) => result.bonus);
+  const spin = async (results, bonusSpin = false) => {
+    await Promise.all(results.map((result, index) => {
+      const viewport = room.querySelector(`[data-opening-seat="${result.seat}"]`);
+      const track = viewport.querySelector(".battle-lane-track");
+      const drop = item.drops.find((candidate) => candidate.id === result.trait);
+      const trigger = caseBonusTrigger(item);
+      const winner = result.bonus && !bonusSpin ? trigger : drop;
+      const draw = () => bonusSpin ? drawGoldDrop(item, Math.random()) : drawCaseDrop(item, Math.random());
+      const candidates = [...Array.from({ length: target }, draw), winner, ...Array.from({ length: 6 }, draw)];
+      track.innerHTML = candidates.map(rouletteCard).join("");
+      viewport.dataset.phase = bonusSpin ? "bonus" : "opening";
+      viewport.querySelector(".online-spin-label").textContent = bonusSpin
+        ? item.bonusType === "nested" ? "INNER CASE · BONUS SPIN" : "GOLD COIN · BONUS SPIN"
+        : "OPENING CASE";
+      const duration = turbo ? 650 : bonus.length ? 1000 : 2300;
+      return animateRouletteTrack(track, viewport, target, `${battle.id}:${round.index}:${result.seat}:${bonusSpin}`, index === 0, duration, signal);
+    }));
+  };
+  await spin(round.results);
+  if (signal.aborted) return;
+  if (bonus.length) {
+    await new Promise((resolve) => setTimeout(resolve, turbo ? 160 : 350));
+    if (signal.aborted) return;
+    await spin(bonus, true);
+  }
+  if (!signal.aborted)
+    await new Promise((resolve) => setTimeout(resolve, turbo ? 160 : 250));
 }
 
 async function showCaseSpin(item, drop, phase) {
@@ -1593,6 +1633,7 @@ experience = initExperience({
 multiplayer = initMultiplayer({
   navigate: (mode) => setMode(mode, true),
   caseImage,
+  animateRound: animateOnlineRound,
   getBattleSelection: () => ({ caseIds: [...battleCaseIds], mode: $("#battle-mode").value, format: $("#battle-bots").value, speed: $("#battle-speed-select").value }),
 });
 experience.setMode(currentMode);

@@ -9,7 +9,7 @@
     "dev": "node server.js",
     "start": "node server.js",
     "test": "node --test",
-    "test:ui": "node scripts/verify-multiplayer.mjs"
+    "test:ui": "node scripts/verify-multiplayer.mjs && node scripts/verify-battle-animation.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",

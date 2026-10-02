@@ -80,6 +80,7 @@ async function captureRoom(page, name, fullPage = false) {
 try {
   const host = await pageFor("ALPHA"),
     guest = await pageFor("BRAVO");
+  await host.emulateMedia({ reducedMotion: "no-preference" });
   await host.locator('[data-mode="duel"]').click();
   await host.locator("#battle-bots").selectOption("2");
   await host.locator("#battle-mode").selectOption("share");
@@ -113,6 +114,7 @@ try {
     "Running battles show reconnect guidance, not a refund confirmation",
   );
   await captureRoom(host, "multiplayer-running.png");
+  await host.locator(".online-case-lane").first().waitFor({ timeout: 15000 });
   await guest.reload();
   await guest
     .locator('.online-room[data-state="settled"]')

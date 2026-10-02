@@ -25,7 +25,7 @@ const modeCopy = {
   share: "Everyone shares the pot",
 };
 
-export function initMultiplayer({ navigate, getBattleSelection, caseImage }) {
+export function initMultiplayer({ navigate, getBattleSelection, caseImage, animateRound }) {
   let token = sessionStorage.getItem(TOKEN_KEY) || "",
     user = null,
     config = null;
@@ -44,6 +44,8 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage }) {
     accountSignature = "",
     pendingCreate = null,
     requestEpoch = 0;
+  let presentation = null;
+  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
   const requestedBattle = new URL(location.href).searchParams.get("battle");
 
   const network = document.createElement("div");
@@ -266,9 +268,64 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage }) {
   function renderRoom(force = false) {
     const room = $("#online-room");
     room.hidden = !selected;
+    if (presentation?.id !== selected?.id) {
+      presentation?.controller?.abort();
+      // Already-revealed rounds on first entry/reconnect are history, not a replay queue.
+      presentation = selected
+        ? { id: selected.id, revealed: selected.rounds.length, controller: null }
+        : null;
+    }
     if (!selected) return;
-    const b = selected,
-      signature = JSON.stringify([b, user?.id]);
+    const view = presentation;
+    if (currentMode !== "online" || document.hidden || reducedMotion.matches) {
+      view.controller?.abort();
+      view.controller = null;
+      view.revealed = selected.rounds.length;
+    }
+    // Polls and account refreshes must not replace a moving reel.
+    if (view.controller) return;
+    const round = selected.rounds[view.revealed];
+    if (!round) {
+      paintRoom(selected, null, force);
+      return;
+    }
+    const controller = new AbortController();
+    view.controller = controller;
+    const snapshot = {
+      ...selected,
+      state: "running",
+      rounds: selected.rounds.slice(0, view.revealed),
+      pot: undefined,
+      payouts: undefined,
+      winningTeams: undefined,
+    };
+    paintRoom(snapshot, round, true);
+    (async () => {
+      try {
+        await animateRound(room, snapshot, round, controller.signal);
+        if (controller.signal.aborted) return;
+        view.revealed++;
+        paintRoom({ ...snapshot, rounds: [...snapshot.rounds, round] }, null, true);
+        await new Promise((resolve) =>
+          setTimeout(resolve, snapshot.speed === "turbo" ? 300 : 650),
+        );
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          view.revealed = selected.rounds.length;
+          message("Opening animation interrupted. Showing server results.", true);
+          console.error(error);
+        }
+      } finally {
+        if (!controller.signal.aborted && presentation === view) {
+          view.controller = null;
+          renderRoom(true);
+        }
+      }
+    })();
+  }
+  function paintRoom(b, opening = null, force = false) {
+    const room = $("#online-room"),
+      signature = JSON.stringify([b, user?.id, opening?.index]);
     if (!force && roomSignature === signature) return;
     roomSignature = signature;
     const focusKey = room.contains(document.activeElement)
@@ -284,9 +341,11 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage }) {
       0,
     );
     room.dataset.state = b.state;
+    room.dataset.opening = opening ? String(opening.index) : "";
     room.innerHTML = `<header class="online-room-heading"><div><p class="kicker">${esc(b.mode.toUpperCase())} · ${esc(b.format.toUpperCase())} · ${esc(b.speed.toUpperCase())}</p><h2>${b.state === "waiting" ? "YOUR SEAT IS WAITING" : b.state === "running" ? "BATTLE IN PROGRESS" : b.state === "settled" ? "BATTLE SETTLED" : "LOBBY CLOSED"}</h2><p>${esc(modeCopy[b.mode])} · ${money(b.entry)} CR entry per seat</p></div><button type="button" data-room-action="close" data-focus="close">BACK TO FEED</button></header>
       <div class="online-room-meta"><span>${b.state === "waiting" ? `${b.players.length}/${slots} SEATS FILLED` : `${b.rounds.length}/${b.caseIds.length} ROUNDS REVEALED`}</span><span>${money(b.pot ?? visiblePot)} CR ${b.state === "settled" ? "FINAL POT" : "REVEALED POT"}</span><button type="button" data-room-action="share" data-focus="share">COPY INVITE LINK ↗</button></div>
-      <div class="online-sequence" aria-label="Battle case sequence">${b.caseIds.map((id, i) => `<span class="${i < b.rounds.length ? "complete" : ""}" title="${esc(itemFor(id)?.name || id)}">${i + 1}. ${esc(itemFor(id)?.name || id)}</span>`).join("")}</div>
+      <div class="online-sequence" aria-label="Battle case sequence">${b.caseIds.map((id, i) => `<span class="${i < b.rounds.length ? "complete" : opening?.index === i ? "opening" : ""}" title="${esc(itemFor(id)?.name || id)}">${i + 1}. ${esc(itemFor(id)?.name || id)}</span>`).join("")}</div>
+      ${opening ? `<div class="online-opening-heading" role="status">${caseImage(itemFor(opening.caseId))}<div><small>ROUND ${opening.index + 1} / ${b.caseIds.length} · CASE OPENING</small><strong>${esc(itemFor(opening.caseId).name)}</strong><span>Reels land before scores are revealed</span></div></div>` : ""}
       <div class="online-seats" style="--online-seats:${slots}">${Array.from(
         { length: slots },
         (_, seat) => {
@@ -301,7 +360,7 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage }) {
           const payout = b.payouts?.find((p) => p.seat === seat)?.amount;
           const winner = b.winningTeams?.includes(team);
           return `<article class="online-seat ${player ? "occupied" : "vacant"} ${winner ? "winner" : ""}"><div class="online-seat-label"><span>TEAM ${String.fromCharCode(65 + team)}</span><span>${player?.bot ? "HOUSE BOT" : player ? "PLAYER" : "OPEN SEAT"}</span></div><div class="online-avatar">${player ? esc(player.bot ? "◇" : player.name[0].toUpperCase()) : "+"}</div><h3>${esc(player?.name || "Join this seat")}${player?.id === user?.id && user ? " <em>YOU</em>" : ""}</h3>
-          ${result ? `<div class="online-reveal"><img src="assets/icons/${TRAIT_ICONS[result.trait] || "1f3c5"}.png" alt=""><strong>${result.number.toLocaleString()}</strong><span>${esc(result.name)}</span>${result.bonus ? `<b class="online-bonus">${itemFor(latest.caseId)?.bonusType === "nested" ? "INNER CASE" : "GOLD BONUS"}</b>` : ""}<small>${result.score.toLocaleString()} EP · ${money(result.payout)} CR</small></div>` : `<div class="online-reveal online-pending"><span>${b.state === "running" ? "SERVER REVEAL IN PROGRESS" : player ? "READY FOR THE HOST" : "A PLAYER OR HOST-ADDED BOT"}</span></div>`}
+          ${opening ? `<div class="battle-case-lane online-case-lane" data-opening-seat="${seat}" style="--player:${itemFor(opening.caseId).accent}" aria-label="Case opening for ${esc(player.name)}"><i class="battle-lane-reticle"></i><div class="battle-lane-track" aria-hidden="true"></div><span class="online-spin-label">OPENING CASE</span></div>` : result ? `<div class="online-reveal"><img src="assets/icons/${TRAIT_ICONS[result.trait] || "1f3c5"}.png" alt=""><strong>${result.number.toLocaleString()}</strong><span>${esc(result.name)}</span>${result.bonus ? `<b class="online-bonus">${itemFor(latest.caseId)?.bonusType === "nested" ? "INNER CASE" : "GOLD BONUS"}</b>` : ""}<small>${result.score.toLocaleString()} EP · ${money(result.payout)} CR</small></div>` : `<div class="online-reveal online-pending">${b.state === "running" ? caseImage(itemFor(b.caseIds[b.rounds.length] || b.caseIds[0])) : ""}<span>${b.state === "running" ? "CASE LOADED · WAITING FOR SERVER" : player ? "READY FOR THE HOST" : "A PLAYER OR HOST-ADDED BOT"}</span></div>`}
           ${b.rounds.length ? `<div class="online-score"><span>TOTAL EP</span><b>${total.toLocaleString()}</b></div>` : ""}
           ${payout !== undefined ? `<div class="online-payout">${winner ? "POT SHARE" : "SETTLED"}<strong>${money(payout)} CR</strong></div>` : ""}
           ${b.state === "waiting" && !player ? `<div class="online-seat-actions">${!member ? `<button type="button" data-room-action="join" data-seat="${seat}" data-focus="join-${seat}">JOIN · ${money(b.entry)} CR</button>` : ""}${host ? `<button type="button" data-room-action="bot" data-seat="${seat}" data-focus="bot-${seat}">+ ADD BOT</button>` : ""}</div>` : ""}
@@ -522,13 +581,16 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage }) {
     );
   }
   document.addEventListener("visibilitychange", () => {
+    renderRoom();
     if (!document.hidden && config) refresh();
   });
+  reducedMotion.addEventListener("change", () => renderRoom(true));
   connect();
   schedule();
   return {
     setMode(mode) {
       currentMode = mode;
+      renderRoom();
       if (mode === "online" && config) refresh();
     },
     get online() {
