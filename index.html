@@ -19,12 +19,12 @@
         <a class="brand" href="#" aria-label="Number Zero home">NUMBER<span>//</span>ZERO</a>
         <p class="strapline">A MILLION POSSIBILITIES. ZERO PRESSURE.</p>
         <div class="fairness"><i></i><span>FAIR ROLL</span><strong>0–1,000,000</strong></div>
-        <div class="global-wallet"><span>PRACTICE BALANCE</span><strong id="global-balance">0.00 CR</strong></div>
+        <div class="global-wallet"><span>UNLIMITED DEMO</span><strong id="global-balance">∞ DEMO CR</strong></div>
       </header>
 
       <nav class="mode-tabs" aria-label="Play mode" role="tablist">
         <button class="active" type="button" role="tab" aria-selected="true" data-mode="sandbox"><span>01</span><strong>SANDBOX</strong><small>Free million-number rolls</small></button>
-        <button type="button" role="tab" aria-selected="false" data-mode="store"><span>02</span><strong>CASE STORE</strong><small>Buy unopened cases</small></button>
+        <button type="button" role="tab" aria-selected="false" data-mode="store"><span>02</span><strong>CASE STORE</strong><small>Try unlimited demo cases</small></button>
         <button type="button" role="tab" aria-selected="false" data-mode="inventory"><span>03</span><strong>INVENTORY</strong><small>Open cases and capsules</small></button>
         <button type="button" role="tab" aria-selected="false" data-mode="online"><span>04</span><strong>LIVE BATTLES</strong><small>Join players · invite friends</small></button>
         <button type="button" role="tab" aria-selected="false" data-mode="duel"><span>05</span><strong>BATTLE BUILDER</strong><small>Publish online or practise</small></button>
@@ -34,7 +34,7 @@
         <button id="back-inventory" type="button">← INVENTORY</button>
         <div class="opening-item-art"><i></i><img id="opening-icon" src="assets/icons/1f3c5.png" alt="" /></div>
         <div><p class="kicker">DEDICATED OPENING CHAMBER</p><h1 id="opening-trait">TRAIT CAPSULE</h1><p id="opening-description">Your restricted number pool is ready.</p></div>
-        <div class="opening-wallet"><span>BALANCE</span><strong id="opening-balance">0.00</strong><small id="opening-payout-status">AUTO-PAYOUT READY</small></div>
+        <div class="opening-wallet"><span>UNLIMITED DEMO</span><strong id="opening-balance">∞ DEMO</strong><small id="opening-payout-status">DEMO PAYOUT READY</small></div>
       </section>
 
       <section class="machine" id="machine" aria-labelledby="machine-title">
@@ -70,8 +70,8 @@
       <section class="economy" id="case-bay" aria-labelledby="cases-title" hidden>
         <div class="economy-head">
           <div><p class="kicker">435 CASES · 13 COLLECTIONS · FULLY AUDITED</p><h1 id="cases-title">CASE//DISTRICT</h1><p>Explore 100 new variable-pool cases across the existing collections—from focused 3-item quickdraws to chaotic 24-item gauntlets—plus High Roller, Maximum Volatility, and Caseception specials.</p></div>
-          <div class="wallet"><span>YOUR BALANCE</span><strong id="credit-balance">0.00</strong><small>CREDITS</small></div>
-          <button class="daily-roll" id="daily-roll" type="button"><span>DAILY SIGNAL</span><strong>ROLL FOR 15K–25K</strong><small id="daily-status">AVAILABLE NOW</small></button>
+          <div class="wallet"><span>UNLIMITED DEMO</span><strong id="credit-balance">∞</strong><small>DEMO CREDITS</small></div>
+          <div class="daily-roll"><span>FREE TO TRY</span><strong>UNLIMITED DEMO PLAY</strong><small>NO CREDITS OR STATS RECORDED</small></div>
         </div>
         <article class="featured-case" id="featured-case"></article>
         <div class="catalog-bar">
@@ -94,16 +94,16 @@
           <div class="inventory-metrics"><div class="inventory-count"><strong id="inventory-count">0</strong><span>ITEMS</span></div><div class="inventory-balance"><strong id="inventory-balance">0.00</strong><span>CREDITS</span></div></div>
         </div>
         <div class="inventory-grid" id="inventory-grid"></div>
-        <button class="store-link" type="button" data-go-store>+ BUY MORE CASES</button>
+        <button class="store-link" type="button" data-go-store>+ ADD MORE DEMO CASES</button>
       </section>
 
       <section class="duel" id="duel-panel" hidden aria-labelledby="duel-title">
-        <div class="duel-head"><p class="kicker">YOUR CASES · YOUR FORMAT · YOUR ARENA</p><h1 id="duel-title">BUILD//BATTLE</h1><p>Choose up to 20 built-in cases to publish a public online battle, then invite players or add house bots. Practice mode uses this browser's separate credits and simulated opponents. Custom cases stay in practice.</p></div>
+        <div class="duel-head"><p class="kicker">YOUR CASES · YOUR FORMAT · YOUR ARENA</p><h1 id="duel-title">BUILD//BATTLE</h1><p>Choose up to 20 built-in cases to publish a public online battle, then invite players or add house bots. Demo play has unlimited credits and simulated opponents; results do not count toward balances or stats. Custom cases stay in demo.</p></div>
         <div class="battle-creation-wizard" id="battle-creator">
           <div class="creation-checkout-banner">
             <div class="checkout-selection"><span>SELECTED CASE LOOP</span><div class="checkout-case-accumulator" id="battle-case-accumulator"></div></div>
             <div class="checkout-total"><span>TOTAL COST</span><strong id="battle-creator-total">0.00 CR</strong><small id="battle-creator-rounds">0 ROUNDS</small></div>
-            <button id="duel-start" type="button">PRACTICE WITH BOTS <span>→</span></button>
+            <button id="duel-start" type="button">FREE DEMO WITH BOTS <span>→</span></button>
           </div>
           <div class="creation-filter-row">
             <label class="search-input-wrapper"><span>⌕</span><input id="battle-case-search" type="search" placeholder="Search the case registry…" /></label>
@@ -172,9 +172,9 @@
       <dialog id="admin-dialog" class="admin-dialog">
         <button class="admin-close" type="button" aria-label="Close">×</button>
         <div class="admin-title"><div><p class="kicker">LOCAL OPERATIONS · F1</p><h2>CONTROL//ROOM</h2></div><span>● LOCAL SESSION</span></div>
-        <div class="admin-dashboard"><div class="admin-balance"><span>VIRTUAL BALANCE</span><strong id="admin-balance">0.00</strong><small>CREDITS · NO CASH VALUE</small></div><div class="admin-live-stats"><span>ROLLS<b id="admin-rolls">0</b></span><span>CASES<b id="admin-cases">0</b></span><span>INVENTORY<b id="admin-inventory">0</b></span><span>AUTO PAY<b>ON</b></span></div></div>
-        <section class="admin-section"><header><strong>BALANCE TOOLS</strong><span>Adjust this local browser profile</span></header><div class="admin-credit-row"><input id="admin-credit-amount" aria-label="Credits to add" type="number" min="1" step="1000" value="10000" /><button class="admin-add" id="admin-add-credits" type="button">ADD CREDITS</button></div><div class="admin-presets"><button type="button" data-admin-credit="1000">+1K</button><button type="button" data-admin-credit="10000">+10K</button><button type="button" data-admin-credit="100000">+100K</button><button type="button" data-admin-credit="1000000">+1M</button></div></section>
-        <section class="admin-section"><header><strong>OPENING TEST LAB</strong><span>Configure the next sealed case</span></header><div class="admin-case-row"><select id="admin-case-select" aria-label="Case to grant"></select><button id="admin-grant-case" type="button">GRANT CASE</button></div><div class="admin-test-actions"><button id="admin-force-gold" type="button"><b>◇</b><span>FORCE BONUS<small>Gold or inner case</small></span></button><button id="admin-force-mythic" type="button"><b>◆</b><span>FORCE MYTHIC<small>Golden-tier item</small></span></button><button id="admin-reset-daily" type="button"><b>↻</b><span>RESET DAILY<small>Make reward available</small></span></button></div></section>
+        <div class="admin-dashboard"><div class="admin-balance"><span>UNLIMITED DEMO</span><strong id="admin-balance">∞ DEMO</strong><small>CREDITS · NO CASH VALUE</small></div><div class="admin-live-stats"><span>ROLLS<b id="admin-rolls">0</b></span><span>CASES<b id="admin-cases">0</b></span><span>INVENTORY<b id="admin-inventory">0</b></span><span>DEMO PAY<b>NOT SAVED</b></span></div></div>
+        <section class="admin-section"><header><strong>UNLIMITED DEMO</strong><span>No credits or stats recorded</span></header><p>Demo play is always free. Online credits and stats are managed separately by the server.</p></section>
+        <section class="admin-section"><header><strong>OPENING TEST LAB</strong><span>Configure the next sealed case</span></header><div class="admin-case-row"><select id="admin-case-select" aria-label="Case to grant"></select><button id="admin-grant-case" type="button">GRANT CASE</button></div><div class="admin-test-actions"><button id="admin-force-gold" type="button"><b>◇</b><span>FORCE BONUS<small>Gold or inner case</small></span></button><button id="admin-force-mythic" type="button"><b>◆</b><span>FORCE MYTHIC<small>Golden-tier item</small></span></button></div></section>
         <section class="admin-section danger-zone"><header><strong>SESSION DATA</strong><span>Destructive local controls</span></header><div><button id="admin-clear-inventory" type="button">CLEAR INVENTORY</button><button id="admin-reset-profile" type="button">RESET ENTIRE PROFILE</button></div></section>
         <p class="admin-status" id="admin-status">Controls affect this browser only. Nothing here has real-world value.</p>
       </dialog>

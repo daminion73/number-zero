@@ -1,5 +1,5 @@
 import { badgeHighlights, evaluateBadges, numberRarity, preciseNumberRank, secureRandomNumber } from "./badges.js";
-import { battleWinner, CASES, EP_PER_CREDIT, TRAITS, TRAIT_ICONS, casePayout, createCase, dailyReward, drawCaseDrop, drawCaseOutcome, drawGoldDrop, epToCredits, generateTraitNumber, localDayKey, splitBattlePot } from "./economy.js";
+import { battleWinner, CASES, EP_PER_CREDIT, TRAITS, TRAIT_ICONS, casePayout, createCase, drawCaseDrop, drawCaseOutcome, drawGoldDrop, epToCredits, generateTraitNumber, splitBattlePot } from "./economy.js";
 import { initExperience } from "./experience.js";
 import { initMultiplayer } from "./multiplayer.js";
 
@@ -29,7 +29,6 @@ const inventoryGrid = $("#inventory-grid");
 const duelPanel = $("#duel-panel");
 const openingContext = $("#opening-context");
 const modeTabs = [...document.querySelectorAll("[data-mode]")];
-const dailyButton = $("#daily-roll");
 let rolling = false;
 let soundOn = true;
 let musicOn = true;
@@ -50,11 +49,9 @@ const scoreDistribution = fetch("assets/score-cdf.bin")
   .then((buffer) => new Uint32Array(buffer));
 
 const savedState = JSON.parse(localStorage.getItem("number-zero-state") || "{}");
-const legacyPayout = Number(savedState.unclaimedCredits) || 0;
 const state = { rolls: 0, best: 0, badges: [], balance: 0, casesOpened: 0, dailyDate: "", inventory: [], duelWins: [0, 0], customCases: [], adminNextOutcome: "", ...savedState };
 delete state.goldCoins;
 delete state.unclaimedCredits;
-if (legacyPayout > 0) state.balance = Math.round((state.balance + legacyPayout) * 100) / 100;
 if (!Array.isArray(state.inventory)) state.inventory = [];
 if (!Array.isArray(state.duelWins)) state.duelWins = [0, 0];
 if (!Array.isArray(state.customCases)) state.customCases = [];
@@ -65,7 +62,6 @@ state.customCases = state.customCases.filter((definition) => {
   } catch { return false; }
 });
 const saveState = () => localStorage.setItem("number-zero-state", JSON.stringify(state));
-if (legacyPayout > 0) saveState();
 const formatCredits = (value) => value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const formatOdds = (value) => value.toLocaleString(undefined, { minimumFractionDigits: Number.isInteger(value) ? 0 : 2, maximumFractionDigits: 2 });
 const formatChance = (value) => value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 4 });
@@ -78,23 +74,20 @@ function renderStats() {
   $("#total-rolls").textContent = state.rolls.toLocaleString();
   $("#best-score").textContent = state.best.toLocaleString();
   $("#badge-count").textContent = state.badges.length.toLocaleString();
-  $("#credit-balance").textContent = formatCredits(state.balance);
-  $("#inventory-balance").textContent = formatCredits(state.balance);
-  $("#opening-balance").textContent = formatCredits(state.balance);
-  $("#global-balance").textContent = `${formatCredits(state.balance)} CR`;
-  $("#battle-balance").textContent = `${formatCredits(state.balance)} CR`;
-  $("#admin-balance").textContent = formatCredits(state.balance);
+  $("#credit-balance").textContent = "∞";
+  $("#inventory-balance").textContent = "∞ DEMO";
+  $("#opening-balance").textContent = "∞ DEMO";
+  $("#global-balance").textContent = "∞ DEMO CR";
+  $("#battle-balance").textContent = "∞ DEMO CR";
+  $("#admin-balance").textContent = "∞ DEMO";
   $("#admin-rolls").textContent = state.rolls.toLocaleString();
   $("#admin-cases").textContent = state.casesOpened.toLocaleString();
   $("#admin-inventory").textContent = state.inventory.length.toLocaleString();
   $("#inventory-count").textContent = state.inventory.length.toLocaleString();
   $("#duel-wins-1").textContent = state.duelWins[0];
   $("#duel-wins-2").textContent = state.duelWins[1];
-  const claimed = state.dailyDate === localDayKey();
-  dailyButton.disabled = claimed || rolling;
-  $("#daily-status").textContent = claimed ? "CLAIMED TODAY" : "AVAILABLE NOW";
   document.querySelectorAll("button[data-buy-case]").forEach((button) => {
-    button.disabled = rolling || state.balance + 0.0001 < CASES.find((item) => item.id === button.dataset.buyCase).cost;
+    button.disabled = rolling;
   });
   experience?.update();
 }
@@ -825,9 +818,8 @@ async function showCaseOpening(item, outcome) {
 }
 
 function buyCase(caseItem, button) {
-  if (rolling || state.balance + 0.0001 < caseItem.cost) return;
+  if (rolling) return;
   const originalLabel = button.innerHTML;
-  state.balance = Math.round((state.balance - caseItem.cost) * 100) / 100;
   state.inventory.push({ type: "case", caseId: caseItem.id, acquiredAt: Date.now() + Math.random() });
   saveState(); renderStats();
   button.innerHTML = "ADDED TO INVENTORY <span>✓</span>";
@@ -905,10 +897,8 @@ async function roll(opening = null) {
   if (caseItem) {
     payout = casePayout(caseItem, score);
     state.inventory.splice(opening.inventoryIndex, 1);
-    state.balance = Math.round((state.balance + payout) * 100) / 100;
-    state.casesOpened++;
     saveState(); renderStats();
-    $("#opening-payout-status").textContent = `+${formatCredits(payout)} CR · AUTO-PAID`;
+    $("#opening-payout-status").textContent = `${formatCredits(payout)} CR · DEMO ONLY`;
   }
   statusText.textContent = "SIGNAL LOCKED"; scorePreview.textContent = number.toLocaleString();
   summary.textContent = "Reading the number signature…";
@@ -919,10 +909,8 @@ async function roll(opening = null) {
   await wait(110);
   await revealBadges(badges, number, !caseItem);
   if (caseItem) {
-    summary.innerHTML += `<span class="case-payout"><em class="${caseDrop.rarity}">${caseDrop.name}</em> AUTO-PAYOUT <b>+${formatCredits(payout)} CR CREDITED</b></span>`;
+    summary.innerHTML += `<span class="case-payout"><em class="${caseDrop.rarity}">${caseDrop.name}</em> DEMO PAYOUT <b>${formatCredits(payout)} CR · NOT CREDITED</b></span>`;
   }
-  state.rolls++; state.best = Math.max(state.best, score);
-  state.badges = [...new Set([...state.badges, ...badges.map((item) => item.label)])];
   saveState();
   rolling = false; rollButton.disabled = false;
   document.body.classList.remove("is-rolling", "roll-resolving");
@@ -942,7 +930,7 @@ async function openInventoryItem(index) {
   $("#opening-icon").src = traitImage(caseDrop.id);
   $("#opening-trait").textContent = caseDrop.name;
   $("#opening-description").textContent = caseDrop.description;
-  $("#opening-payout-status").textContent = "AUTO-PAYOUT CALCULATING…";
+  $("#opening-payout-status").textContent = "DEMO PAYOUT CALCULATING…";
   $("#back-inventory").disabled = true;
   setMode("opening", true);
   const number = generateTraitNumber(caseDrop.id, secureRandomNumber());
@@ -1227,18 +1215,14 @@ async function runDuel() {
     setTimeout(() => { winnerLane.classList.remove("lane-victory-shake"); $("#battle-steal").className = "battle-steal"; }, 900);
   }
   reactToBattle(results);
-  state.rolls += 2;
-  state.best = Math.max(state.best, ...results.map((result) => result.score));
-  state.badges = [...new Set([...state.badges, ...results.flatMap((result) => result.badges.map((badge) => badge.label))])];
   if (duelMatch.round >= duelMatch.length) {
     duelMatch.active = false;
     const winner = battleWinner(duelMatch.mode, duelMatch.histories);
     const playerPayout = winner === 0 ? duelMatch.payoutPot : winner < 0 ? Math.round(duelMatch.payoutPot * 50) / 100 : 0;
-    state.balance = Math.round((state.balance + playerPayout) * 100) / 100;
-    $("#duel-round").textContent = winner < 0 ? `DRAW · +${formatCredits(playerPayout)} CR AUTO-PAID` : winner === 0 ? `YOU WIN · +${formatCredits(playerPayout)} CR AUTO-PAID` : `${duelMatch.bot.username} WINS · POT SETTLED`;
+    $("#duel-round").textContent = winner < 0 ? `DRAW · ${formatCredits(playerPayout)} DEMO CR` : winner === 0 ? `YOU WIN · ${formatCredits(playerPayout)} DEMO CR` : `${duelMatch.bot.username} WINS · DEMO ONLY`;
     $("#battle-status").textContent = winner === 0 ? "VICTORY" : winner < 0 ? "DRAW" : "DEFEAT";
-    appendBattleFeed("SYSTEM", winner === 0 ? `${formatCredits(playerPayout)} CR credited instantly.` : winner < 0 ? `${formatCredits(playerPayout)} CR split credited instantly.` : `${duelMatch.bot.username} captured the pot.`, winner === 0 ? "win-message" : "system-message");
-    if (winner >= 0) { state.duelWins[winner]++; duelPanel.classList.add(`winner-${winner + 1}`); }
+    appendBattleFeed("SYSTEM", "Demo complete. No credits or stats recorded.", "system-message");
+    if (winner >= 0) duelPanel.classList.add(`winner-${winner + 1}`);
     button.textContent = "MATCH COMPLETE";
     $("#duel-start").textContent = "CREATE REMATCH";
     $("#duel-start").disabled = false;
@@ -1260,12 +1244,6 @@ function startDuel() {
   const caseItem = CASES.find((item) => item.id === $("#battle-case").value);
   const length = Number($("#duel-length").value);
   const entry = caseItem.cost * length;
-  if (state.balance + 0.0001 < entry) {
-    $("#duel-round").textContent = `NEED ${formatCredits(entry)} CREDITS`;
-    tone(130, 0.3, "sawtooth", 0.04);
-    return;
-  }
-  state.balance = Math.round((state.balance - entry) * 100) / 100;
   const bot = BOT_PROFILES[Math.floor(Math.random() * BOT_PROFILES.length)];
   duelMatch = { caseItem, mode: $("#battle-mode").value, length, round: 0, totals: [0, 0], histories: [[], []], payoutPot: 0, active: false, joining: true, bot };
   duelPanel.classList.remove("winner-1", "winner-2");
@@ -1409,9 +1387,6 @@ async function runGroupBattle() {
     setTimeout(() => { lanes.forEach((lane) => lane.classList.remove("lane-victory-shake")); $("#battle-steal").classList.remove("active"); }, 900);
   }
   reactToGroupBattle(results);
-  state.rolls += playerCount;
-  state.best = Math.max(state.best, ...results.map((result) => result.score));
-  state.badges = [...new Set([...state.badges, ...results.flatMap((result) => result.badges.map((badge) => badge.label))])];
 
   if (duelMatch.round >= duelMatch.length) {
     duelMatch.active = false;
@@ -1419,13 +1394,11 @@ async function runGroupBattle() {
     const winner = teamBattleWinner(duelMatch.mode, duelMatch.histories, duelMatch.teams);
     const userWon = winner === 0;
     const payout = sharing ? splitBattlePot(duelMatch.payoutPot, playerCount) : userWon ? Math.round(duelMatch.payoutPot * 100 / duelMatch.teams[0].length) / 100 : winner < 0 ? splitBattlePot(duelMatch.payoutPot, playerCount) : 0;
-    state.balance = Math.round((state.balance + payout) * 100) / 100;
     const winnerName = sharing ? "EVERYONE" : battleTeamName(winner);
     const winnerRoster = sharing ? `Every player receives an equal ${formatCredits(payout)} CR share.` : winner < 0 ? "All tied players split the pot." : duelMatch.teams[winner].map((player) => duelMatch.players[player].username).join(" + ");
-    $("#duel-round").textContent = sharing ? `SHARED · +${formatCredits(payout)} CR AUTO-PAID` : winner < 0 ? `DRAW · +${formatCredits(payout)} CR AUTO-PAID` : userWon ? `YOU WIN · +${formatCredits(payout)} CR AUTO-PAID` : `${winnerName} WINS · POT SETTLED`;
+    $("#duel-round").textContent = `${sharing ? "SHARED" : winner < 0 ? "DRAW" : userWon ? "YOU WIN" : `${winnerName} WINS`} · DEMO ONLY`;
     $("#battle-status").textContent = sharing ? "SHARED" : userWon ? "VICTORY" : winner < 0 ? "DRAW" : "DEFEAT";
-    appendBattleFeed("SYSTEM", sharing ? `${formatCredits(duelMatch.payoutPot)} CR pot shared equally. ${formatCredits(payout)} CR credited to every player.` : userWon ? `${formatCredits(payout)} CR credited instantly.` : winner < 0 ? `${formatCredits(payout)} CR split credited instantly.` : `${winnerName} captured the pot.`, sharing || userWon ? "win-message" : "system-message");
-    if (!sharing && winner >= 0) state.duelWins[userWon ? 0 : 1]++;
+    appendBattleFeed("SYSTEM", "Demo complete. No credits or stats recorded.", "system-message");
     const winnerBanner = $("#battle-winner-banner");
     winnerBanner.hidden = false;
     winnerBanner.className = `battle-winner-banner ${sharing ? "share" : winner < 0 ? "draw" : userWon ? "victory" : "defeat"}`;
@@ -1434,7 +1407,7 @@ async function runGroupBattle() {
     $("#battle-winner-roster").textContent = winnerRoster;
     $("#battle-winner-payout").textContent = `${formatCredits(duelMatch.payoutPot)} CR POT`;
     renderBattleSettlementBreakdown(payout, sharing, winner);
-    $("#battle-winner-credit").textContent = sharing ? `YOUR EQUAL SHARE · +${formatCredits(payout)} CR AUTO-PAID` : payout > 0 ? `+${formatCredits(payout)} CR AUTO-PAID TO YOU` : `${winnerName} CLAIMED THE FULL SETTLEMENT`;
+    $("#battle-winner-credit").textContent = "DEMO ONLY · NO CREDITS OR STATS RECORDED";
     button.textContent = "BATTLE COMPLETE";
     ["#duel-start", "#battle-mode", "#battle-bots", "#battle-speed-select"].forEach((selector) => { $(selector).disabled = false; });
   } else {
@@ -1462,9 +1435,6 @@ function startGroupBattle() {
   const length = cases.length;
   const format = selectedBattleFormat();
   const botCount = format.teams.flat().length - 1;
-  const entry = cases.reduce((sum, item) => sum + item.cost, 0);
-  if (state.balance + .0001 < entry) { $("#duel-round").textContent = `NEED ${formatCredits(entry)} CREDITS`; tone(130, .3, "sawtooth", .04); return; }
-  state.balance = Math.round((state.balance - entry) * 100) / 100;
   const bots = [...BOT_PROFILES].sort(() => Math.random() - .5).slice(0, botCount);
   const players = [{ username: "YOU", level: 37, badge: "NUMBER HUNTER" }, ...bots].map((player, index) => ({ ...player, team: format.teams.findIndex((members) => members.includes(index)) }));
   duelMatch = { cases, caseItem, format, teams: format.teams, mode: $("#battle-mode").value, length, round: 0, totals: Array(players.length).fill(0), histories: Array.from({ length: players.length }, () => []), contributions: Array(players.length).fill(0), payoutPot: 0, active: false, joining: true, settled: false, turbo: $("#battle-speed-select").value === "turbo", players };
@@ -1516,7 +1486,7 @@ function renderBattleCost() {
   $("#battle-entry").textContent = `${formatCredits(total)} CR · YOUR SEAT · ${format.label} · ${players} PLAYERS`;
   $("#battle-creator-total").textContent = `${formatCredits(total)} CR`;
   $("#battle-creator-rounds").textContent = `${battleCaseIds.length} ${battleCaseIds.length === 1 ? "ROUND" : "ROUNDS"}`;
-  $("#duel-start").disabled = !battleCaseIds.length || state.balance + .0001 < total;
+  $("#duel-start").disabled = !battleCaseIds.length;
 }
 
 function renderBattleBasket() {
@@ -1645,17 +1615,6 @@ $("#battle-bots").addEventListener("change", () => {
 });
 $("#battle-new").addEventListener("click", showBattleCreator);
 $("#duel-start").addEventListener("click", startGroupBattle);
-dailyButton.addEventListener("click", async () => {
-  if (state.dailyDate === localDayKey()) return;
-  startBackgroundMusic(); dailyButton.disabled = true; dailyButton.classList.add("claiming");
-  const reward = dailyReward(secureRandomNumber());
-  await new Promise((resolve) => setTimeout(resolve, fastReveal ? 400 : 1300));
-  state.balance = Math.round((state.balance + reward) * 100) / 100;
-  state.dailyDate = localDayKey(); saveState(); renderStats();
-  dailyButton.classList.remove("claiming");
-  dailyButton.querySelector("strong").textContent = `+${reward.toLocaleString()} CR`;
-  tone(760, 0.5, "triangle", 0.08);
-});
 document.addEventListener("keydown", (event) => {
   if (event.key === "F1") {
     event.preventDefault();
@@ -1677,15 +1636,6 @@ $(".dialog-close").addEventListener("click", () => dialog.close());
 dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
 $(".admin-close").addEventListener("click", () => adminDialog.close());
 adminDialog.addEventListener("click", (event) => { if (event.target === adminDialog) adminDialog.close(); });
-adminDialog.querySelectorAll("[data-admin-credit]").forEach((button) => button.addEventListener("click", () => {
-  $("#admin-credit-amount").value = button.dataset.adminCredit;
-}));
-$("#admin-add-credits").addEventListener("click", () => {
-  const amount = Number($("#admin-credit-amount").value);
-  if (!Number.isFinite(amount) || amount <= 0) return;
-  state.balance = Math.round((state.balance + amount) * 100) / 100;
-  saveState(); renderStats(); setAdminStatus(`Added ${formatCredits(amount)} virtual credits.`); tone(760, 0.3, "triangle", 0.07);
-});
 $("#admin-grant-case").addEventListener("click", () => {
   const caseItem = CASES.find((item) => item.id === $("#admin-case-select").value);
   if (!caseItem) return;
@@ -1697,9 +1647,6 @@ $("#admin-force-gold").addEventListener("click", () => {
 });
 $("#admin-force-mythic").addEventListener("click", () => {
   state.adminNextOutcome = "mythic"; saveState(); setAdminStatus("Next sealed case will land its final Mythic golden-tier item.");
-});
-$("#admin-reset-daily").addEventListener("click", () => {
-  state.dailyDate = ""; saveState(); renderStats(); setAdminStatus("Daily Signal is available again.");
 });
 $("#admin-clear-inventory").addEventListener("click", () => {
   if (!confirm("Clear every case and capsule from this local inventory?")) return;
