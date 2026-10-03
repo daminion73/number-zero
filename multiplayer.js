@@ -121,6 +121,7 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
     $("#account-button").textContent = user
       ? `${user.name} · ${money(user.balance)} ONLINE CR`
       : "SIGN IN / ACCOUNT ↗";
+    $("#global-balance").textContent = user ? `${money(user.balance)} CR` : "SIGN IN";
     if ($(".online-balance") && !presentation?.controller)
       $(".online-balance").textContent = user ? `${money(user.balance)} CR` : "SPECTATING";
     $("#account-title").textContent = user ? user.name : "ENTER THE ARENA";
@@ -242,11 +243,11 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
   }
   function renderList(force = false) {
     const shown = battles.filter((b) =>
-      filter === "open"
+      ["waiting", "running"].includes(b.state) && (filter === "open"
         ? b.state === "waiting"
         : filter === "mine"
           ? b.players.some((p) => !p.bot && p.id === user?.id)
-          : true,
+          : true),
     );
     const signature = JSON.stringify([
       shown.map((b) => [b.id, b.state, b.players, b.rounds.length]),
@@ -254,7 +255,7 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
       user?.id,
     ]);
     if (!force && signature === listSignature) return;
-    if (!force && $("#online-battles").contains(document.activeElement)) return;
+    if (!force && shown.some((b) => b.id === document.activeElement?.dataset.viewBattle)) return;
     listSignature = signature;
     $("#online-battles").innerHTML = shown.length
       ? shown
@@ -265,7 +266,7 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
             return `<article class="online-battle-card" data-state="${b.state}"><div class="online-case-thumb">${first ? caseImage(first) : "◇"}</div><div class="online-battle-copy"><div><span class="online-state">${b.state.toUpperCase()}</span><small>${esc(b.format.toUpperCase())} · ${esc(b.mode.toUpperCase())}</small></div><h2>${esc(first?.name || "Case battle")}${b.caseIds.length > 1 ? ` <span>+${b.caseIds.length - 1} rounds</span>` : ""}</h2><p>${b.players.length}/${slots} seats · ${human} human${human === 1 ? "" : "s"} · ${b.players.length - human} bots</p></div><div class="online-entry"><strong>${money(b.entry)} <small>CR</small></strong><span>PER SEAT</span></div><button type="button" data-view-battle="${b.id}">${b.state === "waiting" ? "VIEW / JOIN" : "WATCH / RESULTS"} →</button></article>`;
           })
           .join("")
-      : `<div class="online-empty"><span>◈</span><h2>${filter === "mine" ? "YOUR NEXT BATTLE STARTS HERE" : filter === "open" ? "THE ARENA IS OPEN" : "NO BATTLES YET"}</h2><p>${filter === "open" ? "No open lobbies right now. Publish a battle and invite a friend, or add house bots yourself." : "No battles match this filter. Your completed battles stay available here."}</p><button type="button" data-create-battle>BUILD A BATTLE →</button></div>`;
+      : `<div class="online-empty"><span>◈</span><h2>${filter === "mine" ? "YOUR NEXT BATTLE STARTS HERE" : filter === "open" ? "THE ARENA IS OPEN" : "NO ACTIVE BATTLES"}</h2><p>${filter === "open" ? "No open lobbies right now. Publish a battle and invite a friend, or add house bots yourself." : "No active battles match this filter."}</p><button type="button" data-create-battle>CREATE A BATTLE →</button></div>`;
   }
   function renderRoom(force = false) {
     const room = $("#online-room");
@@ -309,10 +310,6 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
         await animateRound(room, snapshot, round, controller.signal);
         if (controller.signal.aborted) return;
         view.revealed++;
-        paintRoom({ ...snapshot, rounds: [...snapshot.rounds, round] }, null, true);
-        await new Promise((resolve) =>
-          setTimeout(resolve, snapshot.speed === "turbo" ? 300 : 650),
-        );
       } catch (error) {
         if (!controller.signal.aborted) {
           view.revealed = selected.rounds.length;

@@ -44,13 +44,19 @@ async function fixture({ width = 1440, speed = "standard", reducedMotion = "no-p
   page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
   await page.addInitScript(() => {
     window.landings = [];
+    window.roundTiming = {};
+    window.interRoundTraitCard = false;
     new MutationObserver((records) => {
+      const room = document.querySelector("#online-room");
+      if (room?.dataset.state === "running" && room.querySelector(".online-landed-track article")) window.interRoundTraitCard = true;
+      if (room?.dataset.opening === "0" && room.querySelector(".battle-player-total > b.counted")) window.roundTiming.scored ??= Date.now();
+      if (room?.dataset.opening === "1") window.roundTiming.next ??= Date.now();
       for (const { target } of records) {
         if (target.matches?.(".online-case-lane .battle-lane-track article.winner")) {
           window.landings.push([target.closest("[data-opening-seat]").dataset.openingSeat, target.querySelector("strong").textContent]);
         }
       }
-    }).observe(document, { subtree: true, attributes: true, attributeFilter: ["class"] });
+    }).observe(document, { subtree: true, childList: true, attributes: true, attributeFilter: ["class", "data-opening"] });
   });
   await page.route("**/api/**", (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -131,6 +137,9 @@ try {
   assert.match(await page.locator('.duel-player:has([data-phase="bonus"]) .online-spin-label').innerText(), /INNER CASE/);
   await capture(page, "battle-opening-inner.png");
   await advanceUntil(page, '.online-room[data-state="settled"]');
+  assert.equal(await page.evaluate(() => window.interRoundTraitCard), false, "No extra single-trait result screen between rounds");
+  const timing = await page.evaluate(() => window.roundTiming);
+  assert.ok(timing.next - timing.scored <= 100, "Next queued round starts immediately after scores finish counting");
   assert.deepEqual(await page.evaluate(() => window.landings.filter(([seat]) => seat === "0").map(([, name]) => name)),
     ["Lucky Presence", "GOLD COIN", "Downfall", "CASE INSIDE A CASE", "Power of Two"], "All queued rounds land on the server trait, with the correct bonus trigger first");
   assert.deepEqual(await page.evaluate(() => window.landings.filter(([seat]) => seat === "1").map(([, name]) => name)),
@@ -217,7 +226,7 @@ try {
     if (!localStorage.getItem("number-zero-state")) localStorage.setItem("number-zero-state", JSON.stringify(stats));
   }, savedStats);
   await practice.goto(base);
-  assert.equal(await practice.locator("#global-balance").innerText(), "∞ DEMO CR");
+  assert.equal(await practice.locator("#global-balance").innerText(), "SIGN IN");
   await practice.locator("#motion-toggle").click();
   await practice.locator("#roll-button").click();
   await practice.locator("#status-text").filter({ hasText: "ROLL COMPLETE" }).waitFor();
@@ -229,7 +238,8 @@ try {
   await practice.locator(".case-payout").waitFor({ timeout: 30000 });
   assert.match(await practice.locator(".case-payout").innerText(), /DEMO PAYOUT.*NOT CREDITED/);
   await practice.locator("#back-inventory").click();
-  await practice.locator('[data-mode="duel"]').click();
+  await practice.locator('[data-mode="online"]').click();
+  await practice.locator("#online-create").click();
   await practice.locator("#battle-clear-cases").click();
   assert.equal(await practice.locator("#duel-start").isDisabled(), true, "An empty demo still needs a case");
   await practice.locator('[data-add-battle-case="endgame-vault"]').click();

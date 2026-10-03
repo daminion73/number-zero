@@ -77,7 +77,6 @@ function renderStats() {
   $("#credit-balance").textContent = "∞";
   $("#inventory-balance").textContent = "∞ DEMO";
   $("#opening-balance").textContent = "∞ DEMO";
-  $("#global-balance").textContent = "∞ DEMO CR";
   $("#battle-balance").textContent = "∞ DEMO CR";
   $("#admin-balance").textContent = "∞ DEMO";
   $("#admin-rolls").textContent = state.rolls.toLocaleString();
@@ -293,7 +292,7 @@ function setMode(mode, scroll = false) {
   openingContext.hidden = !openingMode;
   document.body.classList.toggle("opening-mode", openingMode);
   modeTabs.forEach((button) => {
-    const active = button.dataset.mode === mode;
+    const active = button.dataset.mode === (mode === "duel" ? "online" : mode);
     button.classList.toggle("active", active);
     button.setAttribute("aria-selected", String(active));
   });
@@ -1066,7 +1065,7 @@ function renderOnlineBattle(battle, opening, user, showSettlement) {
       subtitle: player.bot ? "HOUSE BOT" : player.id === user?.id ? "YOU · ONLINE PLAYER" : "ONLINE PLAYER",
       teamLabel: `TEAM ${String.fromCharCode(65 + team)} · ${player.bot ? "HOUSE BOT" : "PLAYER"}`,
       total: totals[index], result,
-      drop: result && CASES.find((item) => item.id === latest.caseId).drops.find((drop) => drop.id === result.trait),
+      drop: battle.state === "settled" && result && CASES.find((item) => item.id === latest.caseId).drops.find((drop) => drop.id === result.trait),
       badges: result ? onlineBattleBadges(result) : "READY",
     });
   }).join("");
@@ -1417,7 +1416,7 @@ async function runGroupBattle() {
   }
   saveState(); rolling = false; duelPanel.classList.remove("duel-rolling"); renderStats();
   tone(roundWinner < 0 ? 520 : 820, .45, "triangle", .08);
-  if (duelMatch.active) setTimeout(() => { if (duelMatch.active && !rolling) runGroupBattle(); }, duelMatch.turbo ? 400 : 950);
+  if (duelMatch.active) runGroupBattle();
 }
 
 function reactToGroupBattle(results) {

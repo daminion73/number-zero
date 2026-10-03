@@ -37,6 +37,8 @@ async function pageFor(name, width = 1440) {
     .click();
   await page.locator(".account-wallet").waitFor();
   await page.locator(".account-close").click();
+  assert.equal(await page.locator("#global-balance").innerText(), "50,000.00 CR", "Header shows the online wallet, not demo credits");
+  assert.equal(await page.locator('[data-mode="duel"]').count(), 0, "No builder tab");
   return page;
 }
 async function checkOverflow(page) {
@@ -87,7 +89,9 @@ try {
   const host = await pageFor("ALPHA"),
     guest = await pageFor("BRAVO");
   await host.emulateMedia({ reducedMotion: "no-preference" });
-  await host.locator('[data-mode="duel"]').click();
+  await host.locator('[data-mode="online"]').click();
+  await host.locator("#online-create").click();
+  assert.equal(await host.locator("#battle-creator").isVisible(), true);
   await host.locator("#battle-bots").selectOption("2");
   await host.locator("#battle-mode").selectOption("share");
   await host.screenshot({ path: join(artifacts, "multiplayer-builder.png") });
@@ -141,6 +145,14 @@ try {
   await host.locator(".online-history summary").click();
   assert.equal(await host.locator(".online-history section").count(), 3);
   await checkOverflow(host);
+  await host.locator('[data-room-action="close"]').first().click();
+  await host.locator("#online-refresh").click();
+  for (const filter of ["open", "all", "mine"]) {
+    await host.locator(`[data-filter="${filter}"]`).click();
+    assert.equal(await host.locator(`[data-view-battle="${id}"]`).count(), 0, "Settled battles leave every feed filter");
+  }
+  await host.locator("[data-create-battle]").click();
+  assert.equal(await host.locator("#battle-creator").isVisible(), true, "Empty-feed create opens the builder");
 
   const mobile = await pageFor("CHARLIE", 390);
   await mobile.goto(`${base}/?battle=${id}`);
@@ -203,6 +215,18 @@ try {
     "true",
   );
   await checkOverflow(mobile);
+  await mobile.locator("#account-button").click();
+  await mobile.locator("#online-daily").click();
+  await mobile.locator("#global-balance").filter({ hasText: "70,000.00 CR" }).waitFor();
+  await mobile.locator(".account-close").click();
+  await mobile.reload();
+  await mobile.locator("#global-balance").filter({ hasText: "70,000.00 CR" }).waitFor();
+  await mobile.locator('[data-mode="online"]').click();
+  await mobile.screenshot({ path: join(artifacts, "online-balance-mobile.png") });
+  await mobile.locator("#account-button").click();
+  await mobile.locator("#online-logout").click();
+  await mobile.locator("#global-balance").filter({ hasText: "SIGN IN" }).waitFor();
+  assert.equal(await mobile.locator("#global-balance").innerText(), "SIGN IN", "Logout clears the previous user's balance");
   assert.deepEqual(errors, []);
   console.log(
     "PASS: independent clients create/join/add-bot/start/reconnect/settle; mobile, favorites, persistence, reduced motion and controls.",
