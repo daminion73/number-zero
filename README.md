@@ -110,7 +110,7 @@ This command starts a local container; a public host still needs TLS, a domain/o
 
 ## Multiplayer rules and boundaries
 
-- New accounts receive 50,000 virtual credits; daily claims add 20,000, once per UTC day. No money, deposits, withdrawals or credit purchases.
+- New accounts receive 100,000 virtual credits; daily claims add 100,000, once per UTC day. No money, deposits, withdrawals or credit purchases.
 - **Online and practice wallets are separate.** Local admin tools, custom cases, inventory and localStorage balances never determine online credits or outcomes.
 - Select 1–20 canonical cases, a mode and format, then publish. Entry is reserved for the host. Each human chooses and pays for one seat, and may hold only one active battle at a time.
 - The host manually adds/removes labelled house bots and starts only when all seats are filled. No fabricated human activity is generated.

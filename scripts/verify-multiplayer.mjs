@@ -37,8 +37,8 @@ async function pageFor(name, width = 1440) {
     .click();
   await page.locator(".account-wallet").waitFor();
   await page.locator(".account-close").click();
-  assert.equal(await page.locator("#global-balance").innerText(), "50,000.00 CR", "Header shows the online wallet, not demo credits");
-  assert.equal(await page.locator('[data-mode="duel"]').count(), 0, "No builder tab");
+  assert.equal(await page.locator("#global-balance").innerText(), "100,000.00 CR", "Header shows the online wallet, not demo credits");
+  assert.equal(await page.locator('.mode-tabs [data-mode="duel"]').count(), 0, "No builder tab");
   return page;
 }
 async function checkOverflow(page) {
@@ -89,7 +89,7 @@ try {
   const host = await pageFor("ALPHA"),
     guest = await pageFor("BRAVO");
   await host.emulateMedia({ reducedMotion: "no-preference" });
-  await host.locator('[data-mode="online"]').click();
+  await host.locator('.mode-tabs [data-mode="online"]').click();
   await host.locator("#online-create").click();
   assert.equal(await host.locator("#battle-creator").isVisible(), true);
   await host.locator("#battle-bots").selectOption("2");
@@ -99,7 +99,7 @@ try {
   await host.locator('.online-room[data-state="waiting"]').waitFor();
   const id = new URL(host.url()).searchParams.get("battle");
   assert.ok(id);
-  await guest.locator('[data-mode="online"]').click();
+  await guest.locator('.mode-tabs [data-mode="online"]').click();
   await guest.locator("#online-refresh").click();
   await guest.locator(`[data-view-battle="${id}"]`).waitFor();
   await guest.screenshot({ path: join(artifacts, "multiplayer-feed.png") });
@@ -109,7 +109,7 @@ try {
     .locator(".online-room-actions")
     .getByRole("button", { name: "LEAVE & REFUND MY SEAT" })
     .waitFor();
-  await host.locator("#online-refresh").click();
+  await host.getByText("2/3 SEATS FILLED").waitFor(); // the focused room has no feed toolbar; wait for polling
   await host.locator('[data-room-action="bot"][data-seat="2"]').click();
   await host
     .getByRole("button", { name: "START BATTLE →", exact: true })
@@ -161,54 +161,7 @@ try {
   await captureRoom(mobile, "multiplayer-mobile.png", true);
   await mobile.getByRole("button", { name: "RETURN TO BATTLE MENU", exact: true }).click();
   assert.equal(await mobile.locator("#online-room").isVisible(), false);
-  await mobile.locator('[data-mode="sandbox"]').click();
-  await mobile
-    .getByRole("button", { name: "EXPLORE COLLECTION", exact: true })
-    .click();
-  await mobile.locator(".experience-filters input").fill("nano");
-  await mobile.locator(".experience-favorite").first().click();
-  await mobile.locator(".experience-filters select").selectOption("favorites");
-  assert.ok((await mobile.locator(".experience-branch").count()) > 0);
-  await mobile.screenshot({ path: join(artifacts, "experience-mobile.png") });
-  await mobile.locator(".experience-inspect").first().click();
-  assert.match(
-    await mobile.locator(".experience-progress-copy span").innerText(),
-    /1\/435 cases inspected/,
-  );
-  await mobile.reload();
-  assert.match(
-    await mobile.locator(".experience-progress-copy span").innerText(),
-    /1\/435 cases inspected/,
-  );
-  assert.equal(
-    await mobile.evaluate(() => document.body.dataset.ambience),
-    "paused",
-  );
-  await mobile.emulateMedia({ reducedMotion: "no-preference" });
-  await mobile
-    .getByRole("button", { name: "PAUSE AMBIENCE", exact: true })
-    .click();
-  assert.equal(
-    await mobile.evaluate(
-      () =>
-        getComputedStyle(document.querySelector(".roll-atmosphere"), "::before")
-          .animationPlayState,
-    ),
-    "paused",
-  );
-  await mobile
-    .getByRole("button", { name: "EXPLORE COLLECTION", exact: true })
-    .click();
-  await mobile
-    .getByRole("button", { name: "HIDE CONTEXT", exact: true })
-    .click();
-  await mobile.locator(".experience-close").click();
-  assert.equal(
-    await mobile.locator(".experience-bar").isVisible(),
-    true,
-    "Controls remain recoverable when context is hidden",
-  );
-  await mobile.locator('[data-mode="online"]').click();
+  await mobile.locator('.mode-tabs [data-mode="online"]').click();
   await mobile.locator("#online-pause").click();
   assert.equal(
     await mobile.locator("#online-pause").getAttribute("aria-pressed"),
@@ -217,11 +170,11 @@ try {
   await checkOverflow(mobile);
   await mobile.locator("#account-button").click();
   await mobile.locator("#online-daily").click();
-  await mobile.locator("#global-balance").filter({ hasText: "70,000.00 CR" }).waitFor();
+  await mobile.locator("#global-balance").filter({ hasText: "200,000.00 CR" }).waitFor();
   await mobile.locator(".account-close").click();
   await mobile.reload();
-  await mobile.locator("#global-balance").filter({ hasText: "70,000.00 CR" }).waitFor();
-  await mobile.locator('[data-mode="online"]').click();
+  await mobile.locator("#global-balance").filter({ hasText: "200,000.00 CR" }).waitFor();
+  await mobile.locator('.mode-tabs [data-mode="online"]').click();
   await mobile.screenshot({ path: join(artifacts, "online-balance-mobile.png") });
   await mobile.locator("#account-button").click();
   await mobile.locator("#online-logout").click();
@@ -229,7 +182,7 @@ try {
   assert.equal(await mobile.locator("#global-balance").innerText(), "SIGN IN", "Logout clears the previous user's balance");
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: independent clients create/join/add-bot/start/reconnect/settle; mobile, favorites, persistence, reduced motion and controls.",
+    "PASS: independent clients create/join/add-bot/start/reconnect/settle; mobile layout, daily claim, persistence and controls.",
   );
 } finally {
   await browser.close();

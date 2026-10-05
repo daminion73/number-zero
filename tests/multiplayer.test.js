@@ -60,6 +60,12 @@ async function fixture(t, extra = {}) {
     }
     return { status: response.status, data, headers: response.headers };
   }
+  async function rewards(token) {
+    const { profile } = (await request("/api/profile", undefined, token)).data;
+    return profile.achievements
+      .filter((achievement) => achievement.unlocked)
+      .reduce((sum, achievement) => sum + achievement.reward * 100, 0);
+  }
   async function login(name) {
     const r = await request("/api/auth/dev", { name });
     assert.equal(r.status, 200);
@@ -67,6 +73,7 @@ async function fixture(t, extra = {}) {
   }
   return {
     request,
+    rewards,
     login,
     advance: (ms) => {
       time += ms;
@@ -112,7 +119,8 @@ test("public lobby, static allowlist, exact CORS and Google credential rejection
   for (const path of [
     "/",
     "/privacy.html",
-    "/experience.js",
+    "/casino-core.js",
+    "/games/mines.js",
     "/multiplayer.js",
     "/config.js",
   ])
@@ -169,7 +177,7 @@ test("Google identity is keyed by verified subject, sessions revoke and expire",
       balance: 99999999,
     })
   ).data;
-  assert.equal(first.user.balance, 50000);
+  assert.equal(first.user.balance, 100000);
   assert.equal(first.user.email, undefined);
   const second = (
     await f.request("/api/auth/google", {
@@ -240,7 +248,7 @@ test("create is idempotent, validates inputs and never imports client wallet", a
   assert.equal(one.data.battle.entry, entry);
   assert.equal(
     (await f.request("/api/me", undefined, a.token)).data.user.balance,
-    50000 - entry,
+    100000 - entry,
   );
   assert.equal(
     (
@@ -276,7 +284,7 @@ test("competing joins reserve last seat once; host-only controls and refunds", a
     outsider = guest === a ? b : a;
   assert.equal(
     (await f.request("/api/me", undefined, outsider.token)).data.user.balance,
-    50000,
+    100000,
   );
   assert.equal((await f.request(path + "/start", {}, guest.token)).status, 403);
   assert.equal(
@@ -291,7 +299,7 @@ test("competing joins reserve last seat once; host-only controls and refunds", a
   assert.equal((await f.request(path + "/leave", {}, guest.token)).status, 409);
   assert.equal(
     (await f.request("/api/me", undefined, guest.token)).data.user.balance,
-    50000,
+    100000,
   );
   assert.equal(
     (await f.request(path + "/bot", { seat: 1 }, outsider.token)).status,
@@ -313,7 +321,7 @@ test("competing joins reserve last seat once; host-only controls and refunds", a
   assert.equal((await f.request(path + "/cancel", {}, host.token)).status, 409);
   assert.equal(
     (await f.request("/api/me", undefined, host.token)).data.user.balance,
-    50000,
+    100000,
   );
 });
 
@@ -327,14 +335,14 @@ test("daily grant is atomic and uses UTC boundary", async (t) => {
   assert.deepEqual(responses.map((r) => r.status).sort(), [200, 409]);
   assert.equal(
     (await f.request("/api/me", undefined, a.token)).data.user.balance,
-    70000,
+    200000,
   );
   f.advance(12 * 3600000 - 1);
   assert.equal((await f.request("/api/daily", {}, a.token)).status, 409);
   f.advance(1);
   assert.equal(
     (await f.request("/api/daily", {}, a.token)).data.user.balance,
-    90000,
+    300000,
   );
 });
 
@@ -390,9 +398,10 @@ test("hidden future rounds, authoritative results and once-only restart settleme
     const me = (await f.request("/api/me", undefined, account.token)).data.user;
     assert.equal(
       Math.round(me.balance * 100),
-      5000000 -
+      10000000 -
         Math.round(battle.entry * 100) +
-        Math.round(settled.payouts[index].amount * 100),
+        Math.round(settled.payouts[index].amount * 100) +
+        (await f.rewards(account.token)),
     );
     assert.equal(me.battlesPlayed, 1);
     assert.equal(me.wins, 0);
@@ -422,11 +431,11 @@ test("expired waiting lobbies refund after restart without requiring a player ac
   );
   assert.equal(
     (await f.request("/api/me", undefined, a.token)).data.user.balance,
-    50000,
+    100000,
   );
   assert.equal(
     (await f.request("/api/me", undefined, b.token)).data.user.balance,
-    50000,
+    100000,
   );
 });
 
@@ -499,8 +508,9 @@ test("bot shares are not paid to humans; manual bots work in a six-seat format",
     Math.round(
       (await f.request("/api/me", undefined, a.token)).data.user.balance * 100,
     ),
-    5000000 -
+    10000000 -
       Math.round(battle.entry * 100) +
-      Math.round(settled.payouts[0].amount * 100),
+      Math.round(settled.payouts[0].amount * 100) +
+      (await f.rewards(a.token)),
   );
 });

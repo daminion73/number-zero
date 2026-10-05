@@ -1,8 +1,10 @@
 export const ALL_ROLL_COUNT = 1_000_001;
 export const CASE_RTP = 0.98;
 export const EP_PER_CREDIT = 1_000;
-export const GOLD_COIN_OUTCOMES = 20_000;
+export const GOLD_COIN_OUTCOMES = 4_000;
 export const GOLD_COIN_CHANCE = GOLD_COIN_OUTCOMES / ALL_ROLL_COUNT;
+export const GOLD_MULTIPLIERS = [[50, 60], [75, 22], [100, 12], [250, 4.5], [500, 1.2], [1000, .3]];
+export const NESTED_MULTIPLIERS = [[40, 50], [60, 25], [100, 15], [200, 7], [400, 2.5], [800, .5]];
 
 const DROP_ODDS = [
   ["common", 32.5], ["common", 32.5],
@@ -342,9 +344,13 @@ export function createCase(definition) {
     drop.goldChance = nestedBonus ? nestedWeights.get(drop.id) || 0 : disclosedPremiumChance ? ["rare", "epic", "mythic"].includes(drop.rarity) ? drop.chance / premiumChance * 100 : 0 : drop.chance;
     drop.finalChance = drop.chance * (1 - GOLD_COIN_CHANCE) + drop.goldChance * GOLD_COIN_CHANCE;
   });
-  const expectedEp = drops.reduce((total, drop) => total + TRAIT_EXPECTED_EP[drop.id] * drop.finalChance / 100, 0);
-  const expectedPayout = expectedEp / EP_PER_CREDIT;
-  const cost = Math.round(expectedPayout / CASE_RTP * 100) / 100;
+  const normalExpectedEp = drops.reduce((total, drop) => total + TRAIT_EXPECTED_EP[drop.id] * drop.chance / 100, 0);
+  const bonusMultipliers = nestedBonus ? NESTED_MULTIPLIERS : GOLD_MULTIPLIERS;
+  const expectedBonusMultiplier = bonusMultipliers.reduce((sum, [multiplier, percent]) => sum + multiplier * percent / 100, 0);
+  const rawCost = (1 - GOLD_COIN_CHANCE) * (normalExpectedEp / EP_PER_CREDIT) / (CASE_RTP - GOLD_COIN_CHANCE * expectedBonusMultiplier);
+  const cost = Math.round(rawCost * 100) / 100;
+  const expectedPayout = (1 - GOLD_COIN_CHANCE) * normalExpectedEp / EP_PER_CREDIT + GOLD_COIN_CHANCE * cost * expectedBonusMultiplier;
+  const expectedEp = expectedPayout * EP_PER_CREDIT;
   drops.forEach((drop) => {
     drop.expectedEp = TRAIT_EXPECTED_EP[drop.id];
     drop.weightedEp = drop.expectedEp * drop.finalChance / 100;
@@ -354,7 +360,8 @@ export function createCase(definition) {
     drop.averageReturn = drop.averagePayout / cost;
   });
   return {
-    id, name: name.trim(), cost, image, accent, secondary, category, glyph, themeNumber, risk, drops, expectedEp, premiumChance: disclosedPremiumChance, bonusType,
+    id, name: name.trim(), cost, image, accent, secondary, category, glyph, themeNumber, risk, drops, expectedEp, normalExpectedEp, premiumChance: disclosedPremiumChance, bonusType,
+    bonusChance: GOLD_COIN_CHANCE, bonusMultipliers: bonusMultipliers.map(([multiplier, percent]) => ({ multiplier, percent })), expectedBonusMultiplier,
     denominator: EP_PER_CREDIT,
     expectedPayout,
     definition: { id, name: name.trim(), cost, image, accent, secondary, category, glyph, themeNumber, risk, odds: odds.map((entry) => [...entry]), traitIds: [...traitIds], ...(nestedBonus ? { bonusType, bonusTraitIds: [...bonusTraitIds], bonusOdds: [...bonusOdds] } : {}) },
@@ -383,9 +390,20 @@ export function drawGoldDrop(caseItem, roll) {
   return caseItem.drops.filter((drop) => drop.goldChance > 0).at(-1);
 }
 
-export function drawCaseOutcome(caseItem, triggerNumber, itemRoll) {
+export function drawBonusMultiplier(caseItem, roll) {
+  if (!caseItem?.drops || !Number.isFinite(roll) || roll < 0 || roll >= 1) throw new RangeError("invalid bonus multiplier draw");
+  let cursor = roll * 100;
+  const table = caseItem.bonusType === "nested" ? NESTED_MULTIPLIERS : GOLD_MULTIPLIERS;
+  for (const [multiplier, percent] of table) {
+    cursor -= percent;
+    if (cursor < 0) return multiplier;
+  }
+  return table.at(-1)[0];
+}
+
+export function drawCaseOutcome(caseItem, triggerNumber, itemRoll, multiplierRoll = itemRoll) {
   const gold = isGoldCoinRoll(triggerNumber);
-  return { gold, drop: gold ? drawGoldDrop(caseItem, itemRoll) : drawCaseDrop(caseItem, itemRoll) };
+  return { gold, drop: gold ? drawGoldDrop(caseItem, itemRoll) : drawCaseDrop(caseItem, itemRoll), multiplier: gold ? drawBonusMultiplier(caseItem, multiplierRoll) : null };
 }
 
 export function generateTraitNumber(traitId, seed) {
@@ -398,8 +416,12 @@ export function epToCredits(score) {
   return Math.round(score / EP_PER_CREDIT * 100) / 100;
 }
 
-export function casePayout(caseItem, score) {
+export function casePayout(caseItem, score, multiplier = null) {
   if (!caseItem?.drops) throw new RangeError("invalid case payout");
+  if (multiplier !== null) {
+    if (!caseItem.bonusMultipliers?.some((entry) => entry.multiplier === multiplier)) throw new RangeError("invalid bonus multiplier");
+    return Math.round(caseItem.cost * multiplier * 100) / 100;
+  }
   return epToCredits(score);
 }
 

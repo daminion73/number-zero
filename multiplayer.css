@@ -757,3 +757,48 @@ body[data-ambience="paused"] .online-pending {
     animation: none !important;
   }
 }
+/* A selected battle is a dedicated room, not an inset feed card. */
+.online-battle-focus #online-panel > .online-heading,
+.online-battle-focus #online-panel > .online-toolbar,
+.online-battle-focus #online-panel > #online-message,
+.online-battle-focus #online-panel > #online-battles,
+.online-battle-focus #online-panel > .online-footnote {
+  display: none;
+}
+.online-battle-focus .online-room:not(.online-arena) {
+  min-height: calc(100vh - 24px);
+  margin: 12px 0;
+}
+.online-seat-actions button,
+[data-view-battle],
+#online-create,
+#online-publish {
+  min-height: 52px;
+  border-color: transparent !important;
+  color: #071016 !important;
+  background: linear-gradient(110deg, #c7ff36, #53e7ff) !important;
+  box-shadow: 0 0 20px #53e7ff30;
+  font-weight: 900 !important;
+}
+#online-create,
+#online-publish {
+  background: linear-gradient(110deg, #ffd43b, #ff8b36) !important;
+}
+.online-seat-actions [data-room-action="bot"] {
+  color: white !important;
+  background: linear-gradient(110deg, #ae70ff, #ff4fd8) !important;
+}
+.battle-player-total > b {
+  font-size: clamp(26px, 3vw, 42px) !important;
+  font-weight: 950;
+}
+@keyframes action-pulse {
+  50% { box-shadow: 0 0 28px #53e7ff70; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .online-seat-actions button,
+  #online-create,
+  #online-publish {
+    animation: action-pulse 2.4s ease-in-out infinite;
+  }
+}

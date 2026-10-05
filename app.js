@@ -1,7 +1,9 @@
 import { badgeHighlights, evaluateBadges, numberRarity, preciseNumberRank, secureRandomNumber } from "./badges.js";
 import { battleWinner, CASES, EP_PER_CREDIT, TRAITS, TRAIT_ICONS, casePayout, createCase, drawCaseDrop, drawCaseOutcome, drawGoldDrop, epToCredits, generateTraitNumber, splitBattlePot } from "./economy.js";
-import { initExperience } from "./experience.js";
 import { initMultiplayer } from "./multiplayer.js";
+import { initHome } from "./home.js";
+import { initProfile } from "./profile.js";
+import { initCasino } from "./casino.js";
 
 const $ = (selector) => document.querySelector(selector);
 const reels = [...document.querySelectorAll(".reel")];
@@ -33,8 +35,8 @@ let rolling = false;
 let soundOn = true;
 let musicOn = true;
 let fastReveal = false;
-let currentMode = "sandbox";
-let experience, multiplayer;
+let currentMode = "home";
+let multiplayer, home, profile, casino;
 const modeScrollPositions = new Map();
 let selectedCaseId = "nano";
 let selectedCategory = "All";
@@ -88,7 +90,6 @@ function renderStats() {
   document.querySelectorAll("button[data-buy-case]").forEach((button) => {
     button.disabled = rolling;
   });
-  experience?.update();
 }
 
 function caseImage(item) {
@@ -113,8 +114,8 @@ function renderCaseDetail(item, scroll = false) {
   caseDetail.style.setProperty("--case-secondary", item.secondary);
   const nestedBonus = item.bonusType === "nested";
   const bonusPath = nestedBonus
-    ? `<div class="gold-path nested-path"><b class="nested-medallion">${caseImage(item)}</b><span><strong>2% CASE-INSIDE-A-CASE TRIGGER</strong><small>LAND IT → OPEN A SEPARATELY WEIGHTED 4-TRAIT INNER POOL</small></span></div><div class="nested-pool-preview">${item.drops.filter((drop) => drop.goldChance > 0).map((drop) => `<span><img src="${traitImage(drop.id)}" alt="" /><b>${drop.name}</b><em>${formatChance(drop.goldChance)}%</em></span>`).join("")}</div>`
-    : `<div class="gold-path"><b class="gold-medallion">G</b><span><strong>2% GOLD COIN TRIGGER</strong><small>LAND IT → ${item.premiumChance ? "IMMEDIATE RARE-ONLY SPIN" : "REPEAT THE FULL CUSTOM POOL"}</small></span></div>`;
+    ? `<div class="gold-path nested-path"><b class="nested-medallion">${caseImage(item)}</b><span><strong>4,000 / 1,000,001 INNER CASE</strong><small>GUARANTEED 40×–800× CASE-COST PAYOUT</small></span></div>`
+    : `<div class="gold-path"><b class="gold-medallion">G</b><span><strong>4,000 / 1,000,001 GOLD COIN</strong><small>GUARANTEED 50×–1,000× CASE-COST PAYOUT</small></span></div>`;
   caseDetail.innerHTML = `${caseArt(item)}<div class="detail-heading"><span>${item.category} · ${item.risk.toUpperCase()} RISK</span><h2>${escapeHtml(item.name)}</h2><p>THEME ${String(item.themeNumber || 0).padStart(3, "0")} · LINEAR EP PAYOUT</p></div><div class="detail-price"><span>FAIR POOL PRICE</span><strong>${formatCredits(item.cost)} CR</strong><button type="button" data-buy-case="${item.id}">ADD TO INVENTORY</button></div>${bonusPath}<div class="odds-title"><strong>COMPLETE FINAL ODDS</strong><span>INCLUDES BOTH SPIN PATHS</span></div><ol class="detail-drops">${item.drops.map((drop) => `<li class="${drop.rarity}"><img src="${traitImage(drop.id)}" alt="" /><span><strong>${drop.name}</strong><small>${drop.rarity} · ${Math.round(drop.expectedEp).toLocaleString()} AVG EP</small></span><b>${formatChance(drop.finalChance)}%<small>1 IN ${formatOdds(drop.oneIn)}</small></b><em>BASE ${formatChance(drop.chance)}%${drop.goldChance ? ` · ${nestedBonus ? "INNER" : "GOLD"} ${formatChance(drop.goldChance)}%` : ""}</em></li>`).join("")}</ol><div class="detail-math"><span>POOL AVG <b>${Math.round(item.expectedEp).toLocaleString()} EP</b></span><span>FIXED RATE <b>${EP_PER_CREDIT.toLocaleString()} EP/CR</b></span><span>AVG PAYOUT <b>${formatCredits(item.expectedPayout)} CR</b></span><span>MODELED RTP <b>98.00%</b></span></div>`;
   renderStats();
   if (scroll && innerWidth < 980) caseDetail.scrollIntoView({ behavior: fastReveal ? "auto" : "smooth", block: "start" });
@@ -278,6 +279,7 @@ function setMode(mode, scroll = false) {
   if (mode !== "duel" && (duelMatch.active || duelMatch.joining || duelMatch.settled)) return false;
   if (currentMode !== mode) modeScrollPositions.set(currentMode, window.scrollY);
   currentMode = mode;
+  document.body.dataset.mode = mode;
   const openingMode = mode === "opening";
   if (!openingMode && mode !== "sandbox") {
     document.body.classList.remove("roll-complete", "roll-resolving");
@@ -287,6 +289,7 @@ function setMode(mode, scroll = false) {
   inventoryPanel.hidden = mode !== "inventory";
   duelPanel.hidden = mode !== "duel";
   if ($("#online-panel")) $("#online-panel").hidden = mode !== "online";
+  for (const name of ["home", "originals", "live", "profile"]) $(`#${name}-panel`).hidden = mode !== name;
   machine.hidden = !["sandbox", "opening"].includes(mode);
   rewardsPanel.hidden = !["sandbox", "opening"].includes(mode);
   openingContext.hidden = !openingMode;
@@ -303,8 +306,10 @@ function setMode(mode, scroll = false) {
     scorePreview.textContent = openingMode ? "TRAIT-LOCKED POOL" : "PURE CHANCE";
   }
   if (mode === "inventory") renderInventory();
-  experience?.setMode(mode);
   multiplayer?.setMode(mode);
+  casino?.setMode(mode);
+  mode === "home" ? home?.show() : home?.hide();
+  if (mode === "profile") profile?.show();
   if (scroll) window.scrollTo({ top: modeScrollPositions.get(mode) || 0, behavior: "instant" });
   return true;
 }
@@ -312,7 +317,9 @@ function setMode(mode, scroll = false) {
 modeTabs.forEach((button) => button.addEventListener("click", () => {
   if (!rolling) setMode(button.dataset.mode, true);
 }));
-setMode("sandbox");
+setMode("home");
+
+function openGame(game) { setMode("originals", true); casino?.open(game); }
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, fastReveal ? Math.min(ms, 65) : ms));
 
@@ -772,7 +779,7 @@ async function animateBattleDigits(numberNodes, numbers, turbo, signal) {
   }
 }
 
-async function showCaseSpin(item, drop, phase) {
+async function showCaseSpin(item, drop, phase, multiplier = null) {
   const winningIndex = 52;
   const bonusTrigger = phase === "trigger";
   const bonusSpin = phase === "gold" || phase === "nested";
@@ -788,7 +795,7 @@ async function showCaseSpin(item, drop, phase) {
     ? nestedBonus
       ? `<div class="nested-landed">${caseImage(item)}</div><small>CASE INSIDE A CASE · 20,000 / 1,000,001</small><strong>INNER POOL UNLOCKED</strong><span>Opening the hidden four-trait case now.</span>`
       : `<div class="gold-landed"><b class="gold-medallion">G</b></div><small>GOLD COIN · 20,000 / 1,000,001</small><strong>${bonusPoolLabel} SPIN UNLOCKED</strong><span>Starting the second spin now — no coin is stored.</span>`
-    : `<div><i></i><img src="${traitImage(drop.id)}" alt="" /></div><small>${bonusSpin ? `${nestedBonus ? "INNER CASE" : "GOLD SPIN"} · ` : ""}${drop.rarity} CAPSULE · ${formatCredits(drop.averagePayout)} CR AVG</small><strong>${drop.name}</strong><span>${drop.description} · ${formatChance(drop.finalChance)}% FINAL ODDS</span>`;
+    : `<div><i></i><img src="${traitImage(drop.id)}" alt="" /></div><small>${bonusSpin ? `${nestedBonus ? "INNER CASE" : "GOLD COIN"} ×${multiplier} · ${formatCredits(item.cost * multiplier)} CR` : `${drop.rarity} CAPSULE · ${formatCredits(drop.averagePayout)} CR AVG`}</small><strong>${bonusSpin ? `${nestedBonus ? "INNER CASE" : "GOLD COIN"} ×${multiplier}` : drop.name}</strong><span>${bonusSpin ? `${drop.name} · ${formatCredits(item.cost * multiplier)} CR PAYOUT` : `${drop.description} · ${formatChance(drop.finalChance)}% FINAL ODDS`}</span>`;
   caseOpening.innerHTML = `<div class="case-open-glow"></div><div class="case-energy">${Array.from({ length: 28 }, (_, index) => `<i style="--spark:${index}"></i>`).join("")}</div><div class="case-scanlines"></div><p>${bonusSpin ? nestedBonus ? "HIDDEN CASE CHAMBER" : "GOLD COIN BONUS CHAMBER" : "CASE BREAK IN PROGRESS"}</p><h2>${bonusSpin ? `${bonusPoolLabel} SPIN` : escapeHtml(item.name)}</h2><div class="trait-roulette"><i class="roulette-marker"></i><div class="trait-track">${reelDrops.map((candidate) => rouletteCard(candidate)).join("")}</div></div><div class="trait-landed">${landed}</div>`;
   caseOpening.hidden = false;
   const roulette = caseOpening.querySelector(".trait-roulette");
@@ -797,6 +804,12 @@ async function showCaseSpin(item, drop, phase) {
   tone(110, 0.7, "sawtooth", 0.035);
   await animateRouletteTrack(track, roulette, winningIndex, `${item.id}:${drop.id}:${phase}:${state.casesOpened}`);
   caseOpening.classList.add("landed");
+  if (bonusSpin && multiplier >= (nestedBonus ? 800 : 1000)) {
+    caseOpening.classList.add("jackpot-hit");
+    tone(1_280, 1.4, "sine", 0.12);
+  } else if (bonusSpin && multiplier >= 250) {
+    caseOpening.classList.add("major-bonus-hit");
+  }
   tone(bonusTrigger ? nestedBonus ? 840 : 1_120 : { common: 360, uncommon: 460, rare: 560, epic: 700, mythic: 900 }[drop.rarity], bonusTrigger ? 0.8 : 0.45, bonusTrigger ? "sine" : "triangle", 0.08);
   if (bonusTrigger) caseOpening.classList.add(nestedBonus ? "nested-hit" : "gold-hit");
   await new Promise((resolve) => setTimeout(resolve, fastReveal ? 220 : 620));
@@ -810,7 +823,7 @@ async function showCaseSpin(item, drop, phase) {
 async function showCaseOpening(item, outcome) {
   if (outcome.gold) {
     await showCaseSpin(item, outcome.drop, "trigger");
-    await showCaseSpin(item, outcome.drop, item.bonusType === "nested" ? "nested" : "gold");
+    await showCaseSpin(item, outcome.drop, item.bonusType === "nested" ? "nested" : "gold", outcome.multiplier);
   } else {
     await showCaseSpin(item, outcome.drop, "normal");
   }
@@ -839,7 +852,7 @@ async function openPurchasedCase(index) {
   state.adminNextOutcome = "";
   const drop = outcome.drop;
   await showCaseOpening(caseItem, outcome);
-  state.inventory.splice(index, 1, { type: "capsule", caseId: caseItem.id, traitId: drop.id, acquiredAt: Date.now() });
+  state.inventory.splice(index, 1, { type: "capsule", caseId: caseItem.id, traitId: drop.id, multiplier: outcome.multiplier, acquiredAt: Date.now() });
   saveState(); rolling = false; renderStats();
   await openInventoryItem(index);
 }
@@ -894,7 +907,7 @@ async function roll(opening = null) {
   const badges = evaluateBadges(number);
   const score = badges.reduce((sum, item) => sum + item.score, 0);
   if (caseItem) {
-    payout = casePayout(caseItem, score);
+    payout = casePayout(caseItem, score, opening.multiplier ?? null);
     state.inventory.splice(opening.inventoryIndex, 1);
     saveState(); renderStats();
     $("#opening-payout-status").textContent = `${formatCredits(payout)} CR · DEMO ONLY`;
@@ -908,7 +921,8 @@ async function roll(opening = null) {
   await wait(110);
   await revealBadges(badges, number, !caseItem);
   if (caseItem) {
-    summary.innerHTML += `<span class="case-payout"><em class="${caseDrop.rarity}">${caseDrop.name}</em> DEMO PAYOUT <b>${formatCredits(payout)} CR · NOT CREDITED</b></span>`;
+    const bonusLabel = opening.multiplier ? `${caseItem.bonusType === "nested" ? "INNER CASE" : "GOLD COIN"} ×${opening.multiplier} · ` : "";
+    summary.innerHTML += `<span class="case-payout"><em class="${caseDrop.rarity}">${bonusLabel}${caseDrop.name}</em> DEMO PAYOUT <b>${formatCredits(payout)} CR · NOT CREDITED</b></span>`;
   }
   saveState();
   rolling = false; rollButton.disabled = false;
@@ -939,7 +953,7 @@ async function openInventoryItem(index) {
     await showRareTraitRoom(caseDrop, number);
     rolling = false;
   }
-  await roll({ caseItem, caseDrop, inventoryIndex: index, number, skipAnimation: cinematic });
+  await roll({ caseItem, caseDrop, multiplier: entry.multiplier, inventoryIndex: index, number, skipAnimation: cinematic });
   $("#back-inventory").disabled = false;
 }
 
@@ -950,7 +964,7 @@ caseBay.addEventListener("click", (event) => {
   const buyButton = event.target.closest("button[data-buy-case]");
   if (viewButton) {
     const item = CASES.find((candidate) => candidate.id === viewButton.dataset.viewCase);
-    if (item) { experience?.discoverCase(item.id); renderCaseDetail(item, true); }
+    if (item) renderCaseDetail(item, true);
   }
   if (buyButton) {
     const item = CASES.find((candidate) => candidate.id === buyButton.dataset.buyCase);
@@ -1042,7 +1056,8 @@ function battlePlayerMarkup(profile, index, view = {}) {
   const prefix = view.prefix || "duel", result = view.result;
   const digits = result ? String(result.number) : "000000";
   const teamLabel = view.teamLabel ?? (duelMatch.teams?.[team]?.length > 1 ? `TEAM ${String.fromCharCode(65 + team)}` : isPlayer ? "LOCAL CONTENDER" : "VERIFIED HOUSE BOT");
-  return `<article class="duel-player ${isPlayer ? "player-one" : "player-bot"}" data-player="${index}" data-team="${team}" style="--player:${BOT_COLORS[team % BOT_COLORS.length]}"><header><div class="battle-avatar ${isPlayer ? "you-avatar" : "bot-avatar"}">${escapeHtml(view.avatar ?? (isPlayer ? "Y" : `B${index}`))}</div><div><small>${escapeHtml(teamLabel)}</small><strong id="${prefix}-name-${playerNumber}">${escapeHtml(name)}</strong><em id="${prefix}-bot-badge-${playerNumber}">${escapeHtml(subtitle)}</em></div><div class="battle-player-total"><span>TOTAL EP</span><b id="${prefix}-total-${playerNumber}">${(view.total || 0).toLocaleString()}</b><small id="${prefix}-credit-${playerNumber}">${formatCredits(epToCredits(view.total || 0))} CR</small></div></header><div class="battle-case-lane${view.prefix ? " online-case-lane" : ""}" id="${view.prefix || "battle"}-lane-${playerNumber}" ${view.prefix ? `data-opening-seat="${index}"` : ""}><i class="battle-lane-reticle"></i><div class="battle-lane-track${result ? " online-landed-track" : ""}">${view.drop ? rouletteCard(view.drop) : ""}</div></div><div class="battle-result-row"><div class="duel-reels${digits.length === 7 ? " seven-digit" : ""}" id="${prefix}-number-${playerNumber}" aria-label="${result ? `Rolled number ${result.number}` : "Number not revealed"}">${Array.from({ length: 7 }, (_, digit) => `<i${digit >= digits.length ? " hidden" : ""}${result ? ' class="locked"' : ""}>${digits[digit] || "0"}</i>`).join("")}</div><strong id="${prefix}-score-${playerNumber}" class="${view.prefix ? "online-spin-label" : ""}">${result ? `${escapeHtml(result.name.toUpperCase())} · ${result.score.toLocaleString()} EP · ${formatCredits(result.payout)} CR` : "— THIS ROUND"}</strong></div><div class="duel-badges" id="${prefix}-badges-${playerNumber}">${view.badges ?? (isPlayer ? "READY" : "CONNECTING")}</div></article>`;
+  const resultLabel = result?.multiplier ? `${view.bonusType === "nested" ? "INNER CASE" : "GOLD COIN"} ×${result.multiplier} · ${formatCredits(result.payout)} CR` : result ? `${escapeHtml(result.name.toUpperCase())} · ${result.score.toLocaleString()} EP · ${formatCredits(result.payout)} CR` : "— THIS ROUND";
+  return `<article class="duel-player ${isPlayer ? "player-one" : "player-bot"}" data-player="${index}" data-team="${team}" style="--player:${BOT_COLORS[team % BOT_COLORS.length]}"><header><div class="battle-avatar ${isPlayer ? "you-avatar" : "bot-avatar"}">${escapeHtml(view.avatar ?? (isPlayer ? "Y" : `B${index}`))}</div><div><small>${escapeHtml(teamLabel)}</small><strong id="${prefix}-name-${playerNumber}">${escapeHtml(name)}</strong><em id="${prefix}-bot-badge-${playerNumber}">${escapeHtml(subtitle)}</em></div><div class="battle-player-total"><span>TOTAL DROPPED VALUE</span><b id="${prefix}-total-${playerNumber}">${formatCredits(epToCredits(view.total || 0))}</b><small id="${prefix}-credit-${playerNumber}">CR</small></div></header><div class="battle-case-lane${view.prefix ? " online-case-lane" : ""}" id="${view.prefix || "battle"}-lane-${playerNumber}" ${view.prefix ? `data-opening-seat="${index}"` : ""}><i class="battle-lane-reticle"></i><div class="battle-lane-track${result ? " online-landed-track" : ""}">${view.drop ? rouletteCard(view.drop) : ""}</div></div><div class="battle-result-row"><div class="duel-reels${digits.length === 7 ? " seven-digit" : ""}" id="${prefix}-number-${playerNumber}" aria-label="${result ? `Rolled number ${result.number}` : "Number not revealed"}">${Array.from({ length: 7 }, (_, digit) => `<i${digit >= digits.length ? " hidden" : ""}${result ? ' class="locked"' : ""}>${digits[digit] || "0"}</i>`).join("")}</div><strong id="${prefix}-score-${playerNumber}" class="${view.prefix ? "online-spin-label" : ""}">${resultLabel}</strong></div><div class="duel-badges" id="${prefix}-badges-${playerNumber}">${view.badges ?? (isPlayer ? "READY" : "CONNECTING")}</div></article>`;
 }
 
 function onlineBattleBadges(result) {
@@ -1065,6 +1080,7 @@ function renderOnlineBattle(battle, opening, user, showSettlement) {
       subtitle: player.bot ? "HOUSE BOT" : player.id === user?.id ? "YOU · ONLINE PLAYER" : "ONLINE PLAYER",
       teamLabel: `TEAM ${String.fromCharCode(65 + team)} · ${player.bot ? "HOUSE BOT" : "PLAYER"}`,
       total: totals[index], result,
+      bonusType: CASES.find((item) => item.id === latest?.caseId)?.bonusType,
       drop: battle.state === "settled" && result && CASES.find((item) => item.id === latest.caseId).drops.find((drop) => drop.id === result.trait),
       badges: result ? onlineBattleBadges(result) : "READY",
     });
@@ -1140,7 +1156,8 @@ async function runDuel() {
   const results = numbers.map((number, player) => {
     const badges = evaluateBadges(number);
     const score = badges.reduce((sum, item) => sum + item.score, 0);
-    return { number, badges, score, drop: drops[player], payout: casePayout(duelMatch.caseItem, score) };
+    const payout = casePayout(duelMatch.caseItem, score, outcomes[player].multiplier);
+    return { number, badges, score: outcomes[player].multiplier ? Math.round(payout * EP_PER_CREDIT) : score, drop: drops[player], payout, multiplier: outcomes[player].multiplier };
   });
   const isFinalRound = duelMatch.round === duelMatch.length - 1;
   const cliffhanger = isFinalRound && Math.abs(results[0].payout - results[1].payout) < 5;
@@ -1300,7 +1317,8 @@ async function runGroupBattle() {
   const numbers = drops.map((drop) => generateTraitNumber(drop.id, secureRandomNumber()));
   const results = numbers.map((number, player) => {
     const badges = evaluateBadges(number);
-    return { number, badges, score: badges.reduce((sum, item) => sum + item.score, 0), drop: drops[player], payout: casePayout(caseItem, badges.reduce((sum, item) => sum + item.score, 0)) };
+    const traitScore = badges.reduce((sum, item) => sum + item.score, 0), payout = casePayout(caseItem, traitScore, outcomes[player].multiplier);
+    return { number, badges, score: outcomes[player].multiplier ? Math.round(payout * EP_PER_CREDIT) : traitScore, drop: drops[player], payout, multiplier: outcomes[player].multiplier };
   });
   const payouts = results.map((result) => result.payout);
   const cliffhanger = duelMatch.mode !== "share" && duelMatch.round === duelMatch.length - 1 && Math.max(...payouts) - Math.min(...payouts) < 5;
@@ -1521,7 +1539,6 @@ function renderBattleCreatorCases() {
 function inspectBattleCase(caseId) {
   const item = CASES.find((candidate) => candidate.id === caseId);
   if (!item) return;
-  experience?.discoverCase(caseId);
   $("#battle-case-inspector-content").innerHTML = `<header style="--case-accent:${item.accent};--case-secondary:${item.secondary}"><div class="battle-inspector-art">${caseImage(item)}</div><div><span>${item.category} · ${item.risk.toUpperCase()} RISK</span><h2>${escapeHtml(item.name)}</h2><strong>${formatCredits(item.cost)} CR</strong></div><button type="button" data-add-battle-case="${item.id}">+ ADD TO BATTLE</button></header><div class="battle-inspector-odds"><span>CASE CONTENTS</span><b>FINAL ODDS</b></div><ol>${item.drops.map((drop) => `<li class="${drop.rarity}"><img src="${traitImage(drop.id)}" alt="" /><span><strong>${escapeHtml(drop.name)}</strong><small>${drop.rarity} · ${Math.round(drop.expectedEp).toLocaleString()} AVG EP</small></span><b>${formatChance(drop.finalChance)}%</b></li>`).join("")}</ol>`;
   $("#battle-case-inspector").showModal();
 }
@@ -1656,14 +1673,6 @@ $("#admin-reset-profile").addEventListener("click", () => {
   localStorage.removeItem("number-zero-state"); location.reload();
 });
 
-experience = initExperience({
-  getState: () => state,
-  navigate: (mode) => setMode(mode, true),
-  inspectCase: (id) => {
-    const item = CASES.find((candidate) => candidate.id === id);
-    if (item && setMode("store", true)) { renderCaseDetail(item); caseDetail.scrollIntoView({ behavior: "instant", block: "start" }); }
-  },
-});
 multiplayer = initMultiplayer({
   navigate: (mode) => setMode(mode, true),
   caseImage,
@@ -1671,4 +1680,7 @@ multiplayer = initMultiplayer({
   renderBattle: renderOnlineBattle,
   getBattleSelection: () => ({ caseIds: [...battleCaseIds], mode: $("#battle-mode").value, format: $("#battle-bots").value, speed: $("#battle-speed-select").value }),
 });
-experience.setMode(currentMode);
+home = initHome({ root: $("#home-panel"), account: multiplayer.account, navigate: (mode) => setMode(mode, true), openGame });
+profile = initProfile({ root: $("#profile-panel"), account: multiplayer.account });
+casino = initCasino({ originalsRoot: $("#originals-panel"), liveRoot: $("#live-panel"), account: multiplayer.account, sound: tone });
+setMode(currentMode);

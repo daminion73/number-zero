@@ -5,6 +5,10 @@ import { extname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { OAuth2Client } from "google-auth-library";
 import { openStore, transaction } from "./backend/store.js";
+import { createCasino } from "./backend/casino.js";
+import { recordPlay } from "./backend/achievements.js";
+import { createLive } from "./backend/live.js";
+import { loadProfile, loadWinners } from "./backend/profile.js";
 import {
   FORMATS,
   MODES,
@@ -31,11 +35,17 @@ const publicFiles = new Set([
   "economy.js",
   "badges.js",
   "styles.css",
-  "experience.js",
-  "experience.css",
   "multiplayer.js",
   "multiplayer.css",
   "config.js",
+  "casino-core.js",
+  "casino-demo.js",
+  "casino.js",
+  "casino.css",
+  "home.js",
+  "home.css",
+  "profile.js",
+  "profile.css",
 ]);
 const hash = (token) => createHash("sha256").update(token).digest("hex");
 const credits = (cents) => cents / 100;
@@ -89,6 +99,10 @@ export async function createServer(options = {}) {
     dailyAvailable:
       row.daily_day !== new Date(now()).toISOString().slice(0, 10),
   });
+  const fail = (status, code, message, extra) =>
+    new ApiError(status, code, message, extra);
+  const casino = createCasino({ db, now, publicUser, fail });
+  const live = await createLive({ db, now, publicUser, fail });
 
   async function auth(req) {
     const match = /^Bearer ([A-Za-z0-9_-]{20,})$/.exec(
@@ -146,6 +160,8 @@ export async function createServer(options = {}) {
   function tick() {
     if (ticking) return ticking;
     ticking = (async () => {
+      await casino.maintenance();
+      await live.maintenance();
       const rows = (
         await db.execute(
           "SELECT id,data FROM battles WHERE state IN ('waiting','running')",
@@ -179,7 +195,7 @@ export async function createServer(options = {}) {
               endedAt: battle.endsAt,
             });
             for (const p of battle.players) {
-              if (!p.bot)
+              if (!p.bot) {
                 await tx.execute({
                   sql: "UPDATE users SET balance_cents=balance_cents+?, battles_played=battles_played+1, wins=wins+? WHERE id=?",
                   args: [
@@ -191,6 +207,17 @@ export async function createServer(options = {}) {
                     p.userId,
                   ],
                 });
+                await recordPlay(tx, {
+                  userId: p.userId,
+                  game: "case-battle",
+                  wager: battle.entryCents,
+                  payout: result.payouts[p.seat].amount,
+                  at: battle.endsAt,
+                  won:
+                    battle.mode !== "share" &&
+                    result.winningTeams.includes(p.team),
+                });
+              }
             }
             await save(tx, battle);
           }
@@ -334,7 +361,7 @@ export async function createServer(options = {}) {
       ).rows[0];
       if (!user) {
         await tx.execute({
-          sql: "INSERT INTO users(google_sub,name,balance_cents) VALUES(?,?,5000000)",
+          sql: "INSERT INTO users(google_sub,name,balance_cents) VALUES(?,?,10000000)",
           args: [subject, name],
         });
         user = (
@@ -451,6 +478,17 @@ export async function createServer(options = {}) {
       ).rows.map((r) => snapshot(JSON.parse(r.data)));
       return send(res, 200, { battles, serverTime: now() }, originValue);
     }
+    if (req.method === "GET" && url.pathname === "/api/winners")
+      return send(
+        res,
+        200,
+        { winners: await loadWinners(db, now()), serverTime: now() },
+        originValue,
+      );
+    if (req.method === "GET" && url.pathname === "/api/live") {
+      const viewer = req.headers.authorization ? await auth(req) : null;
+      return send(res, 200, await live.handle(null, viewer), originValue);
+    }
     const match =
       /^\/api\/battles\/([^/]+)(?:\/(join|bot|remove-bot|leave|cancel|start))?$/.exec(
         url.pathname,
@@ -463,6 +501,29 @@ export async function createServer(options = {}) {
         originValue,
       );
     const user = await auth(req);
+    const liveAction = /^\/api\/live\/(bet|cashout)$/.exec(url.pathname);
+    if (req.method === "POST" && liveAction)
+      return send(
+        res,
+        200,
+        await live.handle(liveAction[1], user, await body(req)),
+        originValue,
+      );
+    if (
+      url.pathname.startsWith("/api/casino/") ||
+      url.pathname.startsWith("/api/fair")
+    ) {
+      const payload = req.method === "POST" ? await body(req) : {};
+      const pending = casino.handle(req.method, url.pathname, user, payload);
+      if (pending) return send(res, 200, await pending, originValue);
+    }
+    if (req.method === "GET" && url.pathname === "/api/profile")
+      return send(
+        res,
+        200,
+        { profile: await loadProfile(db, user, publicUser), serverTime: now() },
+        originValue,
+      );
     if (req.method === "POST" && url.pathname === "/api/auth/logout") {
       await transaction(db, (tx) =>
         tx.execute({
@@ -486,7 +547,7 @@ export async function createServer(options = {}) {
       const day = new Date(now()).toISOString().slice(0, 10);
       const fresh = await transaction(db, async (tx) => {
         const result = await tx.execute({
-          sql: "UPDATE users SET balance_cents=balance_cents+2000000,daily_day=? WHERE id=? AND (daily_day IS NULL OR daily_day<>?)",
+          sql: "UPDATE users SET balance_cents=balance_cents+10000000,daily_day=? WHERE id=? AND (daily_day IS NULL OR daily_day<>?)",
           args: [day, user.id, day],
         });
         if (!result.rowsAffected)
@@ -505,7 +566,7 @@ export async function createServer(options = {}) {
       return send(
         res,
         200,
-        { granted: 20000, user: publicUser(fresh) },
+        { granted: 100000, user: publicUser(fresh) },
         originValue,
       );
     }
@@ -782,7 +843,7 @@ export async function createServer(options = {}) {
       ).slice(1);
       if (
         (!publicFiles.has(safe) &&
-          !/^(assets|fonts)\/[A-Za-z0-9_./-]+$/.test(safe)) ||
+          !/^(assets|fonts)\/[A-Za-z0-9_./-]+$/.test(safe) && !/^games\/[a-z-]+\.(js|css)$/.test(safe)) ||
         safe.split("/").includes("..") ||
         safe.includes("\\")
       )

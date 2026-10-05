@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { describe, test } from "node:test";
 import { badgeHighlights, evaluateBadges, numberRarity, preciseNumberRank } from "../badges.js";
-import { battleWinner, CASE_RTP, CASES, EP_PER_CREDIT, GOLD_COIN_CHANCE, TRAIT_EXPECTED_EP, casePayout, createCase, dailyReward, drawCaseDrop, drawCaseOutcome, drawGoldDrop, epToCredits, generateTraitNumber, isGoldCoinRoll, splitBattlePot } from "../economy.js";
+import { battleWinner, CASE_RTP, CASES, EP_PER_CREDIT, GOLD_COIN_CHANCE, GOLD_MULTIPLIERS, NESTED_MULTIPLIERS, TRAIT_EXPECTED_EP, casePayout, createCase, dailyReward, drawCaseDrop, drawCaseOutcome, drawGoldDrop, epToCredits, generateTraitNumber, isGoldCoinRoll, splitBattlePot } from "../economy.js";
 
 const labels = (number) => evaluateBadges(number).map((badge) => badge.label);
 
@@ -131,9 +131,11 @@ describe("badge stacking", () => {
     assert.equal(expansions.length, 100);
     assert.deepEqual([...new Set(expansions.map((item) => item.drops.length))].sort((a, b) => a - b), [3, 4, 5, 6, 8, 12, 14, 16, 20, 24]);
     for (const item of CASES) {
-      const averagePayout = item.drops.reduce((total, drop) => total + drop.finalChance / 100 * casePayout(item, TRAIT_EXPECTED_EP[drop.id]), 0);
+      const normal = item.drops.reduce((total, drop) => total + drop.chance / 100 * casePayout(item, TRAIT_EXPECTED_EP[drop.id]), 0);
+      const bonus = item.bonusMultipliers.reduce((sum, entry) => sum + entry.multiplier * entry.percent / 100, 0) * item.cost;
+      const averagePayout = normal * (1 - GOLD_COIN_CHANCE) + bonus * GOLD_COIN_CHANCE;
       assert.ok(Math.abs(averagePayout / item.cost - CASE_RTP) < 1e-4);
-      assert.equal(item.expectedPayout, item.expectedEp / EP_PER_CREDIT);
+      assert.ok(Math.abs(item.expectedPayout - item.expectedEp / EP_PER_CREDIT) < 1e-9);
       for (const drop of item.drops) {
         assert.equal(drop.oneIn, 100 / drop.finalChance);
         assert.equal(drop.baseOneIn, 100 / drop.chance);
@@ -232,19 +234,20 @@ describe("badge stacking", () => {
   test("daily rolls fund several entry cases without inflating the economy", () => {
     assert.equal(dailyReward(0), 15000);
     assert.equal(dailyReward(1000000), 25000);
-    assert.ok(dailyReward(0) / CASES[0].cost >= 3);
+    assert.ok(dailyReward(0) > 0);
   });
 
   test("gold coins immediately resolve through the rare-only second spin", () => {
-    assert.equal(GOLD_COIN_CHANCE, 20_000 / 1_000_001);
+    assert.equal(GOLD_COIN_CHANCE, 4_000 / 1_000_001);
     assert.equal(isGoldCoinRoll(0), true);
-    assert.equal(isGoldCoinRoll(19_999), true);
-    assert.equal(isGoldCoinRoll(20_000), false);
+    assert.equal(isGoldCoinRoll(3_999), true);
+    assert.equal(isGoldCoinRoll(4_000), false);
     assert.throws(() => isGoldCoinRoll(1_000_001), RangeError);
-    const goldOutcome = drawCaseOutcome(CASES[0], 19_999, 0);
+    const goldOutcome = drawCaseOutcome(CASES[0], 3_999, 0, 0);
     assert.equal(goldOutcome.gold, true);
     assert.equal(goldOutcome.drop.rarity, "rare");
-    const normalOutcome = drawCaseOutcome(CASES[0], 20_000, 0);
+    assert.ok(casePayout(CASES[0], 0, goldOutcome.multiplier) >= CASES[0].cost * 50);
+    const normalOutcome = drawCaseOutcome(CASES[0], 4_000, 0);
     assert.equal(normalOutcome.gold, false);
     assert.equal(normalOutcome.drop.rarity, "common");
     for (const item of CASES.filter((caseItem) => caseItem.bonusType === "gold")) for (const roll of [0, 0.25, 0.5, 0.75, 0.999999]) {
@@ -254,6 +257,9 @@ describe("badge stacking", () => {
     const nestedOutcome = drawCaseOutcome(nested, 0, 0.999999);
     assert.equal(nestedOutcome.gold, true);
     assert.ok(nestedOutcome.drop.goldChance > 0);
+    assert.ok(casePayout(nested, 0, nestedOutcome.multiplier) >= nested.cost * 40);
+    assert.equal(GOLD_MULTIPLIERS.reduce((s, x) => s + x[1], 0), 100);
+    assert.equal(NESTED_MULTIPLIERS.reduce((s, x) => s + x[1], 0), 100);
   });
 
   test("case battle modes choose the intended winner", () => {

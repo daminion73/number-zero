@@ -42,12 +42,15 @@ export function makeOutcomes(battle, randomInt = cryptoRandomInt) {
     const item = caseMap.get(caseId);
     return battle.players.map((_, seat) => {
       const trigger = randomInt(ALL_ROLL_COUNT),
-        itemRoll = randomInt(0x100000000) / 0x100000000;
-      const { gold, drop } = drawCaseOutcome(item, trigger, itemRoll);
+        itemRoll = randomInt(0x100000000) / 0x100000000,
+        multiplierRoll = randomInt(0x100000000) / 0x100000000;
+      const { gold, drop, multiplier } = drawCaseOutcome(item, trigger, itemRoll, multiplierRoll);
       const seed = randomInt(ALL_ROLL_COUNT),
         number = generateTraitNumber(drop.id, seed);
       const badges = evaluateBadges(number),
-        score = badges.reduce((sum, badge) => sum + badge.score, 0);
+        traitScore = badges.reduce((sum, badge) => sum + badge.score, 0),
+        payout = casePayout(item, traitScore, multiplier),
+        score = multiplier === null ? traitScore : Math.round(payout * 1_000);
       return {
         seat,
         trait: drop.id,
@@ -55,8 +58,9 @@ export function makeOutcomes(battle, randomInt = cryptoRandomInt) {
         rarity: drop.rarity,
         number,
         score,
-        payout: toCents(casePayout(item, score)),
+        payout: toCents(payout),
         bonus: gold,
+        multiplier,
       };
     });
   });

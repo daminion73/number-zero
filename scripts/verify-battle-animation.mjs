@@ -127,7 +127,7 @@ try {
   assert.equal(await page.locator("#online-room .duel-reels .locked").count(), 0);
   await advanceUntil(page, '#online-room .duel-reels .locked');
   assert.ok(await page.locator("#online-room .duel-reels .locked").count() < 12, "Digits lock one at a time, not in one instant");
-  assert.deepEqual(await page.locator("#online-room .battle-player-total > b").allTextContents(), ["0", "0"], "Totals wait for the complete number roll");
+  assert.deepEqual(await page.locator("#online-room .battle-player-total > b").allTextContents(), ["0.00", "0.00"], "Totals wait for the complete number roll");
   await capture(page, "battle-number-rolling.png");
   await advanceUntil(page, '.online-room[data-opening="1"] [data-phase="bonus"]');
   assert.equal(await page.locator('[data-phase="bonus"]').count(), 1, "Only the triggering player gets a bonus spin");
@@ -145,8 +145,8 @@ try {
   assert.deepEqual(await page.evaluate(() => window.landings.filter(([seat]) => seat === "1").map(([, name]) => name)),
     ["Six Figure", "Perfect Cube", "Devil Imprint"]);
   assert.deepEqual(await numbers(page), ["65536", "666"]);
-  assert.deepEqual(await page.locator("#online-room .battle-player-total > b").allTextContents(), ["3,780", "2,900"]);
-  assert.deepEqual(await page.locator("#online-room .battle-player-total > small").allTextContents(), ["3.78 CR", "2.90 CR"]);
+  assert.deepEqual(await page.locator("#online-room .battle-player-total > b").allTextContents(), ["3.78", "2.90"]);
+  assert.deepEqual(await page.locator("#online-room .battle-player-total > small").allTextContents(), ["CR", "CR"]);
   assert.deepEqual(await page.locator(".online-payout strong").allTextContents(), ["3.34 CR", "3.34 CR"]);
   await capture(page, "battle-opening-settled.png");
   await page.locator('[data-room-action="results"]').click();
@@ -227,18 +227,19 @@ try {
   }, savedStats);
   await practice.goto(base);
   assert.equal(await practice.locator("#global-balance").innerText(), "SIGN IN");
+  await practice.locator('.mode-tabs [data-mode="sandbox"]').click(); // the app now opens on the Home dashboard
   await practice.locator("#motion-toggle").click();
   await practice.locator("#roll-button").click();
   await practice.locator("#status-text").filter({ hasText: "ROLL COMPLETE" }).waitFor();
-  await practice.locator('[data-mode="store"]').click();
+  await practice.locator('.mode-tabs [data-mode="store"]').click();
   assert.equal(await practice.locator("#daily-roll, #admin-add-credits").count(), 0, "No demo top-up requirements");
   await practice.locator('#case-detail [data-buy-case="nano"]').click();
-  await practice.locator('[data-mode="inventory"]').click();
+  await practice.locator('.mode-tabs [data-mode="inventory"]').click();
   await practice.locator("[data-open-case]").first().click();
   await practice.locator(".case-payout").waitFor({ timeout: 30000 });
   assert.match(await practice.locator(".case-payout").innerText(), /DEMO PAYOUT.*NOT CREDITED/);
   await practice.locator("#back-inventory").click();
-  await practice.locator('[data-mode="online"]').click();
+  await practice.locator('.mode-tabs [data-mode="online"]').click();
   await practice.locator("#online-create").click();
   await practice.locator("#battle-clear-cases").click();
   assert.equal(await practice.locator("#duel-start").isDisabled(), true, "An empty demo still needs a case");

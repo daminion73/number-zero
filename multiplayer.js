@@ -33,6 +33,9 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
     selected = null,
     currentMode = "sandbox",
     activeBattleId = null;
+  // While a casino round is still revealing, the header shows this pre-payout balance instead.
+  let heldBalance = null;
+  const shownBalance = () => heldBalance ?? user?.balance;
   let paused = false,
     fetching = false,
     busy = false,
@@ -45,6 +48,8 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
     pendingCreate = null,
     requestEpoch = 0;
   let presentation = null;
+  const userListeners = new Set();
+  let notifiedUser = Symbol("initial");
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
   const requestedBattle = new URL(location.href).searchParams.get("battle");
 
@@ -66,7 +71,7 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
   dialog.id = "account-dialog";
   dialog.className = "account-dialog";
   dialog.setAttribute("aria-labelledby", "account-title");
-  dialog.innerHTML = `<button type="button" class="account-close" aria-label="Close account">×</button><p class="kicker">YOUR ONLINE IDENTITY</p><h2 id="account-title">ENTER THE ARENA</h2><p id="account-description">Sign in with Google to join public battles. Your online credits and results follow your account.</p><div id="account-content"></div><p class="account-status" id="account-status" role="status"></p><p class="online-footnote">50,000 welcome credits · 20,000 daily credits<br>Virtual only. No deposits, purchases or withdrawals.</p>`;
+  dialog.innerHTML = `<button type="button" class="account-close" aria-label="Close account">×</button><p class="kicker">YOUR ONLINE IDENTITY</p><h2 id="account-title">ENTER THE ARENA</h2><p id="account-description">Sign in with Google to join public battles. Your online credits and results follow your account.</p><div id="account-content"></div><p class="account-status" id="account-status" role="status"></p><p class="online-footnote">100,000 welcome credits · 100,000 daily credits<br>Virtual only. No deposits, purchases or withdrawals.</p>`;
   document.body.append(dialog);
   const publish = document.createElement("button");
   publish.id = "online-publish";
@@ -118,12 +123,17 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
     return result;
   }
   function renderAccount() {
+    if (!user) heldBalance = null;
     $("#account-button").textContent = user
-      ? `${user.name} · ${money(user.balance)} ONLINE CR`
+      ? `${user.name} · ${money(shownBalance())} ONLINE CR`
       : "SIGN IN / ACCOUNT ↗";
-    $("#global-balance").textContent = user ? `${money(user.balance)} CR` : "SIGN IN";
+    $("#global-balance").textContent = user ? `${money(shownBalance())} CR` : "SIGN IN";
     if ($(".online-balance") && !presentation?.controller)
-      $(".online-balance").textContent = user ? `${money(user.balance)} CR` : "SPECTATING";
+      $(".online-balance").textContent = user ? `${money(shownBalance())} CR` : "SPECTATING";
+    if (notifiedUser !== user) {
+      notifiedUser = user;
+      userListeners.forEach((callback) => callback(user));
+    }
     $("#account-title").textContent = user ? user.name : "ENTER THE ARENA";
     $("#account-description").textContent = user
       ? "Your server-owned wallet. Local practice tools cannot change this balance."
@@ -134,13 +144,13 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
     accountSignature = signature;
     const content = $("#account-content");
     if (user) {
-      content.innerHTML = `<div class="account-wallet"><small>ONLINE BALANCE</small><strong>${money(user.balance)} <em>CR</em></strong></div><div class="account-stats"><span><b>${user.battlesPlayed}</b> BATTLES COMPLETED</span><span><b>${user.wins}</b> WINS / TIED WINS</span></div><button class="mp-primary" id="online-daily" type="button" ${user.dailyAvailable ? "" : "disabled"}>${user.dailyAvailable ? "CLAIM 20,000 DAILY CREDITS" : "DAILY CLAIMED · RESETS 00:00 UTC"}</button>${activeBattleId ? '<button id="online-resume" type="button">RETURN TO YOUR ACTIVE BATTLE →</button>' : ""}<button id="online-logout" type="button">SIGN OUT</button>`;
+      content.innerHTML = `<div class="account-wallet"><small>ONLINE BALANCE</small><strong>${money(shownBalance())} <em>CR</em></strong></div><div class="account-stats"><span><b>${user.battlesPlayed}</b> BATTLES COMPLETED</span><span><b>${user.wins}</b> WINS / TIED WINS</span></div><button class="mp-primary" id="online-daily" type="button" ${user.dailyAvailable ? "" : "disabled"}>${user.dailyAvailable ? "CLAIM 100,000 DAILY CREDITS" : "DAILY CLAIMED · RESETS 00:00 UTC"}</button>${activeBattleId ? '<button id="online-resume" type="button">RETURN TO YOUR ACTIVE BATTLE →</button>' : ""}<button id="online-logout" type="button">SIGN OUT</button>`;
       $("#online-daily").onclick = () =>
         action(async () => {
           const result = await api("/daily", {});
           user = result.user;
           renderAccount();
-          $("#account-status").textContent = "20,000 online credits added.";
+          $("#account-status").textContent = "100,000 online credits added.";
         });
       $("#online-resume")?.addEventListener("click", () => {
         dialog.close();
@@ -271,7 +281,7 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
   function renderRoom(force = false) {
     const room = $("#online-room");
     room.hidden = !selected;
-    document.body.classList.toggle("online-battle-focus", currentMode === "online" && ["running", "settled"].includes(selected?.state));
+    document.body.classList.toggle("online-battle-focus", currentMode === "online" && Boolean(selected));
     if (presentation?.id !== selected?.id) {
       presentation?.controller?.abort();
       // Already-revealed rounds on first entry/reconnect are history, not a replay queue.
@@ -596,6 +606,21 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
     },
     get online() {
       return online;
+    },
+    account: {
+      api,
+      getUser: () => user,
+      onUser(callback) { userListeners.add(callback); callback(user); return () => userListeners.delete(callback); },
+      openAccount,
+      setUser(nextUser) { user = nextUser; renderAccount(); userListeners.forEach((callback) => callback(user)); },
+      /** Balance to display (honours an active reveal hold). */
+      displayBalance: shownBalance,
+      /** Pins the displayed balance until called again with null (e.g. after a card reveal finishes). */
+      holdBalance(value) {
+        heldBalance = value;
+        renderAccount();
+        userListeners.forEach((callback) => callback(user));
+      },
     },
   };
 }
