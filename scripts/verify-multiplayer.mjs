@@ -110,13 +110,10 @@ try {
     .getByRole("button", { name: "LEAVE & REFUND MY SEAT" })
     .waitFor();
   await host.getByText("2/3 SEATS FILLED").waitFor(); // the focused room has no feed toolbar; wait for polling
-  await host.locator('[data-room-action="bot"][data-seat="2"]').click();
-  await host
-    .getByRole("button", { name: "START BATTLE →", exact: true })
-    .waitFor();
+  await host.getByText("Starts automatically when every seat is filled").waitFor();
   await captureRoom(host, "multiplayer-seats.png");
-  assert.equal(await guest.locator('[data-room-action="start"]').count(), 0);
-  await host.locator('[data-room-action="start"]').click();
+  // Filling the last seat with a bot starts the battle automatically.
+  await host.locator('[data-room-action="bot"][data-seat="2"]').click();
   await host.locator('.online-room[data-state="running"]').waitFor();
   assert.match(
     await host.locator(".online-room-actions").innerText(),

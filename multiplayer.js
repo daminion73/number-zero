@@ -344,8 +344,7 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
       : null;
     const host = user?.id === b.hostId,
       member = b.players.find((p) => !p.bot && p.id === user?.id);
-    const slots = b.teams.flat().length,
-      full = b.players.length === slots;
+    const slots = b.teams.flat().length;
     room.dataset.state = b.state;
     room.dataset.opening = opening ? String(opening.index) : "";
     const arena = b.state === "running" || b.state === "settled";
@@ -369,7 +368,7 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
           ${b.state === "waiting" && host && player?.bot ? `<button type="button" data-room-action="remove-bot" data-seat="${seat}" data-focus="remove-${seat}">REMOVE BOT</button>` : ""}</article>`;
         },
       ).join("")}</div>
-      <div class="online-room-actions">${b.state === "waiting" ? (host ? `<button class="mp-primary" type="button" data-room-action="start" data-focus="start" ${full ? "" : "disabled"}>${full ? "START BATTLE →" : "FILL ALL SEATS TO START"}</button><button type="button" data-room-action="cancel" data-focus="cancel">CANCEL & REFUND EVERYONE</button>` : member ? '<button type="button" data-room-action="leave" data-focus="leave">LEAVE & REFUND MY SEAT</button>' : "<span>Sign in, choose a team, and join an open seat.</span>") : "<p>All reserved human entries were refunded.</p>"}</div>
+      <div class="online-room-actions">${b.state === "waiting" ? (host ? `<span class="online-autostart">Starts automatically when every seat is filled · ${b.players.length}/${slots}</span><button type="button" data-room-action="cancel" data-focus="cancel">CANCEL & REFUND EVERYONE</button>` : member ? '<button type="button" data-room-action="leave" data-focus="leave">LEAVE & REFUND MY SEAT</button>' : "<span>Sign in, choose a team, and join an open seat.</span>") : "<p>All reserved human entries were refunded.</p>"}</div>
       ${b.state === "waiting" ? `<p class="online-footnote">Waiting lobby expires at ${new Date(b.expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}. Leaving this page does not cancel your seat. Reconnect from your account.</p>` : ""}
       ${historyHtml}`;
     if (focusKey)

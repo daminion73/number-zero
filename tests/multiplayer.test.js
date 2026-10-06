@@ -272,7 +272,7 @@ test("competing joins reserve last seat once; host-only controls and refunds", a
     host = await f.login("Host"),
     a = await f.login("Guest A"),
     b = await f.login("Guest B");
-  const { battle } = (await f.request("/api/battles", definition(), host.token))
+  const { battle } = (await f.request("/api/battles", definition(undefined, { format: "2" }), host.token))
     .data;
   const path = `/api/battles/${battle.id}`;
   const joins = await Promise.all([
@@ -359,12 +359,13 @@ test("hidden future rounds, authoritative results and once-only restart settleme
   ).data;
   const path = `/api/battles/${battle.id}`;
   assert.equal((await f.request(path + "/start", {}, a.token)).status, 409);
-  await f.request(path + "/join", { seat: 1 }, b.token);
+  // Filling the last seat starts the battle; a manual start is then rejected.
+  assert.equal((await f.request(path + "/join", { seat: 1 }, b.token)).data.battle.state, "running");
   const starts = await Promise.all([
     f.request(path + "/start", { scores: [1e99] }, a.token),
     f.request(path + "/start", {}, a.token),
   ]);
-  assert.deepEqual(starts.map((r) => r.status).sort(), [200, 409]);
+  assert.deepEqual(starts.map((r) => r.status), [409, 409]);
   const hidden = (await f.request(path)).data.battle;
   assert.equal(hidden.rounds.length, 0);
   assert.equal(hidden.payouts, undefined);
@@ -419,7 +420,7 @@ test("expired waiting lobbies refund after restart without requiring a player ac
   const f = await fixture(t),
     a = await f.login("Host"),
     b = await f.login("Guest");
-  const { battle } = (await f.request("/api/battles", definition(), a.token))
+  const { battle } = (await f.request("/api/battles", definition(undefined, { format: "2" }), a.token))
     .data;
   await f.request(`/api/battles/${battle.id}/join`, { seat: 1 }, b.token);
   await f.restart();
@@ -500,7 +501,10 @@ test("bot shares are not paid to humans; manual bots work in a six-seat format",
       (await f.request(path + "/bot", { seat }, a.token)).status,
       200,
     );
-  assert.equal((await f.request(path + "/start", {}, a.token)).status, 200);
+  const started = (await f.request(path)).data.battle;
+  assert.equal(started.state, "running", "Full lobby starts automatically");
+  assert.equal(new Set(started.players.filter((p) => p.bot).map((p) => p.name)).size, 5, "Bots get distinct names");
+  assert.ok(started.players.every((p) => !/HOUSE BOT/.test(p.name)));
   f.advance(1000);
   const settled = (await f.request(path)).data.battle;
   assert.equal(settled.players.filter((p) => p.bot).length, 5);

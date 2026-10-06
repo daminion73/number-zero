@@ -1,6 +1,6 @@
 import { createServer as createHttpServer } from "node:http";
 import { readFile } from "node:fs/promises";
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomInt as cryptoRandomInt, randomUUID } from "node:crypto";
 import { extname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { OAuth2Client } from "google-auth-library";
@@ -19,6 +19,7 @@ import {
 } from "./backend/game.js";
 
 const ROOT = import.meta.dirname;
+const BOT_NAMES = ["Nova", "Cipher", "Vortex", "Pixel", "Rogue", "Blitz", "Echo", "Jinx", "Onyx", "Zephyr", "Havoc", "Quartz", "Raven", "Turbo", "Wraith", "Static", "Mako", "Vega", "Glitch", "Comet", "Ember", "Volt", "Nyx", "Orbit"];
 const types = {
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
@@ -727,16 +728,6 @@ export async function createServer(options = {}) {
             "seats_not_full",
             "Fill every seat with a player or bot first.",
           );
-        battle.players.sort((a, b) => a.seat - b.seat);
-        battle.outcomes = makeOutcomes(battle, options.randomInt);
-        battle.state = "running";
-        battle.startedAt = now();
-        battle.intervalMs =
-          battle.speed === "turbo"
-            ? Math.max(100, Math.floor(roundMs / 2))
-            : roundMs;
-        battle.endsAt =
-          battle.startedAt + battle.intervalMs * battle.caseIds.length;
       } else {
         const seat = b.seat;
         if (!Number.isInteger(seat) || seat < 0 || seat >= max)
@@ -771,9 +762,11 @@ export async function createServer(options = {}) {
                 "host_only",
                 "Only the host can add bots.",
               );
+            const taken = new Set(battle.players.map((p) => p.name));
+            const names = BOT_NAMES.filter((name) => !taken.has(name));
             battle.players.push({
               seat,
-              name: `HOUSE BOT ${seat + 1}`,
+              name: names[(options.randomInt || cryptoRandomInt)(names.length)],
               bot: true,
               team,
             });
@@ -811,6 +804,19 @@ export async function createServer(options = {}) {
             });
           }
         }
+      }
+      // A lobby starts by itself as soon as every seat holds a player or bot.
+      if (battle.state === "waiting" && battle.players.length === max) {
+        battle.players.sort((a, b) => a.seat - b.seat);
+        battle.outcomes = makeOutcomes(battle, options.randomInt);
+        battle.state = "running";
+        battle.startedAt = now();
+        battle.intervalMs =
+          battle.speed === "turbo"
+            ? Math.max(100, Math.floor(roundMs / 2))
+            : roundMs;
+        battle.endsAt =
+          battle.startedAt + battle.intervalMs * battle.caseIds.length;
       }
       await save(tx, battle);
       return battle;

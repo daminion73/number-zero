@@ -802,3 +802,143 @@ body[data-ambience="paused"] .online-pending {
     animation: action-pulse 2.4s ease-in-out infinite;
   }
 }
+
+/* Crowded battle rooms (4–6 players): give the player header room so the name, label and total never clip. */
+.battle-focus .duel-player > header {
+  flex: 0 0 auto;
+  min-height: 52px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+.battle-focus .duel-player > header > div:nth-child(2) { min-width: 0; }
+.battle-focus .duel-player > header > div:nth-child(2) strong {
+  display: block;
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.battle-focus .duel-player > header > div:nth-child(2) small,
+.battle-focus .duel-player > header em {
+  display: block;
+  overflow: hidden;
+  font-size: 7px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.battle-focus .battle-player-total { min-width: 0; padding-left: 10px; }
+.battle-focus .battle-player-total span { margin-bottom: 3px; font-size: 6px; white-space: nowrap; }
+.battle-focus .battle-player-total > b { font-size: clamp(18px, 1.5vw, 28px) !important; line-height: 1; white-space: nowrap; }
+.battle-focus .duel-arena[data-player-count="2"] .battle-player-total > b,
+.battle-focus .duel-arena[data-player-count="3"] .battle-player-total > b { font-size: clamp(24px, 2.2vw, 40px) !important; }
+
+/* Settlement: headline on the first screen, then scroll down for every pull. */
+.online-arena .battle-winner-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  overflow-y: auto;
+  padding-top: max(40px, 12vh);
+  padding-bottom: 60px;
+}
+.online-arena .battle-winner-banner::before { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.online-arena .battle-winner-banner::after { position: fixed; }
+.online-arena .battle-winner-banner > * { flex: none; }
+.online-arena .battle-winner-banner[hidden] { display: none; }
+.battle-summary-hint {
+  margin-top: 26px;
+  color: #9aa8b2;
+  font-size: 9px;
+  letter-spacing: .24em;
+  animation: summary-hint 1.6s ease-in-out infinite;
+}
+@keyframes summary-hint { 50% { transform: translateY(5px); opacity: .55; } }
+.battle-round-summary {
+  width: min(1180px, calc(100vw - 40px));
+  margin-top: 18px;
+  border: 1px solid color-mix(in srgb, var(--winner) 35%, #32404a);
+  border-radius: 8px;
+  overflow: hidden;
+  text-align: left;
+  background: #060a0ef0;
+  box-shadow: 0 18px 60px #0009;
+}
+.battle-round-summary > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #28343d;
+  color: #8997a1;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .16em;
+}
+.battle-round-summary > header b { color: var(--winner); }
+.battle-round-summary-scroll { overflow-x: auto; }
+.battle-round-summary table {
+  width: 100%;
+  min-width: calc(110px + var(--summary-players) * 150px);
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.battle-round-summary th,
+.battle-round-summary td {
+  padding: 9px 10px;
+  border-bottom: 1px solid #1d272f;
+  text-align: center;
+  vertical-align: middle;
+}
+.battle-round-summary thead th:first-child,
+.battle-round-summary tbody th,
+.battle-round-summary tfoot th { width: 110px; text-align: left; }
+.battle-round-summary thead th {
+  position: sticky;
+  top: 0;
+  color: white;
+  background: #0b1117;
+  font: 900 16px/1.1 "Barlow Condensed", sans-serif;
+  letter-spacing: .03em;
+  box-shadow: inset 0 -2px var(--player, #36424c);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.battle-round-summary thead th:first-child { color: #7f8c96; font: 800 9px/1 "DM Mono", monospace; letter-spacing: .16em; }
+.battle-round-summary thead small { display: block; margin-bottom: 3px; color: var(--player); font: 800 7px/1 "DM Mono", monospace; letter-spacing: .14em; }
+.battle-round-summary thead em { color: var(--lime, #c7ff36); font-size: 10px; font-style: normal; }
+.battle-round-summary tbody th b { display: block; color: white; font: 900 20px/1 "Barlow Condensed", sans-serif; }
+.battle-round-summary tbody th small { display: block; margin-top: 3px; overflow: hidden; color: #7f8c96; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.battle-round-summary td { background: #080d12; }
+.battle-round-summary tbody tr:nth-child(even) td { background: #0a1016; }
+.summary-number { display: block; color: white; font: 900 22px/1 "Barlow Condensed", sans-serif; letter-spacing: .06em; font-variant-numeric: tabular-nums; }
+.summary-trait { display: block; margin: 4px 0 3px; overflow: hidden; color: #8e9ba5; font-size: 8px; letter-spacing: .08em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.summary-trait.uncommon { color: #42d989; }
+.summary-trait.rare { color: #53e7ff; }
+.summary-trait.epic { color: #b57cff; }
+.summary-trait.legendary { color: #ffd43b; }
+.summary-trait.mythic { color: #ff4fd8; }
+.battle-round-summary td strong { display: block; color: #dfe7ec; font: 900 14px/1 "Barlow Condensed", sans-serif; }
+.battle-round-summary td.top-pull { background: color-mix(in srgb, var(--winner) 10%, #080d12) !important; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--winner) 45%, transparent); }
+.battle-round-summary td.top-pull strong { color: var(--winner); }
+.battle-round-summary tfoot th { color: #8997a1; font-size: 9px; letter-spacing: .14em; }
+.battle-round-summary tfoot td strong { font-size: 18px; color: white; }
+.battle-round-summary tfoot td span { display: block; margin-top: 3px; color: #6f7c86; font-size: 8px; }
+.battle-round-summary tfoot .summary-payout td strong { color: var(--winner); font-size: 20px; }
+@media (max-width: 650px) {
+  .battle-focus .battle-avatar, .battle-focus .battle-player-total span { display: none; }
+  .battle-focus .duel-player > header { grid-template-columns: minmax(0, 1fr) auto; gap: 6px; min-height: 40px; }
+  .battle-focus .duel-player > header > div:nth-child(2) strong { font-size: 13px; }
+  .battle-focus .battle-player-total { padding-left: 6px; }
+  .battle-focus .battle-player-total > b { font-size: 16px !important; }
+  .online-arena .battle-settlement-breakdown { max-height: none; }
+  .battle-round-summary { width: calc(100vw - 20px); }
+  .battle-round-summary table { min-width: calc(80px + var(--summary-players) * 118px); }
+  .battle-round-summary thead th:first-child, .battle-round-summary tbody th, .battle-round-summary tfoot th { width: 80px; }
+  .summary-number { font-size: 18px; }
+}
+@media (prefers-reduced-motion: reduce) { .battle-summary-hint { animation: none; } }

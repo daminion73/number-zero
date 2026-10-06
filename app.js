@@ -736,8 +736,7 @@ async function animateOnlineRound(room, battle, round, signal) {
     room.querySelector(`#online-duel-score-${n}`).textContent = `${result.name.toUpperCase()} · ${result.score.toLocaleString()} EP · ${formatCredits(result.payout)} CR`;
     room.querySelector(`#online-duel-badges-${n}`).innerHTML = onlineBattleBadges(result);
     return [
-      animateBattleValue(room.querySelector(`#online-duel-total-${n}`), previous, previous + result.score, "", signal),
-      animateBattleValue(room.querySelector(`#online-duel-credit-${n}`), epToCredits(previous), epToCredits(previous + result.score), " CR", signal),
+      animateBattleValue(room.querySelector(`#online-duel-total-${n}`), epToCredits(previous), epToCredits(previous + result.score), "", signal),
     ];
   });
   const previousPot = battle.rounds.reduce((sum, r) => sum + r.results.reduce((n, result) => n + result.payout, 0), 0);
@@ -1095,8 +1094,17 @@ function renderOnlineBattle(battle, opening, user, showSettlement) {
     <div class="battle-ledger"><span>ENTRY <b>${formatCredits(battle.entry)} CR · ${battle.players.length} PLAYERS</b></span><span>SETTLEMENT <b>AUTOMATIC · SERVER VERIFIED</b></span></div>
     <div class="duel-arena" data-player-count="${battle.players.length}" style="--battle-players:${battle.players.length}">${players}</div>
     <div class="online-room-actions"><button type="button" data-room-action="close" data-focus="close">← BACK TO FEED</button><button type="button" data-room-action="share" data-focus="share">COPY INVITE LINK</button><button type="button" data-room-action="refresh" data-focus="refresh">REFRESH</button>${battle.state === "settled" ? '<button type="button" data-room-action="settlement">VIEW SETTLEMENT</button>' : '<span class="online-playback-status" role="status">Rounds resolve on the server. You can leave this page and reconnect.</span>'}</div>
-    ${battle.state === "settled" ? `<div class="battle-winner-banner ${battle.mode === "share" ? "share" : "victory"}" ${showSettlement ? "" : "hidden"}><span>BATTLE COMPLETE · SERVER SETTLED</span><strong>${winner}</strong><p>All ${battle.caseIds.length} rounds resolved</p><b>${formatCredits(pot)} CR POT</b><section class="battle-settlement-breakdown" style="--ledger-columns:${Math.min(battle.players.length, 3)}"><header><span>PLAYER SETTLEMENTS</span><b>${battle.players.length} PLAYERS</b></header><div>${battle.players.map((player, index) => `<article style="--player:${BOT_COLORS[battle.teams.findIndex((t) => t.includes(player.seat))]}"><i>${player.bot ? "BOT" : "P"}</i><span><strong>${escapeHtml(player.name)}</strong><small>${totals[index].toLocaleString()} EP · ${formatCredits(epToCredits(totals[index]))} CR PULLED</small></span><b class="online-payout"><strong>${formatCredits(battle.payouts.find((p) => p.seat === player.seat).amount)} CR</strong></b></article>`).join("")}</div><footer><span>SERVER PAID · BOT SHARES STAY WITH BOTS</span></footer></section><button type="button" data-room-action="results">INSPECT RESULTS</button><button type="button" data-room-action="close">RETURN TO BATTLE MENU</button></div>` : ""}
+    ${battle.state === "settled" ? `<div class="battle-winner-banner ${battle.mode === "share" ? "share" : "victory"}" ${showSettlement ? "" : "hidden"}><span>BATTLE COMPLETE · SERVER SETTLED</span><strong>${winner}</strong><p>All ${battle.caseIds.length} rounds resolved</p><b>${formatCredits(pot)} CR POT</b><section class="battle-settlement-breakdown" style="--ledger-columns:${Math.min(battle.players.length, 3)}"><header><span>PLAYER SETTLEMENTS</span><b>${battle.players.length} PLAYERS</b></header><div>${battle.players.map((player, index) => `<article style="--player:${BOT_COLORS[battle.teams.findIndex((t) => t.includes(player.seat))]}"><i>${player.bot ? "BOT" : "P"}</i><span><strong>${escapeHtml(player.name)}</strong><small>${totals[index].toLocaleString()} EP · ${formatCredits(epToCredits(totals[index]))} CR PULLED</small></span><b class="online-payout"><strong>${formatCredits(battle.payouts.find((p) => p.seat === player.seat).amount)} CR</strong></b></article>`).join("")}</div><footer><span>SERVER PAID · BOT SHARES STAY WITH BOTS</span></footer></section><button type="button" data-room-action="results">VIEW ARENA</button><button type="button" data-room-action="close">RETURN TO BATTLE MENU</button><small class="battle-summary-hint">SCROLL FOR EVERY NUMBER PULLED ↓</small>${onlineRoundSummary(battle, totals, user)}</div>` : ""}
   </div>`;
+}
+
+/** Round-by-round table of every number each player pulled and what it was worth. */
+function onlineRoundSummary(battle, totals, user) {
+  const team = (player) => battle.teams.findIndex((seats) => seats.includes(player.seat));
+  const best = battle.rounds.map((round) => Math.max(...round.results.map((r) => r.payout)));
+  const values = battle.players.map((player) => battle.rounds.reduce((sum, round) => sum + round.results.find((r) => r.seat === player.seat).payout, 0));
+  const cell = (result, top) => `<td class="${top && result.payout > 0 ? "top-pull" : ""}"><b class="summary-number">${result.number.toLocaleString()}</b><span class="summary-trait ${result.rarity || ""}">${escapeHtml(result.multiplier ? `${result.name} · ×${result.multiplier} BONUS` : result.name)}</span><strong>${formatCredits(result.payout)} CR</strong></td>`;
+  return `<section class="battle-round-summary" style="--summary-players:${battle.players.length}"><header><span>ROUND-BY-ROUND PULLS</span><b>${battle.rounds.length} ROUND${battle.rounds.length === 1 ? "" : "S"} · ${battle.players.length} PLAYERS</b></header><div class="battle-round-summary-scroll"><table><thead><tr><th>ROUND</th>${battle.players.map((player) => `<th style="--player:${BOT_COLORS[team(player) % BOT_COLORS.length]}"><small>TEAM ${String.fromCharCode(65 + team(player))}${player.bot ? " · BOT" : ""}</small>${escapeHtml(player.name)}${!player.bot && player.id === user?.id ? " <em>YOU</em>" : ""}</th>`).join("")}</tr></thead><tbody>${battle.rounds.map((round, index) => `<tr><th><b>${index + 1}</b><small>${escapeHtml(CASES.find((item) => item.id === round.caseId)?.name || round.caseId)}</small></th>${battle.players.map((player) => cell(round.results.find((r) => r.seat === player.seat), round.results.find((r) => r.seat === player.seat).payout === best[index])).join("")}</tr>`).join("")}</tbody><tfoot><tr><th>TOTAL PULLED</th>${battle.players.map((player, index) => `<td><strong>${formatCredits(values[index])} CR</strong><span>${totals[index].toLocaleString()} EP</span></td>`).join("")}</tr><tr class="summary-payout"><th>PAYOUT</th>${battle.players.map((player) => `<td><strong>${formatCredits(battle.payouts.find((p) => p.seat === player.seat).amount)} CR</strong></td>`).join("")}</tr></tfoot></table></div></section>`;
 }
 
 function renderBattlePlayers(profiles = []) {
@@ -1124,7 +1132,8 @@ function animateBattleValue(element, from, to, suffix = "", signal = null) {
       const progress = Math.min(1, (timestamp - started) / duration);
       const eased = 1 - (1 - progress) ** 3;
       const value = from + (to - from) * eased;
-      element.textContent = suffix ? `${formatCredits(value)}${suffix}` : Math.round(value).toLocaleString();
+      // Battle totals are always shown in credits (the CR label sits beside them).
+      element.textContent = `${formatCredits(value)}${suffix}`;
       if (progress < 1) requestAnimationFrame(update);
       else { element.classList.remove("counting"); element.classList.add("counted"); setTimeout(() => element.classList.remove("counted"), 420); resolve(); }
     };
@@ -1216,7 +1225,7 @@ async function runDuel() {
     $(`#duel-score-${index + 1}`).textContent = `${result.drop.name.toUpperCase()} · ${result.score.toLocaleString()} EP`;
   });
   await Promise.all([
-    ...duelMatch.totals.map((total, index) => animateBattleValue($(`#duel-total-${index + 1}`), previousTotals[index], total)),
+    ...duelMatch.totals.map((total, index) => animateBattleValue($(`#duel-total-${index + 1}`), epToCredits(previousTotals[index]), epToCredits(total))),
     animateBattleValue($("#battle-pot"), previousPot, duelMatch.payoutPot, " CR"),
   ]);
   duelMatch.round++;
@@ -1263,7 +1272,7 @@ function startDuel() {
   const bot = BOT_PROFILES[Math.floor(Math.random() * BOT_PROFILES.length)];
   duelMatch = { caseItem, mode: $("#battle-mode").value, length, round: 0, totals: [0, 0], histories: [[], []], payoutPot: 0, active: false, joining: true, bot };
   duelPanel.classList.remove("winner-1", "winner-2");
-  $("#duel-total-1").textContent = "0"; $("#duel-total-2").textContent = "0";
+  $("#duel-total-1").textContent = "0.00"; $("#duel-total-2").textContent = "0.00";
   $("#duel-score-1").textContent = "— PTS THIS ROLL"; $("#duel-score-2").textContent = "— PTS THIS ROLL";
   $("#duel-badges-1").textContent = "READY TO ROLL"; $("#duel-badges-2").textContent = "READY TO ROLL";
   $("#duel-round").textContent = "WAITING FOR BOT";
@@ -1379,8 +1388,7 @@ async function runGroupBattle() {
     duelMatch.payoutPot = Math.round((duelMatch.payoutPot + result.payout) * 100) / 100;
   });
   await Promise.all([
-    ...duelMatch.totals.map((total, index) => animateBattleValue($(`#duel-total-${index + 1}`), previousTotals[index], total)),
-    ...duelMatch.totals.map((total, index) => animateBattleValue($(`#duel-credit-${index + 1}`), epToCredits(previousTotals[index]), epToCredits(total), " CR")),
+    ...duelMatch.totals.map((total, index) => animateBattleValue($(`#duel-total-${index + 1}`), epToCredits(previousTotals[index]), epToCredits(total))),
     animateBattleValue($("#battle-pot"), previousPot, duelMatch.payoutPot, " CR"),
   ]);
   duelMatch.round++;
