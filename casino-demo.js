@@ -1,7 +1,8 @@
 // Browser-side demo engine. Mirrors the online casino API (same paths, bodies and response
 // shapes) using the shared provably-fair core, with unlimited credits and nothing recorded.
 import {
-  BACCARAT_FLOATS, BLACKJACK_FLOATS, MINES_FLOATS, baccaratPlay, blackjackAction, blackjackStart, clientView,
+  BACCARAT_FLOATS, BLACKJACK_FLOATS, MINES_FLOATS, baccaratPlay, DICE_FLOATS, KENO_FLOATS, PLINKO_FLOATS, ROULETTE_FLOATS,
+  SLOT_FLOATS, VIDEO_POKER_FLOATS, INSTANT_GAMES, diceRoll, kenoPlay, plinkoDrop, rouletteSpin, slotsSpin, videoPokerDraw, videoPokerStart, blackjackAction, blackjackStart, clientView,
   crashCashout, crashSettle, crashStart, fairFloats, minesCashout, minesReveal, minesStart, roundFinished, sha256Hex,
 } from "./casino-core.js";
 
@@ -12,7 +13,7 @@ const fail = (code, message) => Object.assign(new Error(message), { code });
 export function createDemoEngine({ now = () => Date.now() } = {}) {
   let seed = { serverSeed: randomHex(32), clientSeed: randomHex(6), nonce: 0 };
   let previous = null;
-  const active = { blackjack: null, mines: null, crash: null };
+  const active = { blackjack: null, mines: null, crash: null, "video-poker": null };
   let sequence = 0;
 
   const fairPublic = () => ({ serverSeedHash: sha256Hex(seed.serverSeed), clientSeed: seed.clientSeed, nonce: seed.nonce, previous });
@@ -35,7 +36,7 @@ export function createDemoEngine({ now = () => Date.now() } = {}) {
       throw fail("invalid_bet", error.message);
     }
     const record = { id: `demo-${++sequence}`, state, floats, fair, serverSeed };
-    if (game !== "baccarat") active[game] = record;
+    if (!INSTANT_GAMES.includes(game)) active[game] = record;
     return record;
   }
   function current(game) {
@@ -66,7 +67,7 @@ export function createDemoEngine({ now = () => Date.now() } = {}) {
     "GET /casino/active": () => {
       if (active.crash) crashSettle(active.crash.state, now());
       const open = (game) => (active[game] && !roundFinished(active[game].state) ? view(active[game]) : null);
-      return { blackjack: open("blackjack"), mines: open("mines"), crash: open("crash"), demo: true, serverTime: now() };
+      return { blackjack: open("blackjack"), mines: open("mines"), crash: open("crash"), "video-poker": open("video-poker"), demo: true, serverTime: now() };
     },
     "POST /casino/blackjack/start": (body) => respond(begin("blackjack", BLACKJACK_FLOATS, (floats) => blackjackStart(floats, (body.bets || []).map(cents)))),
     "POST /casino/blackjack/action": (body) => apply("blackjack", (record) => blackjackAction(record.state, record.floats, body.action)),
@@ -79,6 +80,14 @@ export function createDemoEngine({ now = () => Date.now() } = {}) {
     "POST /casino/mines/cashout": () => apply("mines", (record) => minesCashout(record.state)),
     "POST /casino/crash/start": (body) => respond(begin("crash", 1, (floats) => crashStart(floats, cents(body.bet), body.autoCashout ?? null, now()))),
     "POST /casino/crash/cashout": () => apply("crash", (record) => crashCashout(record.state, now())),
+    "POST /casino/roulette": (body) =>
+      respond(begin("roulette", ROULETTE_FLOATS, (floats) => rouletteSpin(floats, (body.bets || []).map((bet) => ({ type: bet?.type, value: bet?.value ?? null, amount: cents(bet?.amount) }))))),
+    "POST /casino/dice": (body) => respond(begin("dice", DICE_FLOATS, (floats) => diceRoll(floats, cents(body.bet), body.target, body.direction))),
+    "POST /casino/plinko": (body) => respond(begin("plinko", PLINKO_FLOATS, (floats) => plinkoDrop(floats, cents(body.bet), body.rows, body.risk))),
+    "POST /casino/keno": (body) => respond(begin("keno", KENO_FLOATS, (floats) => kenoPlay(floats, cents(body.bet), body.picks))),
+    "POST /casino/video-poker/deal": (body) => respond(begin("video-poker", VIDEO_POKER_FLOATS, (floats) => videoPokerStart(floats, cents(body.bet)))),
+    "POST /casino/video-poker/draw": (body) => apply("video-poker", (record) => videoPokerDraw(record.state, body.held)),
+    "POST /casino/slots": (body) => respond(begin("slots", SLOT_FLOATS, (floats) => slotsSpin(floats, cents(body.bet), body.machine))),
     "GET /casino/crash": () => {
       const record = active.crash;
       if (record) crashSettle(record.state, now());

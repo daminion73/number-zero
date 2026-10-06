@@ -3,6 +3,8 @@
 export const ACHIEVEMENTS = [
   ["first-play", "First Chips", "Finish your first casino play", 10_000],
   ["originals-tour", "Originals Tour", "Play Blackjack, Baccarat, Mines and Crash", 50_000],
+  ["classics-tour", "Classics Tour", "Play Roulette, Dice, Plinko, Keno and Video Poker", 50_000],
+  ["slot-spinner", "Reel Deal", "Spin all three slot machines", 25_000],
   ["natural", "Natural 21", "Hit a blackjack", 25_000],
   ["gem-hunter", "Gem Hunter", "Cash out Mines with 10+ gems", 50_000],
   ["live-pilot", "Live Pilot", "Cash out in the live rocket", 25_000],
@@ -18,6 +20,8 @@ export const ACHIEVEMENTS = [
 ].map(([id, name, description, reward]) => ({ id, name, description, reward }));
 
 const ORIGINALS = ["blackjack", "baccarat", "mines", "crash"];
+const CLASSICS = ["roulette", "dice", "plinko", "keno", "video-poker"];
+const SLOT_GAMES = ["slots:lucky-sevens", "slots:fruit-frenzy", "slots:neon-gems"];
 const CENTS_PER_CREDIT = 100;
 
 function earnedIds(play, totals, games) {
@@ -26,6 +30,8 @@ function earnedIds(play, totals, games) {
   const checks = {
     "first-play": true,
     "originals-tour": ORIGINALS.every((game) => games.has(game)),
+    "classics-tour": CLASSICS.every((game) => games.has(game)),
+    "slot-spinner": SLOT_GAMES.every((game) => games.has(game)),
     natural: Boolean(play.natural),
     "gem-hunter": play.game === "mines" && play.gems >= 10 && play.payout > 0,
     "live-pilot": play.game === "live-rocket" && play.payout > 0,

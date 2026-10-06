@@ -319,7 +319,7 @@ modeTabs.forEach((button) => button.addEventListener("click", () => {
 }));
 setMode("home");
 
-function openGame(game) { setMode("originals", true); casino?.open(game); }
+function openGame(game, options) { setMode("originals", true); casino?.open(game, options); }
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, fastReveal ? Math.min(ms, 65) : ms));
 

@@ -8,11 +8,23 @@ const ICONS = {
   baccarat: `<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="11" cy="16" r="7"/><circle cx="21" cy="16" r="7"/><path d="M16 11v10" /></svg>`,
   mines: `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="m16 4 5 6-5 18-5-18 5-6Z" class="fill"/><path d="M6 12h20M11 10l5 18 5-18"/></svg>`,
   crash: `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 27c8-1 15-6 20-17"/><path d="m19 6 7-2-1 7" /><circle cx="24.5" cy="7.5" r="1.4" class="fill"/></svg>`,
+  roulette: `<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="12"/><circle cx="16" cy="16" r="5"/><path d="M16 4v7m0 10v7M4 16h7m10 0h7M7.5 7.5l5 5m7 7 5 5m0-17-5 5m-7 7-5 5"/><circle cx="16" cy="16" r="1.6" class="fill"/></svg>`,
+  dice: `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="5" width="22" height="22" rx="5"/><circle cx="11" cy="11" r="1.8" class="fill"/><circle cx="21" cy="21" r="1.8" class="fill"/><circle cx="16" cy="16" r="1.8" class="fill"/><circle cx="21" cy="11" r="1.8" class="fill"/><circle cx="11" cy="21" r="1.8" class="fill"/></svg>`,
+  plinko: `<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="6" r="1.6" class="fill"/><circle cx="11" cy="12" r="1.6" class="fill"/><circle cx="21" cy="12" r="1.6" class="fill"/><circle cx="6" cy="18" r="1.6" class="fill"/><circle cx="16" cy="18" r="1.6" class="fill"/><circle cx="26" cy="18" r="1.6" class="fill"/><path d="M3 26h26M9 23v3m7-3v3m7-3v3"/></svg>`,
+  keno: `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="4" width="24" height="24" rx="4"/><path d="M4 12h24M4 20h24M12 4v24M20 4v24"/><circle cx="8" cy="8" r="2" class="fill"/><circle cx="24" cy="16" r="2" class="fill"/><circle cx="16" cy="24" r="2" class="fill"/></svg>`,
+  "video-poker": `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="7" width="7" height="11" rx="1.5"/><rect x="12.5" y="7" width="7" height="11" rx="1.5"/><rect x="22" y="7" width="7" height="11" rx="1.5"/><path d="M5 24h22"/><circle cx="16" cy="12.5" r="1.6" class="fill"/></svg>`,
+  slots: `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="6" width="22" height="20" rx="3"/><path d="M10.3 6v20m7.4-20v20M25 12h3v8"/><path d="M5.5 16h3m4.5 0h3m4.5 0h3" class="thin"/><circle cx="28" cy="10" r="2" class="fill"/></svg>`,
 };
 
 const GAMES = [
+  { id: "slots", name: "Slots", tagline: "3 machines · Lines · Wilds" },
   { id: "blackjack", name: "Blackjack", tagline: "3:2 · Multi-hand · Insurance" },
+  { id: "roulette", name: "Roulette", tagline: "European · Single zero" },
   { id: "baccarat", name: "Baccarat", tagline: "Punto Banco · Squeeze · Roads" },
+  { id: "video-poker", name: "Video Poker", tagline: "Jacks or Better 9/6" },
+  { id: "dice", name: "Dice", tagline: "Over / under · 1–98%" },
+  { id: "plinko", name: "Plinko", tagline: "8–16 rows · 3 risks" },
+  { id: "keno", name: "Keno", tagline: "Pick 1–10 of 40" },
   { id: "mines", name: "Mines", tagline: "5×5 grid · 1–24 mines" },
   { id: "crash", name: "Crash", tagline: "Solo rocket · Auto-bet" },
 ];
@@ -62,7 +74,7 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
   const modeListeners = new Set();
   let playMode = account.getUser() ? "online" : "demo";
   let appMode = "home";
-  let currentGame = "blackjack";
+  let currentGame = "slots";
   let clockOffset = 0;
   let lastUserId = account.getUser()?.id ?? null;
   let walletShown = null;
@@ -73,10 +85,15 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
   originalsRoot.innerHTML = `
     <section class="cz-hub">
       <header class="cz-hub-head">
-        <div class="cz-title">
-          <p>NUMBER//ZERO ORIGINALS</p>
-          <h1>In-house games. <em>Provably fair.</em></h1>
-        </div>
+        <nav class="cz-tabs" aria-label="Originals" role="tablist">
+          ${GAMES.map(
+            (game) => `
+            <button type="button" class="cz-tab" role="tab" data-game="${game.id}" title="${game.name} · ${game.tagline}">
+              <span class="cz-tab-icon">${ICONS[game.id]}</span>
+              <span class="cz-tab-copy"><strong>${game.name}</strong></span>
+            </button>`,
+          ).join("")}
+        </nav>
         <div class="cz-controls">
           <div class="cz-mode" role="group" aria-label="Play mode">
             <button type="button" data-play-mode="demo">DEMO</button>
@@ -89,21 +106,12 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
           <button type="button" class="cz-fair-button"><i></i>PROVABLY FAIR</button>
         </div>
       </header>
-      <nav class="cz-tabs" aria-label="Originals">
-        ${GAMES.map(
-          (game) => `
-          <button type="button" class="cz-tab" data-game="${game.id}">
-            <span class="cz-tab-icon">${ICONS[game.id]}</span>
-            <span class="cz-tab-copy"><strong>${game.name}</strong><small>${game.tagline}</small></span>
-          </button>`,
-        ).join("")}
-      </nav>
       <div class="cz-stage">
         ${GAMES.map((game) => `<div class="cz-game" data-game-root="${game.id}" hidden></div>`).join("")}
       </div>
     </section>`;
   liveRoot.classList.add("cz-root", "cz-live-root");
-  liveRoot.innerHTML = `<div class="cz-game" data-game-root="live-rocket" hidden></div>`;
+  liveRoot.innerHTML = `<div class="cz-stage cz-live-stage"><div class="cz-game" data-game-root="live-rocket" hidden></div></div>`;
 
   const fairDialog = document.createElement("dialog");
   fairDialog.className = "cz-fair-dialog";
@@ -287,7 +295,10 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
 
   function setVisible(id, visible) {
     const entry = visible ? ensureModule(id) : modules.get(id);
-    if (!entry) return;
+    if (!entry) {
+      moduleRoot(id).hidden = true; // e.g. a module whose import failed
+      return;
+    }
     if (entry.visible === visible) return;
     entry.visible = visible;
     entry.container.hidden = !visible;
@@ -299,15 +310,43 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
     setVisible("live-rocket", appMode === "live");
   }
 
-  function openGame(id) {
+  // ── Fit to screen ──────────────────────────────────────────────────────────
+  // Every game gets the viewport height left below its stage (--cz-fit-h), so a whole table,
+  // board or machine is visible without page scrolling. Modules size themselves to 100% of it.
+  const FIT_MIN = 430;
+  const FIT_GAP = 14;
+  function fit() {
+    const root = appMode === "live" ? liveRoot : appMode === "originals" ? originalsRoot : null;
+    if (!root || root.hidden) return;
+    const stage = root.querySelector(".cz-stage");
+    const top = stage.getBoundingClientRect().top + window.scrollY;
+    const padding = parseFloat(getComputedStyle(stage).paddingBottom) || 0;
+    const height = Math.max(FIT_MIN, Math.floor(window.innerHeight - top - padding - FIT_GAP));
+    root.style.setProperty("--cz-fit-h", `${height}px`);
+  }
+  let fitFrame = 0;
+  const scheduleFit = () => {
+    cancelAnimationFrame(fitFrame);
+    fitFrame = requestAnimationFrame(fit);
+  };
+  window.addEventListener("resize", scheduleFit);
+  const fitObserver = new ResizeObserver(scheduleFit);
+  for (const element of [originalsRoot.querySelector(".cz-hub-head"), document.querySelector(".topbar"), document.querySelector(".mode-tabs")])
+    if (element) fitObserver.observe(element);
+  document.fonts?.ready.then(scheduleFit);
+
+  function openGame(id, options) {
     if (!GAMES.some((game) => game.id === id)) return;
     currentGame = id;
+    if (options) ensureModule(id).ready.then(() => modules.get(id)?.instance?.select?.(options));
     originalsRoot.querySelectorAll(".cz-tab").forEach((tab) => {
       const active = tab.dataset.game === id;
       tab.classList.toggle("active", active);
       tab.setAttribute("aria-selected", String(active));
+      if (active) tab.scrollIntoView({ block: "nearest", inline: "nearest" });
     });
     syncVisibility();
+    scheduleFit();
   }
 
   // ── Provably fair dialog ────────────────────────────────────────────────────
@@ -346,11 +385,13 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
       <form class="cz-verify">
         <strong>VERIFY A ROUND</strong>
         <div class="cz-verify-fields">
-          <label>GAME<select name="game"><option value="blackjack">Blackjack</option><option value="baccarat">Baccarat</option><option value="mines">Mines</option><option value="crash">Crash</option></select></label>
+          <label>GAME<select name="game">${GAMES.map((game) => `<option value="${game.id}"${game.id === currentGame ? " selected" : ""}>${game.name}</option>`).join("")}</select></label>
           <label>SERVER SEED<input name="serverSeed" required value="${escapeHtml(previous?.serverSeed || "")}"></label>
           <label>CLIENT SEED<input name="clientSeed" required value="${escapeHtml(previous?.clientSeed || fair.clientSeed)}"></label>
           <label>NONCE<input name="nonce" type="number" min="0" required value="0"></label>
           <label>MINES<input name="mines" type="number" min="1" max="24" value="3"></label>
+          <label>PLINKO ROWS<select name="rows"><option>8</option><option>12</option><option selected>16</option></select></label>
+          <label>SLOT MACHINE<select name="machine"><option value="lucky-sevens">Lucky Sevens</option><option value="fruit-frenzy">Fruit Frenzy</option><option value="neon-gems">Neon Gems</option></select></label>
         </div>
         <button type="submit" class="cz-secondary">VERIFY</button>
         <output class="cz-verify-result"></output>
@@ -359,6 +400,13 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
 
   function describeVerification(game, result) {
     if (game === "crash") return `Crash point <b>${result.crashPoint.toFixed(2)}×</b>`;
+    if (game === "roulette") return `Winning number <b>${result.number}</b> (${result.color})`;
+    if (game === "dice") return `Roll <b>${result.roll.toFixed(2)}</b>`;
+    if (game === "plinko") return `Path <b>${result.path.map((step) => (step ? "R" : "L")).join("")}</b> · slot <b>${result.slot}</b>`;
+    if (game === "keno") return `Drawn <b>${[...result.drawn].sort((a, b) => a - b).join(", ")}</b>`;
+    if (game === "slots") return `${escapeHtml(result.machine)} reel stops <b>${result.stops.join(", ")}</b>`;
+    if (game === "video-poker")
+      return `Deal <b>${result.cards.map((index) => `${cardInfo(index).rank}${cardInfo(index).suit}`).join(" ")}</b> · draws <b>${result.replacements.map((index) => `${cardInfo(index).rank}${cardInfo(index).suit}`).join(" ")}</b>`;
     if (game === "mines") return `Mines at tiles <b>${result.layout.map((tile) => tile + 1).join(", ")}</b>`;
     const cards = (list) => list.map((index) => `${cardInfo(index).rank}${cardInfo(index).suit}`).join(" ");
     if (game === "baccarat")
@@ -395,6 +443,8 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
         clientSeed: String(form.get("clientSeed")).trim(),
         nonce: Number(form.get("nonce")),
         mines: Number(form.get("mines")),
+        rows: Number(form.get("rows")),
+        machine: String(form.get("machine")),
       });
       const hash = sha256Hex(serverSeed);
       const knownHash = fairDialog.querySelector(".cz-previous [data-hash]")?.textContent;
@@ -427,11 +477,14 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
 
   return {
     setMode(mode) {
+      const entering = mode !== appMode && (mode === "originals" || mode === "live");
       appMode = mode;
       syncVisibility();
+      if (entering) window.scrollTo({ top: 0, behavior: "instant" });
+      scheduleFit();
     },
-    open(game) {
-      openGame(game);
+    open(game, options) {
+      openGame(game, options);
     },
   };
 }

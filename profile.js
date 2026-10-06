@@ -2,7 +2,7 @@ const money = (value) => Number(value || 0).toLocaleString(undefined, {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
-const gameName = (value) => String(value || "—").replaceAll("-", " ").toUpperCase();
+const gameName = (value) => String(value || "—").replace("slots:", "slots · ").replaceAll("-", " ").toUpperCase();
 const signed = (value) => `${value >= 0 ? "+" : "−"}${money(Math.abs(value))}`;
 
 function chartMarkup(series) {

@@ -1,7 +1,9 @@
 .mines-game {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: clamp(240px, 22cqw, 290px) minmax(0, 1fr);
+  gap: clamp(10px, 1.6cqh, 16px);
+  height: 100%;
+  min-height: 0;
   color: #f5f2ff;
 }
 
@@ -14,15 +16,18 @@
 }
 
 .mines-panel {
-  align-self: start;
-  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding: clamp(12px, 2.4cqh, 18px);
 }
 
 .mines-panel-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 22px;
+  margin-bottom: clamp(4px, 2cqh, 22px);
   font: 900 26px/1 "Barlow Condensed", sans-serif;
 }
 
@@ -35,7 +40,7 @@
 
 .mines-field {
   display: block;
-  margin-top: 14px;
+  margin-top: clamp(8px, 1.8cqh, 14px);
   color: #818ba0;
   font-size: 8px;
   letter-spacing: 0.13em;
@@ -51,7 +56,7 @@
   width: 100%;
   border: 1px solid #303b51;
   border-radius: 9px;
-  padding: 13px;
+  padding: clamp(9px, 1.6cqh, 13px);
   color: white;
   outline: none;
   background: #070a11;
@@ -65,7 +70,8 @@
 .mines-input-wrap b {
   position: absolute;
   right: 12px;
-  top: 14px;
+  top: 50%;
+  transform: translateY(-50%);
   color: #657187;
   font-size: 9px;
 }
@@ -110,7 +116,7 @@
 .mines-slider {
   width: 100%;
   height: 4px;
-  margin: 17px 0 5px;
+  margin: clamp(10px, 2cqh, 17px) 0 5px;
   appearance: none;
   border-radius: 4px;
   background: linear-gradient(90deg, #53e7ff, #ae70ff);
@@ -140,10 +146,10 @@
 
 .mines-action {
   width: 100%;
-  margin-top: 20px;
+  margin-top: clamp(10px, 2.4cqh, 20px);
   border: 0;
   border-radius: 10px;
-  padding: 15px 10px;
+  padding: clamp(12px, 2cqh, 15px) 10px;
   color: #071014;
   cursor: pointer;
   background: linear-gradient(180deg, #d7ff69, #aee526);
@@ -166,8 +172,8 @@
 
 .mines-random {
   width: 100%;
-  margin-top: 12px;
-  padding: 11px;
+  margin-top: clamp(8px, 1.6cqh, 12px);
+  padding: clamp(8px, 1.4cqh, 11px);
 }
 
 .mines-hint {
@@ -179,22 +185,25 @@
 }
 
 .mines-arena {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   min-width: 0;
-  padding: 16px;
+  min-height: 0;
+  padding: clamp(10px, 1.8cqh, 16px);
 }
 
 .mines-stats {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 7px;
-  margin-bottom: 15px;
+  margin-bottom: clamp(6px, 1.4cqh, 15px);
 }
 
 .mines-stats span {
   min-width: 0;
   border: 1px solid #202a3d;
   border-radius: 9px;
-  padding: 9px 10px;
+  padding: clamp(6px, 1.1cqh, 9px) 10px;
   background: #0c111c;
 }
 
@@ -212,7 +221,7 @@
   display: block;
   margin-top: 5px;
   color: white;
-  font: 800 20px/1 "Barlow Condensed", sans-serif;
+  font: 800 clamp(16px, 2.6cqh, 20px)/1 "Barlow Condensed", sans-serif;
   font-variant-numeric: tabular-nums;
 }
 
@@ -221,24 +230,36 @@
   color: #c7ff36;
 }
 
+/* The board is always the largest square that fits the space left in the arena. */
 .mines-board-wrap {
   position: relative;
-  max-width: 590px;
-  margin: auto;
+  min-width: 0;
+  min-height: 0;
+  container-type: size;
+  container-name: mines-board;
+  display: grid;
+  align-content: center;
 }
 
 .mines-board {
+  --mines-side: min(100cqw, 100cqh, 640px);
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
-  padding: 5px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  gap: clamp(5px, calc(var(--mines-side) * 0.02), 10px);
+  box-sizing: border-box;
+  width: var(--mines-side);
+  height: var(--mines-side);
+  margin: 0 auto;
+  padding: 4px 4px 10px;
 }
 
 .mines-tile {
   position: relative;
-  aspect-ratio: 1;
+  min-width: 0;
+  min-height: 0;
   border: 1px solid #344158;
-  border-radius: 14px;
+  border-radius: clamp(8px, 2.4cqmin, 14px);
   cursor: pointer;
   background: linear-gradient(145deg, #26334a 0%, #151d2c 52%, #101622 100%);
   box-shadow: inset 0 2px #ffffff12, inset 0 -3px #0005, 0 7px 0 #070a11, 0 9px 16px #0007;
@@ -254,7 +275,7 @@
 
 .mines-tile-face {
   position: absolute;
-  inset: 8px;
+  inset: 12%;
   border: 1px solid #ffffff08;
   border-radius: 9px;
   background: linear-gradient(145deg, #ffffff08, transparent 46%);
@@ -296,6 +317,7 @@
   inset: 15%;
   transform: translateX(-180%) rotate(20deg);
   background: linear-gradient(90deg, transparent, #fff9, transparent);
+  opacity: 0;
   animation: mines-shimmer 1s 180ms ease-out;
   clip-path: polygon(50% 0, 100% 35%, 50% 100%, 0 35%);
 }
@@ -368,8 +390,8 @@
 .mines-screen-flash {
   position: absolute;
   z-index: 5;
-  inset: -15px;
-  border-radius: 20px;
+  inset: 0;
+  border-radius: 16px;
   pointer-events: none;
 }
 
@@ -425,18 +447,19 @@
 .mines-ladder-heading {
   display: flex;
   justify-content: space-between;
-  margin-top: 18px;
+  margin-top: clamp(6px, 1.6cqh, 18px);
   color: #8b95a9;
   font-size: 7px;
   letter-spacing: 0.12em;
 }
 
 .mines-ladder {
+  position: relative;
   display: flex;
   gap: 7px;
   overflow-x: auto;
   margin-top: 8px;
-  padding: 2px 2px 8px;
+  padding: 2px 2px 6px;
   scrollbar-width: thin;
 }
 
@@ -444,7 +467,7 @@
   flex: 0 0 83px;
   border: 1px solid #252e40;
   border-radius: 8px;
-  padding: 8px;
+  padding: clamp(5px, 1.1cqh, 8px) 8px;
   color: #657084;
   background: #0d121d;
 }
@@ -486,7 +509,8 @@
 }
 
 @keyframes mines-shimmer {
-  to { transform: translateX(180%) rotate(20deg); }
+  from, 90% { opacity: 1; }
+  to { opacity: 0; transform: translateX(180%) rotate(20deg); }
 }
 
 @keyframes mines-shock-ring {
@@ -514,14 +538,52 @@
   from { opacity: 0; transform: translate(-50%, -35%) scale(0.7); }
 }
 
-@media (max-width: 760px) {
-  .mines-game { grid-template-columns: 1fr; }
-  .mines-arena { order: -1; padding: 10px; }
-  .mines-stats { grid-template-columns: repeat(3, 1fr); }
+/* Short laptops: trim the control panel so START GAME stays on screen. */
+@container game (max-height: 600px) {
+  .mines-hint { display: none; }
+  .mines-panel-heading { font-size: 22px; }
+  .mines-number-stepper { margin-top: 6px; }
+  .mines-number-stepper button, .mines-number { padding-block: 6px; }
+  .mines-presets button, .mines-modifiers button { padding-block: 6px; }
+  .mines-ladder-heading { display: none; }
+}
+
+/* Phone: board on top, compact controls docked below it (no long stacked page). */
+@container game (max-width: 760px) {
+  .mines-game {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+  .mines-arena { order: -1; grid-template-rows: auto minmax(0, 1fr); padding: 8px; }
+  .mines-stats { grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 6px; }
+  .mines-stats span { padding: 5px 8px; }
+  .mines-stats b { margin-top: 3px; font-size: 17px; }
   .mines-stats span:nth-child(4), .mines-stats span:nth-child(5) { display: none; }
-  .mines-board { gap: 6px; }
-  .mines-tile { border-radius: 9px; box-shadow: inset 0 1px #ffffff12, 0 4px 0 #070a11; }
-  .mines-panel { padding: 15px; }
+  .mines-ladder-heading, .mines-ladder { display: none; }
+  .mines-tile { box-shadow: inset 0 1px #ffffff12, 0 4px 0 #070a11; }
+  .mines-tile.is-revealed { transform: translateY(3px); }
+  .mines-panel {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 6px;
+    align-items: end;
+    overflow: visible;
+    padding: 9px 10px 12px;
+  }
+  .mines-panel-heading, .mines-hint, .mines-slider { display: none; }
+  .mines-panel > * { margin: 0; }
+  .mines-field { grid-column: span 3; font-size: 7px; }
+  .mines-input-wrap { margin-top: 4px; }
+  .mines-input-wrap input { padding: 8px 38px 8px 10px; font-size: 13px; }
+  .mines-modifiers { grid-column: span 3; }
+  .mines-modifiers button, .mines-presets button, .mines-number-stepper button { padding: 9px 2px; }
+  .mines-mine-field { grid-column: 1 / -1; }
+  .mines-number-stepper { grid-column: span 2; grid-template-columns: 26px 1fr 26px; gap: 4px; }
+  .mines-number { padding: 7px 2px; font-size: 12px; }
+  .mines-presets { grid-column: span 4; gap: 4px; }
+  .mines-action { grid-column: span 4; padding: 13px 6px; font-size: 17px; }
+  .mines-random { grid-column: span 2; align-self: stretch; margin-bottom: 4px; padding: 6px 4px; font-size: 8px; line-height: 1.3; }
 }
 
 @media (prefers-reduced-motion: reduce) {

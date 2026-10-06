@@ -18,17 +18,27 @@ const art = {
 };
 
 const games = [
+  { name: "LUCKY SEVENS", category: "slots", target: "slots:lucky-sevens", tag: "NEW", copy: "Classic 3-reel fruit machine", icon: "7" },
+  { name: "FRUIT FRENZY", category: "slots", target: "slots:fruit-frenzy", tag: "NEW", copy: "3×3 · 5 lines · Wilds", icon: "🍒" },
+  { name: "NEON GEMS", category: "slots", target: "slots:neon-gems", tag: "HOT", copy: "5×3 · 10 lines · 3,000× line", icon: "◆" },
   { name: "NUMBER ROLL", category: "slots", target: "sandbox", tag: "ORIGINAL", copy: "One million possibilities", icon: "0 0 1" },
   { name: "CASE STORE", category: "slots", target: "store", tag: "435 CASES", copy: "Audited drops and bonuses", icon: "◇" },
   { name: "INVENTORY", category: "slots", target: "inventory", tag: "VAULT", copy: "Your sealed collection", icon: "▦" },
   { name: "BLACKJACK", category: "originals", target: "blackjack", tag: "ORIGINAL", copy: "Classic multi-hand tables", icon: "A♠" },
-  { name: "BACCARAT", category: "originals", target: "baccarat", tag: "NEW", copy: "Player · Banker · Tie", icon: "◆" },
+  { name: "BACCARAT", category: "originals", target: "baccarat", tag: "ORIGINAL", copy: "Player · Banker · Tie", icon: "◆" },
+  { name: "ROULETTE", category: "originals", target: "roulette", tag: "NEW", copy: "European single zero", icon: "◎" },
+  { name: "VIDEO POKER", category: "originals", target: "video-poker", tag: "NEW", copy: "Jacks or Better 9/6", icon: "♥" },
+  { name: "DICE", category: "originals", target: "dice", tag: "NEW", copy: "Roll over or under", icon: "⚄" },
+  { name: "PLINKO", category: "originals", target: "plinko", tag: "NEW", copy: "Drop for up to 1,000×", icon: "∴" },
+  { name: "KENO", category: "originals", target: "keno", tag: "NEW", copy: "Pick 1–10 of 40", icon: "▦" },
   { name: "MINES", category: "originals", target: "mines", tag: "ORIGINAL", copy: "Reveal gems or cash out", icon: "✦" },
   { name: "CRASH", category: "originals", target: "crash", tag: "HOT", copy: "Ride your own rocket", icon: "↗" },
   { name: "LIVE ROCKET", category: "live lobby", target: "live", tag: "LIVE", copy: "One round. Every player.", icon: "▲" },
   { name: "LIVE BATTLES", category: "case battles", target: "online", tag: "LIVE", copy: "Server-settled arenas", icon: "⚔" },
   { name: "CREATE BATTLE", category: "case battles", target: "duel", tag: "NEW", copy: "Build your showdown", icon: "+" },
 ];
+
+const CASINO_GAMES = ["slots", "blackjack", "roulette", "baccarat", "video-poker", "dice", "plinko", "keno", "mines", "crash"];
 
 export function initHome({ root, account, navigate, openGame }) {
   let visible = false;
@@ -66,7 +76,7 @@ export function initHome({ root, account, navigate, openGame }) {
     ...winners.slice(0, 3).map((winner) => ({
       eyebrow: `TOP LIVE WINNER · ${relativeTime(winner.at)}`,
       title: `${Number(winner.multiplier || 0).toFixed(2)}×`,
-      copy: `${winner.name} won ${money(winner.payout)} CR playing ${String(winner.game).replaceAll("-", " ")}.`,
+      copy: `${winner.name} won ${money(winner.payout)} CR playing ${String(winner.game).replace("slots:", "slots · ").replaceAll("-", " ")}.`,
       cta: "PLAY ORIGINALS",
       target: "originals",
       theme: "winner",
@@ -88,7 +98,7 @@ export function initHome({ root, account, navigate, openGame }) {
   function renderGames() {
     const shown = games.filter((game) => category === "all" || game.category === category);
     root.querySelector(".home-games").innerHTML = shown.map((game, index) => `
-      <button class="home-game art-${game.target}" data-target="${game.target}" style="--delay:${index * 35}ms">
+      <button class="home-game art-${game.target.replace(":", "-")}" data-target="${game.target}" style="--delay:${index * 35}ms">
         <span class="game-tag ${game.tag === "LIVE" ? "is-live" : ""}">${game.tag}</span>
         <i class="game-art">${game.icon}</i><span class="game-category">${game.category}</span>
         <strong>${game.name}</strong><small>${game.copy}</small><b class="game-arrow">↗</b>
@@ -108,7 +118,7 @@ export function initHome({ root, account, navigate, openGame }) {
       return;
     }
     const items = winners;
-    track.innerHTML = [...items, ...items].map((winner) => `<span><b>${winner.name}</b><em>${String(winner.game).replaceAll("-", " ")}</em><strong>${Number(winner.multiplier || 0).toFixed(2)}×</strong><i>${money(winner.payout)} CR</i></span>`).join("");
+    track.innerHTML = [...items, ...items].map((winner) => `<span><b>${winner.name}</b><em>${String(winner.game).replace("slots:", "slots · ").replaceAll("-", " ")}</em><strong>${Number(winner.multiplier || 0).toFixed(2)}×</strong><i>${money(winner.payout)} CR</i></span>`).join("");
   }
 
   async function loadWinners() {
@@ -167,7 +177,9 @@ export function initHome({ root, account, navigate, openGame }) {
     }
     const target = event.target.closest("[data-target]")?.dataset.target;
     if (target) {
-      ["blackjack", "baccarat", "mines", "crash"].includes(target) ? openGame(target) : navigate(target);
+      if (target.startsWith("slots:")) openGame("slots", { machine: target.slice(6) });
+      else if (CASINO_GAMES.includes(target)) openGame(target);
+      else navigate(target);
       return;
     }
     const bannerTarget = event.target.closest("[data-banner]")?.dataset.banner;

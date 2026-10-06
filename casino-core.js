@@ -82,7 +82,7 @@ export const MAX_BET_CENTS = 1_000_000_000; // 10,000,000 CR
 export const BLACKJACK_FLOATS = 128;
 export const BACCARAT_FLOATS = 6;
 export const MINES_FLOATS = 24;
-export const GAMES = ["blackjack", "baccarat", "mines", "crash", "live-rocket", "case-battle"];
+export const GAMES = ["blackjack", "baccarat", "mines", "crash", "roulette", "dice", "plinko", "keno", "video-poker", "slots", "live-rocket", "case-battle"];
 
 export function validBet(cents) {
   return Number.isInteger(cents) && cents >= MIN_BET_CENTS && cents <= MAX_BET_CENTS;
@@ -427,6 +427,18 @@ export function clientView(state) {
     const view = minesView(state);
     return { ...view, bet: credit(view.bet), wager: credit(view.wager), payout: credit(view.payout) };
   }
+  if (["roulette", "dice", "plinko", "keno", "slots", "video-poker"].includes(state.game)) {
+    const { deck, ...rest } = state; // video poker keeps the replacement cards secret until the draw
+    return {
+      ...rest,
+      ...(state.game === "video-poker" && state.phase === "settled" ? { deck } : {}),
+      bet: credit(state.bet ?? state.wager),
+      wager: credit(state.wager),
+      payout: credit(state.payout),
+      ...(state.bets ? { bets: state.bets.map((bet) => ({ ...bet, amount: credit(bet.amount), payout: credit(bet.payout) })) } : {}),
+      ...(state.wins ? { wins: state.wins.map((win) => ({ ...win, payout: credit(win.payout) })) } : {}),
+    };
+  }
   if (state.game === "crash") {
     const { crashPoint, ...rest } = state;
     return { ...rest, bet: credit(state.bet), wager: credit(state.wager), payout: credit(state.payout), ...(state.phase === "flying" ? {} : { crashPoint }) };
@@ -434,10 +446,31 @@ export function clientView(state) {
   throw new RangeError("unknown game");
 }
 
-export const roundFinished = (state) => ["settled", "busted", "cashed", "crashed"].includes(state.phase) || state.game === "baccarat";
+export const roundFinished = (state) => ["settled", "busted", "cashed", "crashed"].includes(state.phase) || INSTANT_GAMES.includes(state.game);
 
 /** Replays any finished round from revealed seeds for the fairness verifier. */
-export function verifyRound({ game, serverSeed, clientSeed, nonce, mines = 3 }) {
+export function verifyRound({ game, serverSeed, clientSeed, nonce, mines = 3, rows = 16, machine = "lucky-sevens" }) {
+  const stream = (count) => fairFloats(serverSeed, clientSeed, nonce, count);
+  if (game === "roulette") {
+    const number = Math.min(36, Math.floor(stream(1)[0] * 37));
+    return { number, color: rouletteColor(number) };
+  }
+  if (game === "dice") return { roll: Math.min(9_999, Math.floor(stream(1)[0] * 10_000)) / 100 };
+  if (game === "plinko") {
+    const path = stream(PLINKO_FLOATS).slice(0, rows).map((float) => (float < 0.5 ? 0 : 1));
+    return { path, slot: path.reduce((sum, step) => sum + step, 0) };
+  }
+  if (game === "keno") return { drawn: kenoDraw(stream(KENO_FLOATS)) };
+  if (game === "video-poker") {
+    const deck = drawDistinct(stream(VIDEO_POKER_FLOATS), Array.from({ length: 52 }, (_, i) => i), VIDEO_POKER_FLOATS);
+    return { cards: deck.slice(0, 5), replacements: deck.slice(5) };
+  }
+  if (game === "slots") {
+    const spec = SLOT_MACHINES[machine];
+    if (!spec) throw new RangeError("unknown slot machine");
+    const floats = stream(SLOT_FLOATS);
+    return { machine, stops: spec.reels.map((reel, index) => Math.floor(floats[index] * reel.length)) };
+  }
   if (game === "baccarat") {
     const floats = fairFloats(serverSeed, clientSeed, nonce, BACCARAT_FLOATS);
     return baccaratPlay(floats, { player: MIN_BET_CENTS });
@@ -446,4 +479,270 @@ export function verifyRound({ game, serverSeed, clientSeed, nonce, mines = 3 }) 
   if (game === "crash") return { crashPoint: crashPointFromFloat(fairFloats(serverSeed, clientSeed, nonce, 1)[0]) };
   if (game === "blackjack") return { cards: fairFloats(serverSeed, clientSeed, nonce, 16).map(cardFromFloat) };
   throw new RangeError("unknown game");
+}
+
+// ════════════════════════════════════════════════════════════════════════════════════════
+// Classics: Roulette, Dice, Plinko, Keno, Video Poker — and Slots. All amounts are cents.
+// ════════════════════════════════════════════════════════════════════════════════════════
+/** Games settled by a single request (no resumable state). */
+export const INSTANT_GAMES = ["baccarat", "roulette", "dice", "plinko", "keno", "slots"];
+
+// ── Roulette ── European single zero. Straight 35:1, dozen/column 2:1, even-money 1:1.
+export const ROULETTE_FLOATS = 1;
+export const ROULETTE_RED = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
+export const ROULETTE_MAX_BETS = 60;
+const ROULETTE_TYPES = {
+  straight: { returns: 36, valid: (v) => Number.isInteger(v) && v >= 0 && v <= 36, wins: (n, v) => n === v },
+  red: { returns: 2, wins: (n) => ROULETTE_RED.includes(n) },
+  black: { returns: 2, wins: (n) => n > 0 && !ROULETTE_RED.includes(n) },
+  odd: { returns: 2, wins: (n) => n > 0 && n % 2 === 1 },
+  even: { returns: 2, wins: (n) => n > 0 && n % 2 === 0 },
+  low: { returns: 2, wins: (n) => n >= 1 && n <= 18 },
+  high: { returns: 2, wins: (n) => n >= 19 },
+  dozen: { returns: 3, valid: (v) => [1, 2, 3].includes(v), wins: (n, v) => n > 0 && Math.ceil(n / 12) === v },
+  column: { returns: 3, valid: (v) => [1, 2, 3].includes(v), wins: (n, v) => n > 0 && ((n - 1) % 3) + 1 === v },
+};
+export const rouletteColor = (n) => (n === 0 ? "green" : ROULETTE_RED.includes(n) ? "red" : "black");
+
+/** `bets` = [{ type, value?, amount (cents) }]. */
+export function rouletteSpin(floats, bets) {
+  if (!Array.isArray(bets) || !bets.length || bets.length > ROULETTE_MAX_BETS) throw new RangeError("invalid roulette bets");
+  const placed = bets.map((bet) => {
+    const rule = ROULETTE_TYPES[bet?.type];
+    if (!rule || !validBet(bet.amount) || (rule.valid ? !rule.valid(bet.value) : bet.value !== undefined && bet.value !== null))
+      throw new RangeError("invalid roulette bet");
+    return { type: bet.type, value: rule.valid ? bet.value : null, amount: bet.amount };
+  });
+  const wager = placed.reduce((sum, bet) => sum + bet.amount, 0);
+  if (wager > MAX_BET_CENTS) throw new RangeError("total roulette bet too large");
+  const number = Math.min(36, Math.floor(floats[0] * 37));
+  for (const bet of placed) bet.payout = ROULETTE_TYPES[bet.type].wins(number, bet.value) ? bet.amount * ROULETTE_TYPES[bet.type].returns : 0;
+  return { game: "roulette", phase: "settled", number, color: rouletteColor(number), bets: placed, wager, payout: placed.reduce((sum, bet) => sum + bet.payout, 0) };
+}
+
+// ── Dice ── roll 0.00–99.99. Under wins when roll < target; over wins when roll ≥ target.
+// Win chance (%) = target or 100 − target; multiplier = 99 / chance (1% edge).
+export const DICE_FLOATS = 1;
+export const DICE_MIN_CHANCE = 1;
+export const DICE_MAX_CHANCE = 98;
+export const diceChance = (target, direction) => (direction === "under" ? target : 100 - target);
+export const diceMultiplier = (chance) => Math.floor(((100 * (1 - HOUSE_EDGE)) / chance) * 10_000) / 10_000;
+
+export function diceRoll(floats, betCents, target, direction) {
+  const hundredths = Math.round(target * 100);
+  const chance = diceChance(hundredths / 100, direction);
+  if (!validBet(betCents) || !["under", "over"].includes(direction) || !Number.isFinite(target) || Math.abs(target * 100 - hundredths) > 1e-6 || chance < DICE_MIN_CHANCE || chance > DICE_MAX_CHANCE)
+    throw new RangeError("invalid dice bet");
+  const roll = Math.min(9_999, Math.floor(floats[0] * 10_000)) / 100;
+  const won = direction === "under" ? roll < hundredths / 100 : roll >= hundredths / 100;
+  const multiplier = diceMultiplier(chance);
+  return { game: "dice", phase: "settled", bet: betCents, target: hundredths / 100, direction, chance, multiplier, roll, won, wager: betCents, payout: won ? Math.floor(betCents * multiplier) : 0 };
+}
+
+// ── Plinko ── each row bounces left (< 0.5) or right; slot = number of right bounces.
+export const PLINKO_ROWS = [8, 12, 16];
+export const PLINKO_FLOATS = 16;
+export const PLINKO_TABLES = {
+  8: { low: [5.6, 2.1, 1.1, 1, 0.5, 1, 1.1, 2.1, 5.6], medium: [13, 3, 1.3, 0.7, 0.4, 0.7, 1.3, 3, 13], high: [29, 4, 1.5, 0.3, 0.2, 0.3, 1.5, 4, 29] },
+  12: {
+    low: [10, 3, 1.6, 1.4, 1.1, 1, 0.5, 1, 1.1, 1.4, 1.6, 3, 10],
+    medium: [33, 11, 4, 2, 1.1, 0.6, 0.3, 0.6, 1.1, 2, 4, 11, 33],
+    high: [170, 24, 8.1, 2, 0.7, 0.2, 0.2, 0.2, 0.7, 2, 8.1, 24, 170],
+  },
+  16: {
+    low: [16, 9, 2, 1.4, 1.4, 1.2, 1.1, 1, 0.5, 1, 1.1, 1.2, 1.4, 1.4, 2, 9, 16],
+    medium: [110, 41, 10, 5, 3, 1.5, 1, 0.5, 0.3, 0.5, 1, 1.5, 3, 5, 10, 41, 110],
+    high: [1000, 130, 26, 9, 4, 2, 0.2, 0.2, 0.2, 0.2, 0.2, 2, 4, 9, 26, 130, 1000],
+  },
+};
+
+export function plinkoDrop(floats, betCents, rows, risk) {
+  const table = PLINKO_TABLES[rows]?.[risk];
+  if (!validBet(betCents) || !table) throw new RangeError("invalid plinko bet");
+  const path = floats.slice(0, rows).map((float) => (float < 0.5 ? 0 : 1));
+  const slot = path.reduce((sum, step) => sum + step, 0);
+  const multiplier = table[slot];
+  return { game: "plinko", phase: "settled", bet: betCents, rows, risk, path, slot, multiplier, wager: betCents, payout: Math.floor(betCents * multiplier) };
+}
+
+// ── Keno ── pick 1–10 of 40; 10 numbers drawn. Paytables return ≈ 99%.
+export const KENO_NUMBERS = 40;
+export const KENO_DRAWN = 10;
+export const KENO_FLOATS = KENO_DRAWN;
+export const KENO_PAYTABLE = {
+  1: [0.7, 1.85],
+  2: [0, 2, 3.8],
+  3: [0, 1.1, 1.38, 26],
+  4: [0, 0, 2.2, 7.9, 90],
+  5: [0, 0, 1.5, 4.2, 13, 300],
+  6: [0, 0, 1.1, 2, 6.2, 100, 700],
+  7: [0, 0, 1.1, 1.6, 3.5, 15, 225, 700],
+  8: [0, 0, 1.1, 1.5, 2, 5.5, 39, 100, 800],
+  9: [0, 0, 1.1, 1.3, 1.7, 2.5, 7.5, 50, 250, 1000],
+  10: [0, 0, 1.1, 1.2, 1.3, 1.8, 3.5, 13, 50, 250, 1000],
+};
+
+/** Draws `count` distinct values from `pool` (consumes one float each). */
+function drawDistinct(floats, pool, count) {
+  const remaining = [...pool];
+  return floats.slice(0, count).map((float) => remaining.splice(Math.floor(float * remaining.length), 1)[0]);
+}
+export const kenoDraw = (floats) => drawDistinct(floats, Array.from({ length: KENO_NUMBERS }, (_, i) => i + 1), KENO_DRAWN);
+
+export function kenoPlay(floats, betCents, picks) {
+  const unique = new Set(picks);
+  if (!validBet(betCents) || !Array.isArray(picks) || picks.length < 1 || picks.length > 10 || unique.size !== picks.length || !picks.every((n) => Number.isInteger(n) && n >= 1 && n <= KENO_NUMBERS))
+    throw new RangeError("invalid keno picks");
+  const drawn = kenoDraw(floats);
+  const hits = picks.filter((n) => drawn.includes(n)).sort((a, b) => a - b);
+  const multiplier = KENO_PAYTABLE[picks.length][hits.length];
+  return { game: "keno", phase: "settled", bet: betCents, picks: [...picks].sort((a, b) => a - b), drawn, hits, multiplier, wager: betCents, payout: Math.floor(betCents * multiplier) };
+}
+
+// ── Video Poker ── Jacks or Better 9/6 (≈ 99.5% with optimal holds). Returns × bet.
+export const VIDEO_POKER_FLOATS = 10;
+export const VIDEO_POKER_PAYTABLE = [
+  ["royal-flush", "Royal Flush", 800],
+  ["straight-flush", "Straight Flush", 50],
+  ["four-kind", "Four of a Kind", 25],
+  ["full-house", "Full House", 9],
+  ["flush", "Flush", 6],
+  ["straight", "Straight", 4],
+  ["three-kind", "Three of a Kind", 3],
+  ["two-pair", "Two Pair", 2],
+  ["jacks-better", "Jacks or Better", 1],
+].map(([id, name, returns]) => ({ id, name, returns }));
+
+/** Evaluates a 5-card hand (indices 0–51). Returns a paytable entry or null. */
+export function pokerHand(cards) {
+  const ranks = cards.map((card) => card % 13).sort((a, b) => a - b);
+  const flush = cards.every((card) => Math.floor(card / 13) === Math.floor(cards[0] / 13));
+  const counts = Object.values(ranks.reduce((map, rank) => ({ ...map, [rank]: (map[rank] || 0) + 1 }), {})).sort((a, b) => b - a);
+  const distinct = new Set(ranks).size === 5;
+  const royal = distinct && ranks.join() === "0,9,10,11,12";
+  const straight = distinct && (ranks[4] - ranks[0] === 4 || royal);
+  const pick = (id) => VIDEO_POKER_PAYTABLE.find((entry) => entry.id === id);
+  if (royal && flush) return pick("royal-flush");
+  if (straight && flush) return pick("straight-flush");
+  if (counts[0] === 4) return pick("four-kind");
+  if (counts[0] === 3 && counts[1] === 2) return pick("full-house");
+  if (flush) return pick("flush");
+  if (straight) return pick("straight");
+  if (counts[0] === 3) return pick("three-kind");
+  if (counts[0] === 2 && counts[1] === 2) return pick("two-pair");
+  if (counts[0] === 2) {
+    const pair = ranks.find((rank, index) => ranks[index + 1] === rank);
+    if (pair === 0 || pair >= 10) return pick("jacks-better");
+  }
+  return null;
+}
+
+export function videoPokerStart(floats, betCents) {
+  if (!validBet(betCents)) throw new RangeError("invalid video poker bet");
+  const deck = drawDistinct(floats, Array.from({ length: 52 }, (_, i) => i), VIDEO_POKER_FLOATS);
+  const cards = deck.slice(0, 5);
+  return { game: "video-poker", phase: "deal", bet: betCents, cards, deck, held: [false, false, false, false, false], hand: pokerHand(cards), wager: betCents, payout: 0 };
+}
+
+export function videoPokerDraw(state, held) {
+  if (state.phase !== "deal") throw new RangeError("round is not waiting for a draw");
+  if (!Array.isArray(held) || held.length !== 5 || !held.every((value) => typeof value === "boolean")) throw new RangeError("invalid holds");
+  let next = 5;
+  state.held = held;
+  state.cards = state.cards.map((card, index) => (held[index] ? card : state.deck[next++]));
+  state.hand = pokerHand(state.cards);
+  state.payout = state.hand ? state.bet * state.hand.returns : 0;
+  state.phase = "settled";
+  return state;
+}
+
+// ── Slots ── weighted reel strips, left-to-right line pays (× line bet) with substituting wilds.
+export const SLOT_FLOATS = 5;
+const strip = (weights) => Object.entries(weights).flatMap(([symbol, count]) => Array(count).fill(symbol));
+/** Interleaves a weighted strip so equal symbols are spread out (deterministic). */
+function spread(symbols) {
+  const out = [];
+  const step = 7;
+  const used = new Array(symbols.length).fill(false);
+  for (let i = 0, position = 0; i < symbols.length; i++) {
+    while (used[position]) position = (position + 1) % symbols.length;
+    used[position] = true;
+    out[position] = symbols[i];
+    position = (position + step) % symbols.length;
+  }
+  return out;
+}
+const reelsOf = (weights, count) => Array.from({ length: count }, () => spread(strip(weights)));
+export const SLOT_MACHINES = {
+  "lucky-sevens": {
+    name: "Lucky Sevens", tagline: "Classic 3-reel · 1 line", rows: 3,
+    lines: [[1, 1, 1]],
+    reels: reelsOf({ cherry: 4, lemon: 6, orange: 6, plum: 5, bell: 4, bar: 4, seven: 3 }, 3),
+    pays: { cherry: { 1: 1, 2: 5, 3: 20 }, lemon: { 3: 18 }, orange: { 3: 18 }, plum: { 3: 24 }, bell: { 3: 36 }, bar: { 3: 75 }, seven: { 3: 250 } },
+    wild: null,
+  },
+  "fruit-frenzy": {
+    name: "Fruit Frenzy", tagline: "3×3 · 5 lines · Wilds", rows: 3,
+    lines: [[0, 0, 0], [1, 1, 1], [2, 2, 2], [0, 1, 2], [2, 1, 0]],
+    reels: reelsOf({ cherry: 6, lemon: 6, grape: 5, melon: 4, bell: 3, seven: 2, wild: 2 }, 3),
+    pays: { cherry: { 3: 4 }, lemon: { 3: 6 }, grape: { 3: 10 }, melon: { 3: 17 }, bell: { 3: 30 }, seven: { 3: 70 }, wild: { 3: 250 } },
+    wild: "wild",
+  },
+  "neon-gems": {
+    name: "Neon Gems", tagline: "5×3 · 10 lines · Wilds", rows: 3,
+    lines: [[1, 1, 1, 1, 1], [0, 0, 0, 0, 0], [2, 2, 2, 2, 2], [0, 1, 2, 1, 0], [2, 1, 0, 1, 2], [0, 0, 1, 2, 2], [2, 2, 1, 0, 0], [1, 0, 0, 0, 1], [1, 2, 2, 2, 1], [1, 0, 1, 2, 1]],
+    reels: reelsOf({ emerald: 8, sapphire: 8, ruby: 7, amethyst: 6, topaz: 5, diamond: 3, crown: 2, wild: 2 }, 5),
+    pays: {
+      emerald: { 3: 7, 4: 16, 5: 50 }, sapphire: { 3: 7, 4: 16, 5: 50 }, ruby: { 3: 11, 4: 25, 5: 80 },
+      amethyst: { 3: 12, 4: 40, 5: 125 }, topaz: { 3: 16, 4: 60, 5: 200 }, diamond: { 3: 30, 4: 150, 5: 600 },
+      crown: { 3: 60, 4: 300, 5: 1500 }, wild: { 3: 80, 4: 500, 5: 3000 },
+    },
+    wild: "wild",
+  },
+};
+
+/** Best pay for one line of symbols: returns { symbol, count, multiplier } or null. */
+export function slotLinePay(cells, machine) {
+  let best = null;
+  for (const [symbol, table] of Object.entries(machine.pays)) {
+    let count = 0;
+    for (const cell of cells) {
+      if (cell === symbol || (machine.wild && cell === machine.wild && symbol !== machine.wild)) count++;
+      else break;
+    }
+    // A run made only of wilds is paid by the wild's own table.
+    if (symbol !== machine.wild && count && cells.slice(0, count).every((cell) => cell === machine.wild)) continue;
+    const multiplier = table[count] || 0;
+    if (multiplier && (!best || multiplier > best.multiplier)) best = { symbol, count, multiplier };
+  }
+  return best;
+}
+
+/** Exact return-to-player (each line's cells have the reel strips' marginal distribution). */
+export function slotRtp(machine) {
+  const probabilities = machine.reels.map((reel) => reel.reduce((map, symbol) => ({ ...map, [symbol]: (map[symbol] || 0) + 1 / reel.length }), {}));
+  let rtp = 0;
+  const walk = (index, cells, probability) => {
+    if (index === machine.reels.length) {
+      rtp += probability * (slotLinePay(cells, machine)?.multiplier || 0);
+      return;
+    }
+    for (const [symbol, p] of Object.entries(probabilities[index])) walk(index + 1, [...cells, symbol], probability * p);
+  };
+  walk(0, [], 1);
+  return rtp;
+}
+
+export function slotsSpin(floats, betCents, machineId) {
+  const machine = SLOT_MACHINES[machineId];
+  if (!machine || !validBet(betCents) || betCents % machine.lines.length) throw new RangeError("invalid slots bet");
+  const lineBet = betCents / machine.lines.length;
+  const stops = machine.reels.map((reel, index) => Math.floor(floats[index] * reel.length));
+  const grid = machine.reels.map((reel, index) => Array.from({ length: machine.rows }, (_, row) => reel[(stops[index] + row) % reel.length]));
+  const wins = [];
+  machine.lines.forEach((line, index) => {
+    const pay = slotLinePay(line.map((row, reel) => grid[reel][row]), machine);
+    if (pay) wins.push({ line: index, ...pay, payout: Math.floor(lineBet * pay.multiplier) });
+  });
+  return { game: "slots", phase: "settled", machine: machineId, bet: betCents, stops, grid, wins, wager: betCents, payout: wins.reduce((sum, win) => sum + win.payout, 0) };
 }

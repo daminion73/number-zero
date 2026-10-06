@@ -185,7 +185,9 @@
 .game-art { display: grid; place-items: center; width: 95px; height: 95px; margin: 4px auto 10px; color: #ae70ff; font: 900 38px/1 sans-serif; font-style: normal; text-shadow: 0 0 25px currentColor; }
 .art-live .game-art, .art-crash .game-art { color: #53e7ff; }
 .art-online .game-art, .art-duel .game-art { color: #ff4fd8; }
-.art-store .game-art { color: #ffd43b; }
+.art-store .game-art, .art-slots-lucky-sevens .game-art, .art-roulette .game-art { color: #ffd43b; }
+.art-slots-fruit-frenzy .game-art, .art-video-poker .game-art { color: #ff587b; }
+.art-slots-neon-gems .game-art, .art-dice .game-art, .art-plinko .game-art { color: #c7ff36; }
 .game-category { color: #717f98; font-size: 8px; text-transform: uppercase; }
 .home-game > strong { display: block; margin: 6px 0; font-size: 21px; letter-spacing: 0 !important; white-space: normal !important; }
 .home-game > small { color: #939eb2; }

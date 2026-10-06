@@ -123,18 +123,20 @@ export function mount(container, ctx) {
         <div class="bac-summary" hidden></div>
       </div>
       <aside class="bac-side">
-        <div class="bac-panel-title"><span>CHIP VALUE</span><small>Click a betting area to place it</small></div>
-        <div class="bac-chips">
-          ${CHIPS.map((value) => `<button type="button" class="bac-chip" data-chip="${value}" style="--chip:${CHIP_COLORS[value]}">${chipLabel(value)}</button>`).join("")}
+        <div class="bac-controls">
+          <div class="bac-panel-title"><span>CHIP VALUE</span><small>Click a betting area to place it</small></div>
+          <div class="bac-chips">
+            ${CHIPS.map((value) => `<button type="button" class="bac-chip" data-chip="${value}" style="--chip:${CHIP_COLORS[value]}">${chipLabel(value)}</button>`).join("")}
+          </div>
+          <div class="bac-tools">
+            <button type="button" data-tool="undo">UNDO</button>
+            <button type="button" data-tool="clear">CLEAR</button>
+            <button type="button" data-tool="rebet">REBET</button>
+            <button type="button" data-tool="double">2×</button>
+          </div>
+          <div class="bac-total"><span>TOTAL BET</span><strong>0.00 CR</strong></div>
+          <button type="button" class="bac-deal">DEAL <span>⏎</span></button>
         </div>
-        <div class="bac-tools">
-          <button type="button" data-tool="undo">UNDO</button>
-          <button type="button" data-tool="clear">CLEAR</button>
-          <button type="button" data-tool="rebet">REBET</button>
-          <button type="button" data-tool="double">2×</button>
-        </div>
-        <div class="bac-total"><span>TOTAL BET</span><strong>0.00 CR</strong></div>
-        <button type="button" class="bac-deal">DEAL <span>⏎</span></button>
         <div class="bac-road">
           <div class="bac-counts"></div>
           <h3>BEAD PLATE <small>Last ${HISTORY_LIMIT}</small></h3>

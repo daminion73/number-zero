@@ -1,9 +1,16 @@
 @import url("cards.css");
 
+/* Fit-to-screen: the game container (.cz-game, container "game") has an exact height; the table, bet
+   controls, DEAL / action buttons and the outcome are all sized from it so nothing ever scrolls.
+   Wide: [ table | control panel ]. Phone: table on top, compact controls docked below. */
 .bj {
+  --pc-width: clamp(44px, min(14.5cqh, (100cqh - 260px) / 2.8, 13cqw), 120px);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 330px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-rows: minmax(0, 1fr);
   gap: 16px;
+  height: 100%;
+  min-height: 0;
   color: #eef1ff;
 }
 
@@ -11,10 +18,13 @@
 .bj-table {
   position: relative;
   display: grid;
-  grid-template-rows: auto auto auto 1fr auto;
+  grid-template-rows: auto auto auto minmax(0, 1fr) var(--bj-summary-row, 46px);
+  grid-template-columns: minmax(0, 1fr);
   justify-items: center;
-  min-height: 600px;
-  padding: 28px 24px 22px;
+  container-type: size; /* cards (--pc-width) scale with the space the table actually gets */
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(12px, 3cqh, 28px) clamp(10px, 2cqw, 24px) clamp(10px, 2.4cqh, 22px);
   overflow: hidden;
   border-radius: 22px;
   background:
@@ -72,9 +82,8 @@
 
 .bj-dealer {
   display: grid;
-  gap: 10px;
+  gap: clamp(4px, 1.2cqh, 10px);
   justify-items: center;
-  min-height: 170px;
 }
 
 .bj-zone-label {
@@ -110,7 +119,6 @@
 }
 
 .bj-cards {
-  --pc-width: 86px;
   display: flex;
   justify-content: center;
   min-height: calc(var(--pc-width) * 1.4);
@@ -118,6 +126,7 @@
 
 .bj-cards .pc-card {
   rotate: calc((var(--fan, 0) - 0.5) * 2.5deg);
+  transition: width 0.3s ease;
 }
 
 .bj-cards .pc-card + .pc-card {
@@ -125,7 +134,8 @@
 }
 
 .bj-alert {
-  margin: 14px 0 4px;
+  max-width: 100%;
+  margin: clamp(6px, 1.8cqh, 14px) 0 4px;
   padding: 9px 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 999px;
@@ -165,9 +175,9 @@
 }
 
 .bj-arc {
-  width: min(640px, 92%);
+  width: min(640px, 92%, 105cqh);
   height: auto;
-  margin-top: -6px;
+  margin-top: -4px;
   overflow: visible;
   pointer-events: none;
 }
@@ -180,20 +190,24 @@
 
 .bj-hands {
   display: flex;
-  flex-wrap: wrap;
-  gap: 18px 34px;
-  align-content: end;
-  align-items: flex-end;
+  gap: clamp(6px, 2.4cqw, 34px);
+  align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 210px;
+  min-height: 0;
+}
+
+/* Many split hands: shrink the player cards so every hand stays on one row. */
+.bj-hands:has(> :nth-child(4)) {
+  --pc-width: clamp(40px, min(11cqh, 8cqw), 84px);
 }
 
 .bj-hand {
   display: grid;
-  gap: 10px;
+  gap: clamp(4px, 1cqh, 10px);
   justify-items: center;
-  padding: 12px 14px 10px;
+  min-width: 0;
+  padding: clamp(6px, 1.4cqh, 12px) clamp(6px, 1cqw, 14px) clamp(4px, 1.2cqh, 10px);
   border: 1px solid transparent;
   border-radius: 18px;
   transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
@@ -243,10 +257,13 @@
 .bj-summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 22px;
+  gap: 4px 22px;
+  align-items: center;
   justify-content: center;
-  margin-top: 16px;
-  padding: 10px 18px;
+  align-self: end;
+  max-width: 100%;
+  min-height: 36px;
+  padding: 6px 18px;
   border-radius: 12px;
   background: rgba(5, 8, 15, 0.7);
   color: #8d98b5;
@@ -277,12 +294,15 @@
   display: grid;
   align-content: start;
   gap: 14px;
+  min-width: 0;
+  min-height: 0;
 }
 
 .bj-panel-block {
   display: grid;
-  gap: 14px;
-  padding: 18px;
+  gap: clamp(8px, 1.9cqh, 14px);
+  min-width: 0;
+  padding: clamp(12px, 2.6cqh, 18px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 18px;
   background: #121726;
@@ -384,15 +404,18 @@
 
 .bj-chips {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
+  justify-items: center;
 }
 
 .bj-chip {
   display: grid;
   place-items: center;
+  width: min(100%, 10cqh);
   aspect-ratio: 1;
   border: 0;
+  padding: 0;
   border-radius: 50%;
   background:
     radial-gradient(circle, #0b0f1a 0 46%, transparent 47%),
@@ -573,70 +596,330 @@
   }
 }
 
-@media (max-width: 1080px) {
-  .bj {
-    grid-template-columns: 1fr;
+/* ── Short laptops (e.g. 1366×768) ─────────────────────────────────────── */
+@container game (max-height: 600px) {
+  .bj-panel-title small {
+    display: none;
   }
 
-  .bj-panel {
-    grid-template-columns: 1fr;
+  .bj-panel-title span {
+    font-size: 18px;
   }
 
-  .bj-chips {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-    gap: 6px;
+  .bj-seat-count button {
+    padding: 8px 6px;
   }
 
-  .bj-chip {
-    font-size: 12px;
+  .bj-bet input {
+    padding: 9px 10px;
+  }
+
+  .bj-deal {
+    padding: 13px 18px;
+    font-size: 20px;
+  }
+
+  .bj-rebet-row button {
+    padding: 9px;
+  }
+
+  .bj-actions button {
+    min-height: 54px;
+  }
+
+  .bj-insurance {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .bj-insurance p {
+    font-size: 10px;
+    line-height: 1.4;
+  }
+
+  .bj-insurance [data-action="insurance"] {
+    min-height: 46px;
+  }
+
+  .bj-insurance [data-action="no-insurance"] {
+    min-height: 40px;
+  }
+
+  .bj-hand-result {
+    min-height: 24px;
+    padding: 4px 10px;
+    font-size: 15px;
   }
 }
 
-@media (max-width: 620px) {
+/* ── Medium widths ─────────────────────────────────────────────────────── */
+@container game (max-width: 1099px) {
+  .bj {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 12px;
+  }
+}
+
+/* ── Phone: table on top, compact controls docked below ────────────────── */
+@container game (max-width: 760px) {
+  .bj {
+    --pc-width: clamp(34px, min(16cqh, (100cqh - 175px) / 2.8, 18cqw), 72px);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .bj-hands:has(> :nth-child(3)) {
+    --pc-width: clamp(32px, min(15cqh, (100cqh - 205px) / 2.8, 13cqw), 60px);
+  }
+
+  .bj-hands:has(> :nth-child(4)) {
+    --pc-width: clamp(30px, min(12cqh, 10cqw), 48px);
+  }
+
   .bj-table {
-    min-height: 500px;
-    padding: 20px 10px 16px;
+    --bj-summary-row: 30px;
+    padding: 10px 6px 6px;
+    border-radius: 18px;
   }
 
-  .bj-cards {
-    --pc-width: 60px;
-  }
-
-  .bj-dealer {
-    min-height: 120px;
+  .bj-felt-rim {
+    inset: 6px;
+    border-radius: 14px 14px 50% 50% / 14px 14px 60px 60px;
   }
 
   .bj-shoe {
-    top: 14px;
-    right: 10px;
-    transform: scale(0.7);
+    top: 6px;
+    right: 8px;
+    transform: scale(0.55);
     transform-origin: top right;
   }
 
+  .bj-shoe span,
+  .bj-arc {
+    display: none;
+  }
+
+  .bj-zone-label {
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  .bj-dealer-total,
+  .bj-hand-total {
+    min-width: 28px;
+    padding: 3px 6px;
+    font-size: 14px;
+  }
+
+  .bj-cards .pc-card + .pc-card {
+    margin-left: calc(var(--pc-width) * -0.6);
+  }
+
   .bj-alert {
-    font-size: 13px;
-    letter-spacing: 0.1em;
+    margin: 6px 0 2px;
+    padding: 6px 12px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
   }
 
   .bj-hands {
-    gap: 10px 12px;
-    min-height: 170px;
+    gap: 4px;
   }
 
   .bj-hand {
-    padding: 8px;
+    gap: 3px;
+    padding: 4px;
+    border-radius: 12px;
   }
 
-  .bj-arc text {
+  .bj-hand-result {
+    min-height: 20px;
+    padding: 4px 7px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  .bj-hand-meta {
+    flex-wrap: wrap;
+    gap: 2px 6px;
+    justify-content: center;
+    font-size: 9px;
+    letter-spacing: 0.04em;
+    text-align: center;
+  }
+
+  .bj-hand-name {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+  }
+
+  .bj-summary {
+    gap: 2px 12px;
+    min-height: 24px;
+    padding: 4px 10px;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+  }
+
+  .bj-summary b {
     font-size: 14px;
-    letter-spacing: 0.14em;
+  }
+
+  .bj-panel-block {
+    gap: 6px;
+    padding: 8px;
+    border-radius: 16px;
+  }
+
+  .bj-setup {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "seats total"
+      "bets bets"
+      "chips chips"
+      "rebet deal";
+  }
+
+  .bj-setup .bj-panel-title {
+    display: none;
+  }
+
+  .bj-seat-count {
+    grid-area: seats;
+    padding: 3px;
+    border-radius: 10px;
+  }
+
+  .bj-seat-count button {
+    padding: 7px 2px;
+    border-radius: 7px;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+
+  .bj-total-bet {
+    grid-area: total;
+    display: grid;
+    align-content: center;
+    justify-items: end;
+    gap: 2px;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+  }
+
+  .bj-total-bet strong {
+    font-size: 17px;
+  }
+
+  .bj-bets {
+    grid-area: bets;
+    gap: 4px;
+  }
+
+  .bj-bet {
+    grid-template-columns: 60px 1fr 38px 38px;
+    border-radius: 10px;
+  }
+
+  .bj-bet button {
+    font-size: 12px;
+  }
+
+  .bj-bet input {
+    padding: 5px 8px;
+    font-size: 13px;
+  }
+
+  .bj-chips {
+    grid-area: chips;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .bj-chip {
+    width: min(100%, 40px);
+    font-size: 11px;
+    box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.35), 0 3px 6px rgba(0, 0, 0, 0.4);
+  }
+
+  .bj-rebet-row {
+    grid-area: rebet;
+    gap: 4px;
+  }
+
+  .bj-rebet-row button {
+    padding: 8px 2px;
+    border-radius: 10px;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+
+  .bj-deal {
+    grid-area: deal;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 19px;
+  }
+
+  .bj-play .bj-panel-title span {
+    font-size: 15px;
+  }
+
+  .bj-actions {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .bj-actions button {
+    min-height: 46px;
+    border-radius: 12px;
+    font-size: 16px;
+    letter-spacing: 0.06em;
+  }
+
+  .bj-actions kbd {
+    display: none;
+  }
+
+  .bj-insurance {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 6px;
+    border-radius: 12px;
+  }
+
+  .bj-insurance p {
+    display: none;
+  }
+
+  .bj-insurance [data-action="insurance"],
+  .bj-insurance [data-action="no-insurance"] {
+    min-height: 46px;
+    font-size: 14px;
+    letter-spacing: 0.06em;
+  }
+
+  .bj-insurance [data-action="insurance"] b {
+    font-size: 11px;
+  }
+
+  /* Insurance replaces the (disabled) move buttons while it is being decided. */
+  .bj-insurance:not([hidden]) + .bj-actions {
+    display: none;
+  }
+
+  .bj-wager-line {
+    font-size: 9px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .bj-alert[data-tone="warn"],
   .bj-hand-result[class*="bj-result-"] {
-    animation: none;
+    animation-duration: 0.01s;
+    animation-iteration-count: 1;
   }
 }
 

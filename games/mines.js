@@ -119,7 +119,12 @@ export function mount(container, ctx) {
       const state = step < gems ? "complete" : step === gems + 1 ? "current" : "";
       return `<span class="${state}" data-step="${step}"><small>${step} GEM${step === 1 ? "" : "S"}</small><b>${minesMultiplier(mines, step).toFixed(2)}×</b></span>`;
     }).join("");
-    requestAnimationFrame(() => find(`.mines-ladder [data-step="${Math.min(safeTiles, gems + 1)}"]`)?.scrollIntoView({ behavior: ctx.reducedMotion() ? "auto" : "smooth", inline: "center", block: "nearest" }));
+    // Scroll only the ladder strip (scrollIntoView would also scroll the page).
+    requestAnimationFrame(() => {
+      const ladder = find(".mines-ladder");
+      const item = ladder.querySelector(`[data-step="${Math.min(safeTiles, gems + 1)}"]`);
+      if (item) ladder.scrollTo({ left: item.offsetLeft - (ladder.clientWidth - item.offsetWidth) / 2, behavior: ctx.reducedMotion() ? "auto" : "smooth" });
+    });
   }
 
   function render() {

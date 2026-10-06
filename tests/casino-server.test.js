@@ -273,7 +273,7 @@ test("profile analytics, achievements once, winners and case-battle plays", asyn
   const empty = await f.profile(token);
   assert.deepEqual(empty.totals, { wagered: 0, returned: 0, net: 0, plays: 0, wins: 0 });
   assert.equal(empty.series.length, 0);
-  assert.equal(empty.achievements.length, 14);
+  assert.equal(empty.achievements.length, 16);
   const first = (await f.request("/api/casino/baccarat", { bets: { banker: 100 } }, token)).data;
   assert.equal(first.achievements[0].id, "first-play");
   for (let index = 0; index < 4; index++) {
@@ -303,4 +303,40 @@ test("profile analytics, achievements once, winners and case-battle plays", asyn
 
   const winners = (await f.request("/api/winners")).data.winners;
   assert.ok(winners.every((w) => w.name === "Analyst" && w.payout > 0 && !("email" in w)));
+});
+
+test("classic originals and slots settle online, conserve credits and resume video poker", async (t) => {
+  const f = await fixture(t);
+  const token = await f.login("Classic Player");
+  const instant = [
+    ["/api/casino/roulette", { bets: [{ type: "red", amount: 10 }, { type: "straight", value: 7, amount: 2.5 }] }, 12.5],
+    ["/api/casino/dice", { bet: 20, target: 49.5, direction: "over" }, 20],
+    ["/api/casino/plinko", { bet: 5, rows: 16, risk: "high" }, 5],
+    ["/api/casino/keno", { bet: 8, picks: [3, 9, 27, 40] }, 8],
+    ["/api/casino/slots", { bet: 10, machine: "neon-gems" }, 10],
+    ["/api/casino/slots", { bet: 3, machine: "lucky-sevens" }, 3],
+  ];
+  for (const [path, body, wager] of instant) {
+    const response = await f.request(path, body, token);
+    assert.equal(response.status, 200, `${path} ${JSON.stringify(response.data)}`);
+    assert.equal(response.data.round.phase, "settled");
+    assert.equal(response.data.round.wager, wager);
+  }
+  assert.equal((await f.request("/api/casino/slots", { bet: 10.05, machine: "neon-gems" }, token)).status, 400);
+  assert.equal((await f.request("/api/casino/dice", { bet: 10, target: 99.9, direction: "under" }, token)).status, 400);
+
+  const dealt = await f.request("/api/casino/video-poker/deal", { bet: 15 }, token);
+  assert.equal(dealt.status, 200);
+  assert.equal(dealt.data.round.phase, "deal");
+  assert.equal(dealt.data.round.deck, undefined);
+  assert.equal((await f.request("/api/casino/video-poker/deal", { bet: 15 }, token)).data.error.code, "round_active");
+  assert.deepEqual((await f.request("/api/casino/active", undefined, token)).data["video-poker"].cards, dealt.data.round.cards);
+  const drawn = await f.request("/api/casino/video-poker/draw", { held: [true, true, false, false, false] }, token);
+  assert.equal(drawn.status, 200);
+  assert.equal(drawn.data.round.phase, "settled");
+  assert.deepEqual(drawn.data.round.cards.slice(0, 2), dealt.data.round.cards.slice(0, 2));
+  assert.equal(drawn.data.round.deck.length, 10);
+  await f.assertConserved(token);
+  const games = (await f.profile(token)).games.map((game) => game.game);
+  assert.ok(games.includes("slots:neon-gems") && games.includes("video-poker") && games.includes("roulette"));
 });

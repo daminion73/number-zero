@@ -35,37 +35,17 @@
 
 .cz-hub-head {
   display: flex;
-  flex-wrap: wrap;
-  gap: 18px 28px;
+  gap: 10px 16px;
   align-items: center;
   justify-content: space-between;
-  padding: 26px 28px 20px;
-}
-
-.cz-title p {
-  margin: 0 0 6px;
-  color: var(--cz-muted);
-  font-size: 11px;
-  letter-spacing: 0.24em;
-}
-
-.cz-title h1 {
-  margin: 0;
-  font: 900 clamp(30px, 4vw, 48px) / 0.95 "Barlow Condensed", sans-serif;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
-}
-
-.cz-title em {
-  color: var(--cz-lime);
-  font-style: normal;
-  text-shadow: 0 0 28px rgba(199, 255, 54, 0.35);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--cz-line);
 }
 
 .cz-controls {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  flex: none;
+  gap: 8px;
   align-items: stretch;
 }
 
@@ -78,8 +58,8 @@
 }
 
 .cz-mode button {
-  min-width: 84px;
-  padding: 10px 14px;
+  min-width: 70px;
+  padding: 8px 12px;
   border: 0;
   border-radius: 9px;
   background: transparent;
@@ -108,8 +88,8 @@
 .cz-wallet {
   display: grid;
   align-content: center;
-  min-width: 200px;
-  padding: 8px 16px;
+  min-width: 170px;
+  padding: 4px 14px;
   border: 1px solid var(--cz-line);
   border-radius: 12px;
   background: linear-gradient(135deg, #101626, #0b0f1a);
@@ -123,7 +103,7 @@
 
 .cz-wallet-value {
   color: var(--cz-lime);
-  font: 800 24px / 1.1 "Barlow Condensed", sans-serif;
+  font: 800 20px / 1.1 "Barlow Condensed", sans-serif;
   font-variant-numeric: tabular-nums;
   transition: color 0.3s, text-shadow 0.3s;
 }
@@ -164,35 +144,42 @@
 }
 
 .cz-tabs {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  padding: 0 28px 22px;
+  display: flex;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.cz-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .cz-tab {
   display: flex;
-  gap: 14px;
+  flex: none;
+  gap: 8px;
   align-items: center;
-  padding: 14px 16px;
+  padding: 6px 12px 6px 6px;
   border: 1px solid var(--cz-line);
-  border-radius: 14px;
+  border-radius: 12px;
   background: var(--cz-panel);
   color: var(--cz-muted);
   text-align: left;
   cursor: pointer;
-  transition: transform 0.18s, border-color 0.18s, background 0.18s;
+  transition: border-color 0.18s, background 0.18s, color 0.18s;
 }
 
 .cz-tab:hover {
-  transform: translateY(-2px);
   border-color: rgba(255, 255, 255, 0.18);
+  color: var(--cz-text);
 }
 
 .cz-tab.active {
   border-color: rgba(199, 255, 54, 0.55);
   background: linear-gradient(135deg, rgba(199, 255, 54, 0.14), rgba(18, 23, 38, 0.9) 70%);
-  box-shadow: 0 0 0 1px rgba(199, 255, 54, 0.15), 0 12px 30px rgba(199, 255, 54, 0.08);
+  box-shadow: 0 0 0 1px rgba(199, 255, 54, 0.15);
   color: var(--cz-text);
 }
 
@@ -200,15 +187,15 @@
   display: grid;
   flex: none;
   place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
   background: #0b0f1b;
 }
 
 .cz-tab-icon svg {
-  width: 30px;
-  height: 30px;
+  width: 21px;
+  height: 21px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.8;
@@ -226,33 +213,46 @@
   box-shadow: inset 0 0 0 1px rgba(199, 255, 54, 0.35);
 }
 
-.cz-tab-copy {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
 .cz-tab-copy strong {
   color: inherit;
-  font: 800 21px / 1 "Barlow Condensed", sans-serif;
+  font: 800 16px / 1 "Barlow Condensed", sans-serif;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-}
-
-.cz-tab-copy small {
-  overflow: hidden;
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* Ten games share one row: inactive tabs collapse to their icon (name in the tooltip). */
+.cz-tab:not(.active) {
+  padding: 6px;
+}
+
+.cz-tab:not(.active) .cz-tab-copy {
+  display: none;
+}
+
 .cz-stage {
-  padding: 0 18px 18px;
+  padding: 12px;
+}
+
+/* Fit-to-screen contract: each game fills exactly the viewport height left below the stage
+   (--cz-fit-h, set by casino.js) and may size its contents with container query units. */
+.cz-game {
+  height: var(--cz-fit-h, 640px);
+  container-type: size;
+  container-name: game;
+}
+
+.cz-game > * {
+  height: 100%;
+  min-height: 0;
 }
 
 .cz-live-root {
-  margin-top: 22px;
+  margin-top: 12px;
+}
+
+.cz-live-stage {
+  padding: 0;
 }
 
 .cz-loading,
@@ -546,54 +546,94 @@
   color: #8c93ab;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
+  .cz-hub-head {
+    flex-wrap: wrap;
+  }
+
   .cz-tabs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    flex-basis: 100%;
+    order: 2;
+  }
+
+  .cz-controls {
+    flex: 1;
+    justify-content: flex-end;
   }
 }
 
 @media (max-width: 620px) {
-  .cz-hub-head,
-  .cz-tabs {
-    padding-right: 14px;
-    padding-left: 14px;
+  .cz-root {
+    margin-top: 8px;
+  }
+
+  .cz-hub {
+    border-radius: 14px;
+  }
+
+  .cz-hub-head {
+    gap: 8px;
+    padding: 8px;
   }
 
   .cz-stage {
-    padding: 0 8px 10px;
+    padding: 6px;
   }
 
   .cz-controls {
+    gap: 6px;
     width: 100%;
+  }
+
+  .cz-mode button {
+    min-width: 0;
+    padding: 7px 9px;
+    font-size: 13px;
   }
 
   .cz-wallet {
     flex: 1;
     min-width: 0;
+    padding: 2px 10px;
+  }
+
+  .cz-wallet-label {
+    font-size: 8px;
+  }
+
+  .cz-wallet-value {
+    font-size: 16px;
   }
 
   .cz-fair-button {
-    flex-basis: 100%;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .cz-tabs {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    gap: 4px;
+  }
+
+  .cz-tab,
+  .cz-tab:not(.active) {
     justify-content: center;
-    min-height: 42px;
+    padding: 3px;
   }
 
-  .cz-tab {
-    gap: 10px;
-    padding: 10px;
-  }
-
-  .cz-tab-icon {
-    width: 36px;
-    height: 36px;
-  }
-
-  .cz-tab-copy small {
+  .cz-tab .cz-tab-copy {
     display: none;
   }
 
+  .cz-tab-icon {
+    width: 26px;
+    height: 26px;
+  }
+
   .cz-tab-copy strong {
-    font-size: 17px;
+    font-size: 14px;
   }
 }
 

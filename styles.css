@@ -1938,3 +1938,13 @@ body.battle-focus { overflow: hidden; }
   .casino-nav button { flex: none !important; }
   .game-shell { overflow: visible; }
 }
+
+/* Casino modes give the game the full screen: the battle network strip is hidden there. */
+body[data-mode="originals"] .network-bar,
+body[data-mode="live"] .network-bar { display: none; }
+body[data-mode="originals"] .rarity-key,
+body[data-mode="live"] .rarity-key,
+body[data-mode="originals"] > footer,
+body[data-mode="live"] > footer { display: none; }
+body[data-mode="originals"] .game-shell,
+body[data-mode="live"] .game-shell { padding-bottom: 0; }

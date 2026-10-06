@@ -1,10 +1,24 @@
-// Server-authoritative single-player originals (Blackjack, Baccarat, Mines, Crash) with
+// Server-authoritative single-player originals (Blackjack, Baccarat, Mines, Crash, Roulette,
+// Dice, Plinko, Keno, Video Poker, Slots) with
 // per-user provably-fair seeds. All game rules come from the shared casino-core.js.
 import { randomBytes, randomUUID } from "node:crypto";
 import {
   BACCARAT_FLOATS,
   BLACKJACK_FLOATS,
+  DICE_FLOATS,
+  KENO_FLOATS,
   MINES_FLOATS,
+  PLINKO_FLOATS,
+  ROULETTE_FLOATS,
+  SLOT_FLOATS,
+  VIDEO_POKER_FLOATS,
+  diceRoll,
+  kenoPlay,
+  plinkoDrop,
+  rouletteSpin,
+  slotsSpin,
+  videoPokerDraw,
+  videoPokerStart,
   baccaratPlay,
   blackjackAction,
   blackjackCost,
@@ -23,8 +37,11 @@ import {
 import { transaction } from "./store.js";
 import { recordPlay } from "./achievements.js";
 
-const FLOAT_COUNTS = { blackjack: BLACKJACK_FLOATS, baccarat: BACCARAT_FLOATS, mines: MINES_FLOATS, crash: 1 };
-const RESUMABLE = ["blackjack", "mines", "crash"];
+const FLOAT_COUNTS = {
+  blackjack: BLACKJACK_FLOATS, baccarat: BACCARAT_FLOATS, mines: MINES_FLOATS, crash: 1, roulette: ROULETTE_FLOATS,
+  dice: DICE_FLOATS, plinko: PLINKO_FLOATS, keno: KENO_FLOATS, "video-poker": VIDEO_POKER_FLOATS, slots: SLOT_FLOATS,
+};
+const RESUMABLE = ["blackjack", "mines", "crash", "video-poker"];
 const MAINTENANCE_INTERVAL_MS = 1_000;
 const randomHex = (bytes) => randomBytes(bytes).toString("hex");
 const toCents = (credits) => (typeof credits === "number" && Number.isFinite(credits) ? Math.round(credits * 100) : NaN);
@@ -97,7 +114,8 @@ export function createCasino({ db, now, fail, publicUser }) {
       });
     return recordPlay(tx, {
       userId: row.user_id,
-      game: row.game,
+      // Slot plays are recorded per machine so profiles and achievements can tell them apart.
+      game: row.game === "slots" ? `slots:${state.machine}` : row.game,
       wager: state.wager,
       payout: state.payout,
       at: now(),
@@ -272,6 +290,20 @@ export function createCasino({ db, now, fail, publicUser }) {
         throw error;
       }),
     "GET /api/casino/crash": crashStatus,
+    "POST /api/casino/roulette": (user, body) =>
+      startRound(user, "roulette", (floats) =>
+        rouletteSpin(floats, Array.isArray(body.bets) ? body.bets.map((bet) => ({ type: bet?.type, value: bet?.value ?? null, amount: toCents(bet?.amount) })) : []),
+      ),
+    "POST /api/casino/dice": (user, body) =>
+      startRound(user, "dice", (floats) => diceRoll(floats, toCents(body.bet), body.target, body.direction)),
+    "POST /api/casino/plinko": (user, body) =>
+      startRound(user, "plinko", (floats) => plinkoDrop(floats, toCents(body.bet), body.rows, body.risk)),
+    "POST /api/casino/keno": (user, body) => startRound(user, "keno", (floats) => kenoPlay(floats, toCents(body.bet), body.picks)),
+    "POST /api/casino/video-poker/deal": (user, body) =>
+      startRound(user, "video-poker", (floats) => videoPokerStart(floats, toCents(body.bet))),
+    "POST /api/casino/video-poker/draw": (user, body) =>
+      actOnRound(user, "video-poker", { run: (state) => videoPokerDraw(state, body.held) }),
+    "POST /api/casino/slots": (user, body) => startRound(user, "slots", (floats) => slotsSpin(floats, toCents(body.bet), body.machine)),
   };
 
   return {

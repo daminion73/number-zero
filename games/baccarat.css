@@ -1,12 +1,22 @@
 @import url("cards.css");
 
+/* Fit-to-screen: the game container (.cz-game, container "game") has an exact height; everything below is
+   sized from it so the table, chips, DEAL and roads are visible at once without scrolling.
+   Wide:   [ table | bet controls | roads ]   (three columns)
+   Medium: [ table | controls over roads ]
+   Phone:  table on top, controls + compact roads docked below. */
 .bac {
   --bac-player: #53e7ff;
   --bac-banker: #ff5c78;
   --bac-tie: #c7ff36;
+  /* Resolved inside .bac-table (a size container), so cards follow the height the table really gets. */
+  --pc-width: clamp(44px, min(15cqh, (100cqh - 360px) / 1.62, 16cqw), 120px);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 330px;
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) 290px 270px;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 14px;
+  height: 100%;
+  min-height: 0;
   color: #eef1ff;
 }
 
@@ -14,10 +24,11 @@
 .bac-table {
   position: relative;
   display: grid;
-  grid-template-rows: auto auto 1fr auto auto;
+  container-type: size;
+  grid-template-rows: auto auto minmax(0, 1fr) auto var(--bac-summary-row, 48px);
   grid-template-columns: minmax(0, 1fr);
-  min-height: 600px;
-  padding: 24px 24px 22px;
+  min-height: 0;
+  padding: clamp(12px, 3cqh, 24px) clamp(12px, 2cqw, 24px) clamp(10px, 2.4cqh, 20px);
   overflow: hidden;
   border-radius: 22px;
   background:
@@ -30,7 +41,7 @@
 .bac-top {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 6px 10px;
   align-items: center;
   justify-content: space-between;
   padding-right: 100px;
@@ -57,7 +68,7 @@
 
 .bac-shoe {
   position: absolute;
-  top: 18px;
+  top: clamp(10px, 2.4cqh, 18px);
   right: 24px;
   display: grid;
   gap: 6px;
@@ -93,7 +104,7 @@
 
 .bac-status {
   justify-self: center;
-  margin: 22px 0 6px;
+  margin: clamp(6px, 2cqh, 18px) 0 4px;
   padding: 9px 22px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 999px;
@@ -113,19 +124,20 @@
 
 .bac-hands {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(8px, 2cqw, 18px);
   align-items: center;
-  min-height: 230px;
-  margin-top: 12px;
+  min-height: 0;
+  margin-top: clamp(4px, 1cqh, 10px);
 }
 
 .bac-hand {
   --side: var(--bac-player);
   display: grid;
-  gap: 12px;
+  gap: clamp(6px, 1.4cqh, 12px);
   justify-items: center;
-  padding: 14px 10px;
+  min-width: 0;
+  padding: clamp(6px, 1.6cqh, 14px) 10px;
   border: 1px solid transparent;
   border-radius: 18px;
   transition: border-color 0.3s, background 0.3s, box-shadow 0.3s, opacity 0.3s;
@@ -147,6 +159,7 @@
   display: flex;
   gap: 10px;
   align-items: center;
+  min-height: 32px;
   color: var(--side);
   font: 900 18px / 1 "Barlow Condensed", sans-serif;
   letter-spacing: 0.3em;
@@ -164,12 +177,12 @@
   text-align: center;
 }
 
+/* Room for two cards plus a lowered third card, so the hand never grows mid-round. */
 .bac-cards {
-  --pc-width: 84px;
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  min-height: calc(var(--pc-width) * 1.4);
+  min-height: calc(var(--pc-width) * 1.62);
 }
 
 .bac-cards .pc-card + .pc-card {
@@ -200,7 +213,7 @@
   display: grid;
   grid-template-columns: 1fr 0.8fr 1fr;
   gap: 10px;
-  margin-top: 14px;
+  margin-top: clamp(6px, 1.4cqh, 14px);
 }
 
 .bac-field {
@@ -210,8 +223,9 @@
   grid-template-rows: auto auto 1fr;
   justify-items: center;
   gap: 4px;
-  min-height: 140px;
-  padding: 14px 8px 12px;
+  min-width: 0;
+  min-height: clamp(96px, 18cqh, 140px);
+  padding: clamp(8px, 1.8cqh, 14px) 8px clamp(6px, 1.4cqh, 12px);
   border: 1px solid color-mix(in srgb, var(--side) 45%, transparent);
   border-radius: 16px;
   background:
@@ -241,7 +255,7 @@
 
 .bac-field > b {
   color: var(--side);
-  font: 900 30px / 1 "Barlow Condensed", sans-serif;
+  font: 900 clamp(22px, 5cqh, 30px) / 1 "Barlow Condensed", sans-serif;
   letter-spacing: 0.14em;
 }
 
@@ -297,15 +311,18 @@
 .bac-field.bac-lost .bac-field-payout { color: #ff8fa3; }
 .bac-field.bac-push .bac-field-payout { color: #dfe4f5; }
 
+/* The summary sits in a fixed-height last row (see .bac-table) so the table does not jump when it appears. */
 .bac-summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 22px;
+  gap: 2px 22px;
+  align-items: center;
+  align-self: end;
   justify-content: center;
   justify-self: center;
   max-width: 100%;
-  margin-top: 14px;
-  padding: 10px 18px;
+  min-height: 36px;
+  padding: 6px 18px;
   border-radius: 12px;
   background: rgba(5, 10, 9, 0.7);
   color: #8d9fa0;
@@ -331,15 +348,26 @@
   pointer-events: none;
 }
 
-/* ── Side panel ────────────────────────────────────────────────────────── */
+/* ── Side panels ───────────────────────────────────────────────────────── */
+/* On wide screens the aside dissolves so controls and roads become their own columns. */
 .bac-side {
-  display: grid;
-  align-content: start;
-  gap: 14px;
-  padding: 18px;
+  display: contents;
+}
+
+.bac-controls,
+.bac-road {
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(12px, 2.6cqh, 18px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 18px;
   background: #121726;
+}
+
+.bac-controls {
+  display: grid;
+  align-content: start;
+  gap: clamp(8px, 2cqh, 14px);
 }
 
 .bac-panel-title {
@@ -360,14 +388,17 @@
 
 .bac-chips {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
+  justify-items: center;
 }
 
 .bac-chip {
   display: grid;
   place-items: center;
+  width: min(100%, 11cqh);
   aspect-ratio: 1;
+  padding: 0;
   border: 0;
   border-radius: 50%;
   background:
@@ -429,7 +460,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: clamp(12px, 2.6cqh, 16px) 20px;
   border: 0;
   border-radius: 14px;
   background: linear-gradient(110deg, #c7ff36, #8cff5a);
@@ -445,18 +476,19 @@
 
 .bac-side button:disabled { cursor: not-allowed; opacity: 0.4; }
 
-/* Roads */
+/* Roads (secondary: the panel clips rather than ever pushing the page taller) */
 .bac-road {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
   gap: 8px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  overflow: hidden;
 }
 
 .bac-road h3 {
   display: flex;
   justify-content: space-between;
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   color: #8d98b5;
   font: 800 13px / 1 "Barlow Condensed", sans-serif;
   letter-spacing: 0.18em;
@@ -475,9 +507,10 @@
 
 .bac-counts span {
   display: flex;
-  gap: 6px;
+  gap: 5px;
   align-items: center;
-  padding: 7px 8px;
+  padding: 7px 7px;
+  white-space: nowrap;
   border-radius: 9px;
   background: #0a0e18;
   font: 800 14px / 1 "Barlow Condensed", sans-serif;
@@ -485,6 +518,7 @@
 }
 
 .bac-counts span i {
+  flex: none;
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -596,52 +630,349 @@
   50% { opacity: 0.25; }
 }
 
-@media (max-width: 1080px) {
-  .bac { grid-template-columns: 1fr; }
-  .bac-chips { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
-  .bac-chip { font-size: 12px; }
-}
-
-@media (max-width: 620px) {
-  .bac-table {
-    min-height: 0;
-    padding: 18px 10px 14px;
+/* ── Short laptops (e.g. 1366×768) ─────────────────────────────────────── */
+@container game (max-height: 600px) {
+  .bac-panel-title small,
+  .bac-top > span {
+    display: none;
   }
 
   .bac-top {
-    padding-right: 70px;
-    font-size: 9px;
-    letter-spacing: 0.1em;
+    justify-content: flex-start;
   }
 
-  .bac-shoe {
-    top: 12px;
-    right: 10px;
-    transform: scale(0.7);
-    transform-origin: top right;
+  .bac-hand-head {
+    min-height: 28px;
+    font-size: 16px;
+  }
+
+  .bac-score {
+    padding: 4px 9px;
+    font-size: 18px;
   }
 
   .bac-status {
+    padding: 7px 18px;
+    font-size: 15px;
+  }
+
+  .bac-stack {
+    min-height: 44px;
+  }
+
+  .bac-tools button,
+  .bac-reset-roads {
+    padding: 9px 4px;
+  }
+}
+
+/* ── Medium widths: controls stacked over the roads in one side column ── */
+@container game (max-width: 1099px) {
+  .bac {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+
+  .bac-side {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 12px;
+    min-height: 0;
+  }
+
+  .bac-chips {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .bac-chip {
+    font-size: 11px;
+  }
+}
+
+/* ── Phone: table on top, compact controls and a slim road strip docked below ── */
+@container game (max-width: 760px) {
+  .bac {
+    --pc-width: clamp(34px, min((100cqh - 232px) / 1.62, 17cqw), 72px);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .bac-side {
+    grid-template-rows: auto auto;
+    gap: 8px;
+  }
+
+  .bac-table {
+    --bac-summary-row: 32px;
+    padding: 10px 8px 8px;
+    border-radius: 18px;
+  }
+
+  .bac-top {
+    padding-right: 64px;
+    font-size: 8px;
+    letter-spacing: 0.08em;
+  }
+
+  .bac-top > span {
+    display: none;
+  }
+
+  .bac-top select {
+    padding: 5px 6px;
+    font-size: 10px;
+  }
+
+  .bac-shoe {
+    top: 6px;
+    right: 8px;
+    transform: scale(0.55);
+    transform-origin: top right;
+  }
+
+  .bac-shoe span {
+    display: none;
+  }
+
+  .bac-status {
+    margin: 6px 0 2px;
+    padding: 6px 14px;
     font-size: 13px;
     letter-spacing: 0.1em;
   }
 
   .bac-hands {
     gap: 6px;
-    min-height: 170px;
+    margin-top: 2px;
   }
 
-  .bac-hand { padding: 8px 4px; }
+  .bac-hand {
+    gap: 4px;
+    padding: 4px;
+    border-radius: 14px;
+  }
 
-  .bac-cards { --pc-width: 54px; }
+  .bac-hand-head {
+    gap: 6px;
+    min-height: 24px;
+    font-size: 14px;
+    letter-spacing: 0.2em;
+  }
 
-  .bac-field { min-height: 116px; padding: 12px 4px 10px; }
+  .bac-score {
+    min-width: 30px;
+    padding: 3px 7px;
+    font-size: 16px;
+  }
 
-  .bac-field > b { font-size: 22px; letter-spacing: 0.08em; }
+  .bac-hand-tag {
+    min-height: 12px;
+    font-size: 8px;
+    letter-spacing: 0.14em;
+  }
 
-  .bac-field small { font-size: 8px; letter-spacing: 0.06em; }
+  .bac-fields {
+    gap: 6px;
+    margin-top: 4px;
+  }
 
-  .bac-field-payout { top: auto; right: 0; bottom: -18px; left: 0; text-align: center; }
+  .bac-field {
+    gap: 2px;
+    min-height: 0;
+    padding: 6px 4px;
+    border-radius: 12px;
+  }
+
+  .bac-field > b {
+    font-size: 19px;
+    letter-spacing: 0.08em;
+  }
+
+  .bac-field small {
+    font-size: 8px;
+    letter-spacing: 0.04em;
+  }
+
+  .bac-field:is(.bac-won, .bac-lost, .bac-push) small {
+    visibility: hidden;
+  }
+
+  .bac-field-payout {
+    top: 5px;
+    right: 0;
+    left: 0;
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .bac-stack {
+    display: flex;
+    gap: 4px;
+    align-items: flex-end;
+    justify-content: center;
+    min-height: 22px;
+  }
+
+  .bac-chip-stack {
+    width: 24px;
+    height: 22px;
+  }
+
+  .bac-chip-stack i {
+    width: 24px;
+    height: 10px;
+    bottom: calc(var(--n) * 2px);
+  }
+
+  .bac-stack b {
+    padding: 2px 6px;
+    font-size: 10px;
+  }
+
+  .bac-summary {
+    gap: 2px 12px;
+    min-height: 26px;
+    padding: 5px 10px;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+  }
+
+  .bac-summary b {
+    font-size: 14px;
+  }
+
+  .bac-controls {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.5fr);
+    grid-template-areas:
+      "chips chips chips chips chips"
+      "tools tools tools tools total"
+      "deal deal deal deal deal";
+    gap: 6px;
+    padding: 8px;
+    border-radius: 16px;
+  }
+
+  .bac-panel-title {
+    display: none;
+  }
+
+  .bac-chips {
+    grid-area: chips;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .bac-chip {
+    width: min(100%, 40px);
+    font-size: 11px;
+    box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.35), 0 3px 6px rgba(0, 0, 0, 0.4);
+  }
+
+  .bac-chip.active {
+    transform: translateY(-2px);
+    box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.35), 0 0 0 2px #fff;
+  }
+
+  .bac-tools {
+    grid-area: tools;
+    gap: 4px;
+  }
+
+  .bac-tools button {
+    padding: 8px 2px;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+
+  .bac-total {
+    grid-area: total;
+    display: grid;
+    align-content: center;
+    justify-items: end;
+    gap: 2px;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+  }
+
+  .bac-total strong {
+    font-size: 17px;
+  }
+
+  .bac-deal {
+    grid-area: deal;
+    padding: 11px 16px;
+    font-size: 20px;
+  }
+
+  /* Roads: counts on one line, bead plate and big road side by side at a fixed small height. */
+  .bac-road {
+    grid-template-columns: auto auto minmax(0, 1fr);
+    grid-template-areas:
+      "counts counts reset"
+      "beads big big";
+    justify-content: start;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 16px;
+  }
+
+  .bac-road h3 {
+    display: none;
+  }
+
+  .bac-counts {
+    grid-area: counts;
+    gap: 4px;
+  }
+
+  .bac-counts span {
+    gap: 4px;
+    padding: 4px 6px;
+    font-size: 12px;
+  }
+
+  .bac-counts small {
+    font-size: 8px;
+  }
+
+  .bac-reset-roads {
+    grid-area: reset;
+    justify-self: end;
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+
+  .bac-beads,
+  .bac-bigroad {
+    height: clamp(44px, 10cqh, 66px);
+    padding: 2px;
+    border-radius: 6px;
+    box-shadow: inset 0 0 0 2px #f4f6fb;
+  }
+
+  .bac-beads {
+    grid-area: beads;
+  }
+
+  .bac-bigroad {
+    grid-area: big;
+    justify-self: start;
+    max-width: 100%;
+  }
+
+  .bac-beads i,
+  .bac-bigroad i {
+    margin: 1px;
+  }
+
+  .bac-beads i {
+    font-size: 6px;
+  }
+
+  .bac-bigroad i {
+    border-width: 1.5px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -649,7 +980,8 @@
   .bac-beads .latest,
   .bac-bigroad .latest,
   .bac-field.bac-won .bac-field-payout {
-    animation: none;
+    animation-duration: 0.01s;
+    animation-iteration-count: 1;
   }
 }
 

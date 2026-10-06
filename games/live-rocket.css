@@ -1,15 +1,24 @@
-.live-game { color: #f5f2ff; }
+/* Fit-to-screen: the shell sizes the game container (container "game", exact height); everything below flexes inside it. */
+.live-game {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  color: #f5f2ff;
+}
 
 .live-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  margin-bottom: 11px;
+  min-width: 0;
+  margin-bottom: clamp(6px, 1.2cqh, 11px);
 }
 
 .live-header > div:first-child {
   display: grid;
+  flex: 0 0 auto;
   grid-template-columns: 9px auto;
   gap: 3px 9px;
 }
@@ -25,7 +34,7 @@
 }
 
 .live-header b { color: #53e7ff; font-size: 9px; letter-spacing: 0.12em; }
-.live-header small { color: #687287; font-size: 6px; letter-spacing: 0.14em; }
+.live-header small { color: #687287; font-size: 7px; letter-spacing: 0.14em; }
 
 .live-history { min-width: 0; display: flex; gap: 6px; overflow: hidden; }
 .live-history button { flex: 0 0 auto; border: 0; border-radius: 6px; padding: 6px 8px; cursor: pointer; font: 500 8px "DM Mono"; }
@@ -33,20 +42,20 @@
 .live-history .cyan { color: #53e7ff; background: #112c35; }
 .live-history .gold { color: #ffd43b; background: #302813; box-shadow: 0 0 12px #ffd43b22; }
 
-.live-layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 14px; }
+.live-layout { display: grid; grid-template-columns: minmax(0, 1fr) clamp(260px, 24cqw, 360px); gap: 14px; min-height: 0; }
 .live-main, .live-lobby { border: 1px solid #29334a; border-radius: 16px; background: linear-gradient(145deg, #111725, #090c14); box-shadow: 0 20px 60px #0008; }
-.live-main { min-width: 0; padding: 13px; }
+.live-main { display: grid; grid-template-rows: minmax(0, 1fr) auto auto; min-width: 0; min-height: 0; padding: clamp(9px, 1.5cqh, 13px); }
 
 .live-stage {
   position: relative;
-  height: 475px;
+  min-height: 0;
   overflow: hidden;
   border: 1px solid #202b40;
   border-radius: 13px;
   background: radial-gradient(circle at 72% 25%, #193a5b66, transparent 34%), linear-gradient(#0c1523, #070a11);
 }
 
-.live-stage canvas { width: 100%; height: 100%; }
+.live-stage canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
 
 .live-value {
   position: absolute;
@@ -57,11 +66,11 @@
   text-align: center;
   text-shadow: 0 0 18px #53e7ff, 0 0 55px #53e7ff55;
   pointer-events: none;
-  font: 900 clamp(62px, 8vw, 108px)/0.82 "Barlow Condensed", sans-serif;
+  font: 900 clamp(48px, min(14cqh, 8cqw), 120px)/0.82 "Barlow Condensed", sans-serif;
   font-variant-numeric: tabular-nums;
 }
 
-.live-value small { display: block; margin-top: 22px; color: #53e7ff; font: 700 10px/1 "DM Mono"; letter-spacing: 0.14em; }
+.live-value small { display: block; margin-top: clamp(10px, 2.4cqh, 22px); color: #53e7ff; font: 700 10px/1 "DM Mono"; letter-spacing: 0.14em; }
 .live-value.crashed { color: #ff496c; text-shadow: 0 0 25px #ff496c; }
 .live-value.crashed small { color: #ff718b; }
 
@@ -73,11 +82,11 @@
   z-index: 4;
   left: 10%;
   right: 10%;
-  bottom: 22px;
+  bottom: clamp(12px, 2.4cqh, 22px);
   overflow: hidden;
   border: 1px solid #354153;
   border-radius: 8px;
-  padding: 12px;
+  padding: clamp(8px, 1.3cqh, 12px);
   color: #b6c0d0;
   text-align: center;
   background: #080c14e8;
@@ -89,30 +98,30 @@
 .live-countdown b { color: #c7ff36; }
 .live-countdown i { position: absolute; left: 0; bottom: 0; height: 3px; background: #c7ff36; box-shadow: 0 0 15px #c7ff36; transition: width 80ms linear; }
 
-.live-controls { display: grid; grid-template-columns: 1fr 1fr 1.35fr; gap: 9px; align-items: end; margin-top: 11px; }
-.live-controls label { color: #788297; font-size: 7px; letter-spacing: 0.1em; }
+.live-controls { display: grid; grid-template-columns: 1fr 1fr 1.35fr; gap: 9px; align-items: end; margin-top: clamp(8px, 1.2cqh, 11px); }
+.live-controls label { min-width: 0; color: #788297; font-size: 7px; letter-spacing: 0.1em; }
 .live-controls label > div { position: relative; }
 .live-controls input { width: 100%; margin-top: 6px; border: 1px solid #303b51; border-radius: 8px; padding: 11px; color: white; outline: none; background: #070a11; font: 500 11px "DM Mono"; }
 .live-controls label > div input { padding-right: 38px; }
-.live-controls label > div b { position: absolute; right: 10px; top: 18px; color: #667187; font-size: 8px; }
+.live-controls label > div b { position: absolute; right: 10px; top: 50%; margin-top: 3px; color: #667187; font-size: 8px; transform: translateY(-50%); }
 
-.live-action { height: 39px; border: 0; border-radius: 9px; color: #071014; cursor: pointer; background: linear-gradient(#d9ff70, #afe52b); box-shadow: 0 4px 0 #668e16; font: 900 16px "Barlow Condensed"; letter-spacing: 0.04em; }
+.live-action { min-width: 0; height: 39px; overflow: hidden; border: 0; border-radius: 9px; color: #071014; cursor: pointer; background: linear-gradient(#d9ff70, #afe52b); box-shadow: 0 4px 0 #668e16; font: 900 16px "Barlow Condensed"; letter-spacing: 0.04em; text-overflow: ellipsis; white-space: nowrap; }
 .live-action:disabled { cursor: default; filter: saturate(0.3); opacity: 0.6; }
-.live-round-label { margin: 12px 0 0; color: #5f697e; text-align: center; font-size: 6px; letter-spacing: 0.12em; }
+.live-round-label { overflow: hidden; margin: clamp(6px, 1.2cqh, 12px) 0 0; color: #5f697e; text-align: center; font-size: 7px; letter-spacing: 0.12em; text-overflow: ellipsis; white-space: nowrap; }
 
-.live-lobby { max-height: 590px; overflow: hidden; padding: 14px; }
+.live-lobby { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; padding: 14px; }
 .live-lobby-title { display: flex; align-items: center; justify-content: space-between; font: 900 23px/1 "Barlow Condensed"; }
 .live-lobby-title i { color: #c7ff36; font: 500 7px "DM Mono"; font-style: normal; letter-spacing: 0.12em; }
 .live-totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 14px; }
-.live-totals span { min-width: 0; border-radius: 7px; padding: 8px; color: #697489; background: #111725; font-size: 6px; }
+.live-totals span { min-width: 0; border-radius: 7px; padding: 8px; color: #697489; background: #111725; font-size: 7px; }
 .live-totals b { display: block; overflow: hidden; margin-top: 4px; color: white; font-size: 9px; text-overflow: ellipsis; }
-.live-bets { max-height: 485px; overflow-y: auto; margin-top: 8px; scrollbar-width: thin; }
+.live-bets { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin-top: 8px; scrollbar-width: thin; }
 
 .live-bet-row { position: relative; display: grid; grid-template-columns: 30px 1fr auto; gap: 3px 8px; align-items: center; border-bottom: 1px solid #202a3b; padding: 9px 4px; }
 .live-bet-row > i { grid-row: span 2; width: 29px; height: 29px; display: grid; place-items: center; border: 1px solid #3c4960; border-radius: 50%; color: #53e7ff; background: #172131; font: 800 13px "Barlow Condensed"; font-style: normal; }
 .live-bet-row span b, .live-bet-row span small { display: block; }
 .live-bet-row span b { overflow: hidden; max-width: 110px; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
-.live-bet-row span small { margin-top: 3px; color: #697489; font-size: 6px; }
+.live-bet-row span small { margin-top: 3px; color: #697489; font-size: 7px; }
 .live-bet-row strong { font-size: 8px; }
 .live-bet-row em { grid-column: 2 / 4; color: #758095; text-align: right; font-size: 7px; font-style: normal; }
 .live-bet-row.won { background: linear-gradient(90deg, #c7ff3609, transparent); }
@@ -122,7 +131,7 @@
 .live-bet-row.just-won { animation: live-row-win 700ms ease-out; }
 .live-empty { padding: 35px 10px; color: #667187; text-align: center; font-size: 8px; }
 
-.live-popover { position: fixed; z-index: 30; top: 50%; left: 50%; width: min(540px, 92vw); border: 1px solid #53e7ff; border-radius: 15px; padding: 22px; background: #090d17f5; box-shadow: 0 25px 100px #000e, 0 0 40px #53e7ff22; transform: translate(-50%, -50%); }
+.live-popover { position: fixed; z-index: 30; top: 50%; left: 50%; width: min(540px, 92vw); max-height: 92vh; overflow-y: auto; border: 1px solid #53e7ff; border-radius: 15px; padding: 22px; background: #090d17f5; box-shadow: 0 25px 100px #000e, 0 0 40px #53e7ff22; transform: translate(-50%, -50%); }
 .live-popover[hidden] { display: none; }
 .live-popover > button { float: right; border: 0; color: #98a3b7; cursor: pointer; background: none; font-size: 22px; }
 .live-popover strong { display: block; margin-bottom: 18px; color: #c7ff36; font: 900 23px "Barlow Condensed"; }
@@ -133,16 +142,44 @@
 @keyframes live-flash { 8% { background: #ff496c99; box-shadow: inset 0 0 100px white; } to { background: transparent; } }
 @keyframes live-row-win { 25% { background: #c7ff3655; box-shadow: inset 0 0 18px #c7ff36; } }
 
-@media (max-width: 760px) {
-  .live-header { display: block; }
-  .live-history { margin-top: 10px; }
-  .live-layout { grid-template-columns: 1fr; }
-  .live-stage { height: 335px; }
-  .live-value { top: 36%; font-size: 62px; }
-  .live-controls { grid-template-columns: 1fr 1fr; }
-  .live-action { grid-column: 1 / -1; }
-  .live-lobby { max-height: 390px; }
-  .live-bets { max-height: 290px; }
+/* Short laptops (1366×768 etc.): tighten chrome so the rocket keeps most of the height. */
+@container game (max-height: 640px) {
+  .live-header small { display: none; }
+  .live-header > div:first-child { align-items: center; }
+  .live-header > div > i { grid-row: auto; margin-top: 0; }
+  .live-lobby { padding: 11px; }
+  .live-lobby-title { font-size: 20px; }
+  .live-totals { margin-top: 9px; }
+  .live-totals span { padding: 6px 8px; }
+  .live-bet-row { padding: 6px 4px; }
+  .live-empty { padding: 20px 10px; }
+  .live-controls input { margin-top: 4px; padding: 9px 11px; }
+  .live-action { height: 35px; }
+}
+
+/* Phone: rocket on top, compact controls docked below, lobby reduced to a short strip. */
+@container game (max-width: 760px) {
+  .live-header { gap: 10px; margin-bottom: 8px; }
+  .live-header small { display: none; }
+  .live-header > div:first-child { align-items: center; }
+  .live-header > div > i { grid-row: auto; margin-top: 0; }
+  .live-history { flex: 1 1 auto; justify-content: flex-end; gap: 4px; }
+  .live-history button { padding: 5px 6px; }
+  .live-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; gap: 8px; }
+  .live-main { padding: 9px; border-radius: 14px; }
+  .live-value { top: 30%; font-size: clamp(44px, min(11cqh, 17cqw), 72px); }
+  .live-value small { margin-top: 12px; }
+  .live-countdown { top: 56%; bottom: auto; left: 8%; right: 8%; padding: 8px; }
+  .live-controls { grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 8px; }
+  .live-controls input { margin-top: 4px; padding: 9px 10px; }
+  .live-action { grid-column: 1 / -1; height: 40px; }
+  .live-round-label { margin-top: 6px; }
+  .live-lobby { height: clamp(92px, 19cqh, 170px); padding: 9px 11px; border-radius: 14px; }
+  .live-lobby-title { font-size: 17px; }
+  .live-totals { margin-top: 6px; }
+  .live-totals span { padding: 5px 7px; }
+  .live-bet-row { padding: 5px 4px; }
+  .live-empty { padding: 8px 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
