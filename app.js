@@ -320,6 +320,7 @@ modeTabs.forEach((button) => button.addEventListener("click", () => {
 setMode("home");
 
 function openGame(game, options) { setMode("originals", true); casino?.open(game, options); }
+function openLive(game) { casino?.openLive(game); setMode("live", true); }
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, fastReveal ? Math.min(ms, 65) : ms));
 
@@ -1688,7 +1689,7 @@ multiplayer = initMultiplayer({
   renderBattle: renderOnlineBattle,
   getBattleSelection: () => ({ caseIds: [...battleCaseIds], mode: $("#battle-mode").value, format: $("#battle-bots").value, speed: $("#battle-speed-select").value }),
 });
-home = initHome({ root: $("#home-panel"), account: multiplayer.account, navigate: (mode) => setMode(mode, true), openGame });
+home = initHome({ root: $("#home-panel"), account: multiplayer.account, navigate: (mode) => setMode(mode, true), openGame, openLive });
 profile = initProfile({ root: $("#profile-panel"), account: multiplayer.account });
 casino = initCasino({ originalsRoot: $("#originals-panel"), liveRoot: $("#live-panel"), account: multiplayer.account, sound: tone });
 setMode(currentMode);

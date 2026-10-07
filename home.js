@@ -33,14 +33,16 @@ const games = [
   { name: "KENO", category: "originals", target: "keno", tag: "NEW", copy: "Pick 1–10 of 40", icon: "▦" },
   { name: "MINES", category: "originals", target: "mines", tag: "ORIGINAL", copy: "Reveal gems or cash out", icon: "✦" },
   { name: "CRASH", category: "originals", target: "crash", tag: "HOT", copy: "Ride your own rocket", icon: "↗" },
-  { name: "LIVE ROCKET", category: "live lobby", target: "live", tag: "LIVE", copy: "One round. Every player.", icon: "▲" },
+  { name: "LIVE ROCKET", category: "live lobby", target: "live:live-rocket", tag: "LIVE", copy: "One round. Every player.", icon: "▲" },
+  { name: "LIVE ROULETTE", category: "live lobby", target: "live:live-roulette", tag: "LIVE", copy: "Red, black or 14× green", icon: "◎" },
+  { name: "COINFLIP", category: "live lobby", target: "live:coinflip", tag: "PVP", copy: "Heads or tails, winner takes all", icon: "◐" },
   { name: "LIVE BATTLES", category: "case battles", target: "online", tag: "LIVE", copy: "Server-settled arenas", icon: "⚔" },
   { name: "CREATE BATTLE", category: "case battles", target: "duel", tag: "NEW", copy: "Build your showdown", icon: "+" },
 ];
 
 const CASINO_GAMES = ["slots", "blackjack", "roulette", "baccarat", "video-poker", "dice", "plinko", "keno", "mines", "crash"];
 
-export function initHome({ root, account, navigate, openGame }) {
+export function initHome({ root, account, navigate, openGame, openLive }) {
   let visible = false;
   let liveTimer;
   let carouselTimer;
@@ -178,6 +180,7 @@ export function initHome({ root, account, navigate, openGame }) {
     const target = event.target.closest("[data-target]")?.dataset.target;
     if (target) {
       if (target.startsWith("slots:")) openGame("slots", { machine: target.slice(6) });
+      else if (target.startsWith("live:")) openLive(target.slice(5));
       else if (CASINO_GAMES.includes(target)) openGame(target);
       else navigate(target);
       return;

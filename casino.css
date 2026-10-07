@@ -255,6 +255,129 @@
   padding: 0;
 }
 
+.cz-live-tabs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.cz-live-tab {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 7px 16px 7px 8px;
+  border: 1px solid var(--cz-line);
+  border-radius: 14px;
+  background: var(--cz-panel);
+  color: var(--cz-muted);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s, color 0.18s;
+}
+
+.cz-live-tab:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--cz-text);
+}
+
+.cz-live-tab.active {
+  border-color: rgba(83, 231, 255, 0.55);
+  background: linear-gradient(135deg, rgba(83, 231, 255, 0.14), rgba(18, 23, 38, 0.9) 70%);
+  color: var(--cz-text);
+}
+
+.cz-live-tab svg {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 6px;
+  border-radius: 10px;
+  background: #0b0f1b;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cz-live-tab.active svg {
+  color: var(--cz-cyan);
+  box-shadow: inset 0 0 0 1px rgba(83, 231, 255, 0.35);
+}
+
+.cz-live-tab span {
+  min-width: 0;
+}
+
+.cz-live-tab strong,
+.cz-live-tab small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cz-live-tab strong {
+  color: inherit;
+  font: 800 17px / 1 "Barlow Condensed", sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cz-live-tab small {
+  margin-top: 3px;
+  color: var(--cz-muted);
+  font: 9px "DM Mono", monospace;
+}
+
+.cz-live-note {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: auto;
+  color: var(--cz-muted);
+  font: 9px "DM Mono", monospace;
+  letter-spacing: 0.16em;
+}
+
+.cz-live-note i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cz-red);
+  box-shadow: 0 0 10px var(--cz-red);
+}
+
+@media (max-width: 760px) {
+  .cz-live-tabs {
+    gap: 5px;
+    margin-bottom: 6px;
+  }
+
+  .cz-live-tab {
+    flex: 1;
+    justify-content: center;
+    padding: 5px;
+  }
+
+  .cz-live-tab svg {
+    width: 26px;
+    height: 26px;
+    padding: 4px;
+  }
+
+  .cz-live-tab strong {
+    font-size: 14px;
+  }
+
+  .cz-live-tab small,
+  .cz-live-note {
+    display: none;
+  }
+}
+
 .cz-loading,
 .cz-error {
   display: grid;

@@ -14,7 +14,10 @@ import {
   crashPointFromFloat,
   crashTimeFor,
   fairFloats,
+  coinflipResult,
   liveCrashPoint,
+  liveRouletteColor,
+  liveRouletteRoll,
   minesLayout,
   sha256Hex,
 } from "../casino-core.js";
@@ -339,4 +342,96 @@ test("classic originals and slots settle online, conserve credits and resume vid
   await f.assertConserved(token);
   const games = (await f.profile(token)).games.map((game) => game.game);
   assert.ok(games.includes("slots:neon-gems") && games.includes("video-poker") && games.includes("roulette"));
+});
+
+test("live roulette: shared spin, colour bets, exactly-once settlement across restarts", async (t) => {
+  const f = await fixture(t);
+  const a = await f.login("Alpha");
+  const b = await f.login("Bravo");
+  let wheel = (await f.request("/api/live-roulette")).data.roulette;
+  assert.equal(wheel.phase, "betting");
+  assert.equal(wheel.slot, null);
+  assert.equal(wheel.seed, null);
+  assert.equal((await f.request("/api/live-roulette/bet", { bet: 100, color: "red" })).status, 401);
+  assert.equal((await f.request("/api/live-roulette/bet", { bet: 100, color: "blue" }, a)).status, 400);
+  assert.equal((await f.request("/api/live-roulette/bet", { bet: 100, color: "red" }, a)).status, 200);
+  const stacked = await f.request("/api/live-roulette/bet", { bet: 50, color: "red" }, a);
+  assert.deepEqual(stacked.data.me.map((bet) => [bet.color, bet.bet]), [["red", 150]], "bets on one colour stack");
+  assert.equal((await f.request("/api/live-roulette/bet", { bet: 10, color: "green" }, a)).status, 200);
+  assert.equal((await f.request("/api/live-roulette/bet", { bet: 200, color: "black" }, b)).status, 200);
+  wheel = (await f.request("/api/live-roulette")).data.roulette;
+  assert.deepEqual(wheel.totals, { red: 150, black: 200, green: 10 });
+
+  f.advance(wheel.bettingEndsAt - Date.UTC(2026, 9, 4, 12));
+  wheel = (await f.request("/api/live-roulette")).data.roulette;
+  assert.equal(wheel.phase, "spinning");
+  assert.equal(liveRouletteColor(wheel.slot), wheel.color);
+  assert.equal(wheel.seed, null);
+  assert.equal((await f.request("/api/live-roulette/bet", { bet: 10, color: "red" }, b)).data.error.code, "betting_closed");
+  f.advance(wheel.spinEndsAt - wheel.bettingEndsAt);
+  wheel = (await f.request("/api/live-roulette")).data.roulette;
+  assert.equal(wheel.phase, "result");
+  assert.equal(sha256Hex(wheel.seed), wheel.seedHash);
+  assert.equal(liveRouletteRoll(wheel.seed, wheel.roundId), wheel.slot);
+  const expectA = (wheel.color === "red" ? 300 : 0) + (wheel.color === "green" ? 140 : 0);
+  assert.equal((await f.balanceCents(a)) - (await f.rewardsCents(a)), START - 16_000 + expectA * 100);
+  await f.assertConserved(a);
+  await f.assertConserved(b);
+  assert.equal(wheel.history[0].roundId, wheel.roundId);
+
+  // A bet placed before a restart is settled exactly once after it.
+  f.advance(wheel.nextAt - wheel.spinEndsAt);
+  assert.equal((await f.request("/api/live-roulette/bet", { bet: 25, color: "black" }, b)).status, 200);
+  await f.restart();
+  f.advance(30_000);
+  await Promise.all([f.tick(), f.tick()]);
+  await f.restart();
+  await f.tick();
+  assert.equal((await f.profile(b)).games.find((game) => game.game === "live-roulette").plays, 2);
+  await f.assertConserved(b);
+});
+
+test("coinflip battles: create, join, house bot, cancel and fair result", async (t) => {
+  const f = await fixture(t);
+  const a = await f.login("Alpha");
+  const b = await f.login("Bravo");
+  assert.equal((await f.request("/api/coinflips", { bet: 100, side: "heads" })).status, 401);
+  assert.equal((await f.request("/api/coinflips", { bet: 100, side: "edge" }, a)).status, 400);
+  const created = await f.request("/api/coinflips", { bet: 500, side: "heads" }, a);
+  assert.equal(created.status, 201);
+  const flip = created.data.flip;
+  const path = `/api/coinflips/${flip.id}`;
+  assert.equal(flip.state, "open");
+  assert.equal(flip.seed, null);
+  assert.equal(created.data.user.balance, 99_500);
+  assert.equal((await f.request(`${path}/join`, {}, a)).data.error.code, "own_flip");
+  assert.equal((await f.request(`${path}/cancel`, {}, b)).status, 403);
+  assert.equal((await f.request("/api/coinflips")).data.flips[0].id, flip.id);
+
+  const joined = (await f.request(`${path}/join`, {}, b)).data.flip;
+  assert.equal(joined.state, "flipped");
+  assert.equal(joined.joiner.side, "tails");
+  assert.equal(sha256Hex(joined.seed), joined.seedHash);
+  assert.equal(coinflipResult(joined.seed, joined.id), joined.result);
+  assert.equal(joined.winner, joined.result === "heads" ? "creator" : "joiner");
+  assert.equal((await f.request(`${path}/join`, {}, b)).data.error.code, "not_open");
+  const winner = joined.winner === "creator" ? a : b;
+  const loser = winner === a ? b : a;
+  assert.equal((await f.balanceCents(winner)) - (await f.rewardsCents(winner)), START + 50_000);
+  assert.equal((await f.balanceCents(loser)) - (await f.rewardsCents(loser)), START - 50_000);
+  await f.assertConserved(a);
+  await f.assertConserved(b);
+
+  // A house bot takes the other side; cancelling refunds an open flip.
+  const botFlip = (await f.request("/api/coinflips", { bet: 100, side: "tails" }, a)).data.flip;
+  assert.equal((await f.request(`/api/coinflips/${botFlip.id}/bot`, {}, b)).status, 403);
+  const settled = (await f.request(`/api/coinflips/${botFlip.id}/bot`, {}, a)).data.flip;
+  assert.equal(settled.joiner.bot, true);
+  assert.ok(settled.joiner.name);
+  await f.assertConserved(a);
+  const open = (await f.request("/api/coinflips", { bet: 100, side: "heads" }, b)).data.flip;
+  const before = await f.balanceCents(b);
+  assert.equal((await f.request(`/api/coinflips/${open.id}/cancel`, {}, b)).status, 200);
+  assert.equal(await f.balanceCents(b), before + 10_000);
+  assert.equal((await f.request("/api/coinflips")).data.flips.some((x) => x.id === open.id), false);
 });

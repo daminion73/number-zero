@@ -37,6 +37,10 @@ export async function openStore(filename, { url, authToken } = {}) {
         "CREATE TABLE IF NOT EXISTS live_rounds(id TEXT PRIMARY KEY, seed TEXT NOT NULL, seed_hash TEXT NOT NULL, crash_point REAL NOT NULL, betting_ends_at INTEGER NOT NULL, started_at INTEGER NOT NULL, crashed_at INTEGER, settled INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL)",
         "CREATE TABLE IF NOT EXISTS live_bets(round_id TEXT NOT NULL REFERENCES live_rounds(id), user_id INTEGER NOT NULL REFERENCES users(id), name TEXT NOT NULL, wager_cents INTEGER NOT NULL, auto_cashout REAL, cashed_at REAL, payout_cents INTEGER NOT NULL DEFAULT 0, settled INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(round_id,user_id))",
         "CREATE INDEX IF NOT EXISTS live_bets_round ON live_bets(round_id)",
+        "CREATE TABLE IF NOT EXISTS live_roulette_rounds(id TEXT PRIMARY KEY, seed TEXT NOT NULL, seed_hash TEXT NOT NULL, slot INTEGER NOT NULL, betting_ends_at INTEGER NOT NULL, settled INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL)",
+        "CREATE TABLE IF NOT EXISTS live_roulette_bets(round_id TEXT NOT NULL REFERENCES live_roulette_rounds(id), user_id INTEGER NOT NULL REFERENCES users(id), name TEXT NOT NULL, color TEXT NOT NULL, wager_cents INTEGER NOT NULL, PRIMARY KEY(round_id,user_id,color))",
+        "CREATE TABLE IF NOT EXISTS coinflips(id TEXT PRIMARY KEY, creator_id INTEGER NOT NULL REFERENCES users(id), state TEXT NOT NULL, data TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)",
+        "CREATE INDEX IF NOT EXISTS coinflips_state ON coinflips(state, updated_at)",
       ],
       "write",
     );

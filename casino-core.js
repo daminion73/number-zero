@@ -82,7 +82,7 @@ export const MAX_BET_CENTS = 1_000_000_000; // 10,000,000 CR
 export const BLACKJACK_FLOATS = 128;
 export const BACCARAT_FLOATS = 6;
 export const MINES_FLOATS = 24;
-export const GAMES = ["blackjack", "baccarat", "mines", "crash", "roulette", "dice", "plinko", "keno", "video-poker", "slots", "live-rocket", "case-battle"];
+export const GAMES = ["blackjack", "baccarat", "mines", "crash", "roulette", "dice", "plinko", "keno", "video-poker", "slots", "live-rocket", "live-roulette", "coinflip", "case-battle"];
 
 export function validBet(cents) {
   return Number.isInteger(cents) && cents >= MIN_BET_CENTS && cents <= MAX_BET_CENTS;
@@ -746,3 +746,17 @@ export function slotsSpin(floats, betCents, machineId) {
   });
   return { game: "slots", phase: "settled", machine: machineId, bet: betCents, stops, grid, wins, wager: betCents, payout: wins.reduce((sum, win) => sum + win.payout, 0) };
 }
+
+// ── Live roulette (server-wide, CS-style 15-slot wheel) ── 0 = green, 1–7 = red, 8–14 = black.
+export const LIVE_ROULETTE_SALT = "number-zero-live-roulette";
+export const LIVE_ROULETTE_SLOTS = 15;
+/** Order of the slots along the spinning strip (red/black alternate, green between 4 and 11). */
+export const LIVE_ROULETTE_ORDER = [1, 14, 2, 13, 3, 12, 4, 0, 11, 5, 10, 6, 9, 7, 8];
+export const LIVE_ROULETTE_PAYOUTS = { red: 2, black: 2, green: 14 };
+export const liveRouletteColor = (slot) => (slot === 0 ? "green" : slot <= 7 ? "red" : "black");
+export const liveRouletteRoll = (seed, roundId) => Math.floor(fairFloats(seed, LIVE_ROULETTE_SALT, roundId, 1)[0] * LIVE_ROULETTE_SLOTS);
+
+// ── Coinflip battles ── one player per side; the committed seed decides the coin.
+export const COINFLIP_SALT = "number-zero-coinflip";
+export const COINFLIP_SIDES = ["heads", "tails"];
+export const coinflipResult = (seed, flipId) => (fairFloats(seed, COINFLIP_SALT, flipId, 1)[0] < 0.5 ? "heads" : "tails");

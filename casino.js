@@ -29,6 +29,14 @@ const GAMES = [
   { id: "crash", name: "Crash", tagline: "Solo rocket · Auto-bet" },
 ];
 
+// Server-wide multiplayer games shown under the LIVE tab.
+const LIVE_GAMES = [
+  { id: "live-rocket", name: "Rocket", tagline: "Cash out before it crashes", icon: "<path d=\"M7 17c3-8 6-11 12-13-1 6-4 9-12 12zM7 13l-4 3 4 1m4 0 1 4 3-5\"/>" },
+  { id: "live-roulette", name: "Roulette", tagline: "Red, black or green", icon: "<circle cx=\"12\" cy=\"12\" r=\"8\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 4v5m0 6v5M4 12h5m6 0h5\"/>" },
+  { id: "coinflip", name: "Coinflip", tagline: "Heads or tails, player vs player", icon: "<circle cx=\"12\" cy=\"12\" r=\"8\"/><path d=\"M9.5 9h4a1.5 1.5 0 0 1 0 3h-3a1.5 1.5 0 0 0 0 3h4M12 7.5v1.5m0 6v1.5\"/>" },
+];
+const LIVE_IDS = new Set(LIVE_GAMES.map((game) => game.id));
+
 const TOAST_ICONS = { win: "▲", loss: "▼", info: "◆", achievement: "★" };
 
 function formatMoney(value) {
@@ -111,7 +119,16 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
       </div>
     </section>`;
   liveRoot.classList.add("cz-root", "cz-live-root");
-  liveRoot.innerHTML = `<div class="cz-stage cz-live-stage"><div class="cz-game" data-game-root="live-rocket" hidden></div></div>`;
+  let currentLive = LIVE_IDS.has(localStorage.getItem("nz-live-game")) ? localStorage.getItem("nz-live-game") : "live-rocket";
+  liveRoot.innerHTML = `<nav class="cz-live-tabs" role="tablist" aria-label="Live games">${LIVE_GAMES.map((game) => `<button type="button" class="cz-live-tab" role="tab" data-live-game="${game.id}"><svg viewBox="0 0 24 24" aria-hidden="true">${game.icon}</svg><span><strong>${game.name}</strong><small>${game.tagline}</small></span></button>`).join("")}<span class="cz-live-note"><i></i>ONLINE · SHARED WITH EVERY PLAYER</span></nav><div class="cz-stage cz-live-stage">${LIVE_GAMES.map((game) => `<div class="cz-game" data-game-root="${game.id}" hidden></div>`).join("")}</div>`;
+  function renderLiveTabs() {
+    liveRoot.querySelectorAll(".cz-live-tab").forEach((tab) => {
+      const active = tab.dataset.liveGame === currentLive;
+      tab.classList.toggle("active", active);
+      tab.setAttribute("aria-selected", String(active));
+    });
+  }
+  renderLiveTabs();
 
   const fairDialog = document.createElement("dialog");
   fairDialog.className = "cz-fair-dialog";
@@ -267,7 +284,7 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
   const liveCtx = { ...ctx, serverNow: () => Date.now() + clockOffset };
 
   function moduleRoot(id) {
-    return (id === "live-rocket" ? liveRoot : originalsRoot).querySelector(`[data-game-root="${id}"]`);
+    return (LIVE_IDS.has(id) ? liveRoot : originalsRoot).querySelector(`[data-game-root="${id}"]`);
   }
 
   function ensureModule(id) {
@@ -279,7 +296,7 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
     entry.ready = import(new URL(`games/${id}.js`, import.meta.url).href)
       .then(async (module) => {
         container.innerHTML = "";
-        entry.instance = await module.mount(container, id === "live-rocket" ? liveCtx : ctx);
+        entry.instance = await module.mount(container, LIVE_IDS.has(id) ? liveCtx : ctx);
         if (entry.visible) entry.instance.show();
         else entry.instance.hide();
         container.hidden = !entry.visible;
@@ -307,7 +324,7 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
 
   function syncVisibility() {
     for (const game of GAMES) setVisible(game.id, appMode === "originals" && game.id === currentGame);
-    setVisible("live-rocket", appMode === "live");
+    for (const game of LIVE_GAMES) setVisible(game.id, appMode === "live" && game.id === currentLive);
   }
 
   // ── Fit to screen ──────────────────────────────────────────────────────────
@@ -459,6 +476,18 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
   });
 
   // ── Events ──────────────────────────────────────────────────────────────────
+  liveRoot.addEventListener("click", (event) => {
+    const tab = event.target.closest(".cz-live-tab");
+    if (tab && tab.dataset.liveGame !== currentLive) {
+      sound(520, 0.05, "triangle", 0.03);
+      currentLive = tab.dataset.liveGame;
+      localStorage.setItem("nz-live-game", currentLive);
+      renderLiveTabs();
+      syncVisibility();
+      scheduleFit();
+    }
+    if (event.target.closest("[data-retry]")) syncVisibility();
+  });
   originalsRoot.addEventListener("click", (event) => {
     const modeButton = event.target.closest("[data-play-mode]");
     if (modeButton) setPlayMode(modeButton.dataset.playMode);
@@ -485,6 +514,13 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
     },
     open(game, options) {
       openGame(game, options);
+    },
+    openLive(game) {
+      if (!LIVE_IDS.has(game)) return;
+      currentLive = game;
+      localStorage.setItem("nz-live-game", game);
+      renderLiveTabs();
+      syncVisibility();
     },
   };
 }

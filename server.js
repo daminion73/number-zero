@@ -8,8 +8,11 @@ import { openStore, transaction } from "./backend/store.js";
 import { createCasino } from "./backend/casino.js";
 import { recordPlay } from "./backend/achievements.js";
 import { createLive } from "./backend/live.js";
+import { createLiveRoulette } from "./backend/live-roulette.js";
+import { createCoinflip } from "./backend/coinflip.js";
 import { loadProfile, loadWinners } from "./backend/profile.js";
 import {
+  BOT_NAMES,
   FORMATS,
   MODES,
   allocate,
@@ -19,7 +22,6 @@ import {
 } from "./backend/game.js";
 
 const ROOT = import.meta.dirname;
-const BOT_NAMES = ["Nova", "Cipher", "Vortex", "Pixel", "Rogue", "Blitz", "Echo", "Jinx", "Onyx", "Zephyr", "Havoc", "Quartz", "Raven", "Turbo", "Wraith", "Static", "Mako", "Vega", "Glitch", "Comet", "Ember", "Volt", "Nyx", "Orbit"];
 const types = {
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
@@ -104,6 +106,8 @@ export async function createServer(options = {}) {
     new ApiError(status, code, message, extra);
   const casino = createCasino({ db, now, publicUser, fail });
   const live = await createLive({ db, now, publicUser, fail });
+  const liveRoulette = await createLiveRoulette({ db, now, publicUser, fail });
+  const coinflip = createCoinflip({ db, now, publicUser, fail });
 
   async function auth(req) {
     const match = /^Bearer ([A-Za-z0-9_-]{20,})$/.exec(
@@ -163,6 +167,7 @@ export async function createServer(options = {}) {
     ticking = (async () => {
       await casino.maintenance();
       await live.maintenance();
+      await liveRoulette.maintenance();
       const rows = (
         await db.execute(
           "SELECT id,data FROM battles WHERE state IN ('waiting','running')",
@@ -490,6 +495,12 @@ export async function createServer(options = {}) {
       const viewer = req.headers.authorization ? await auth(req) : null;
       return send(res, 200, await live.handle(null, viewer), originValue);
     }
+    if (req.method === "GET" && url.pathname === "/api/live-roulette") {
+      const viewer = req.headers.authorization ? await auth(req) : null;
+      return send(res, 200, await liveRoulette.handle(null, viewer), originValue);
+    }
+    if (req.method === "GET" && url.pathname === "/api/coinflips")
+      return send(res, 200, await coinflip.list(), originValue);
     const match =
       /^\/api\/battles\/([^/]+)(?:\/(join|bot|remove-bot|leave|cancel|start))?$/.exec(
         url.pathname,
@@ -510,6 +521,13 @@ export async function createServer(options = {}) {
         await live.handle(liveAction[1], user, await body(req)),
         originValue,
       );
+    if (req.method === "POST" && url.pathname === "/api/live-roulette/bet")
+      return send(res, 200, await liveRoulette.handle("bet", user, await body(req)), originValue);
+    if (req.method === "POST" && url.pathname === "/api/coinflips")
+      return send(res, 201, await coinflip.create(user, await body(req)), originValue);
+    const flipAction = /^\/api\/coinflips\/([A-Za-z0-9-]{1,64})\/(join|bot|cancel)$/.exec(url.pathname);
+    if (req.method === "POST" && flipAction)
+      return send(res, 200, await coinflip.act(user, flipAction[1], flipAction[2]), originValue);
     if (
       url.pathname.startsWith("/api/casino/") ||
       url.pathname.startsWith("/api/fair")

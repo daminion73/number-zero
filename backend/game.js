@@ -9,6 +9,7 @@ import {
 } from "../economy.js";
 import { evaluateBadges } from "../badges.js";
 
+export const BOT_NAMES = ["Nova", "Cipher", "Vortex", "Pixel", "Rogue", "Blitz", "Echo", "Jinx", "Onyx", "Zephyr", "Havoc", "Quartz", "Raven", "Turbo", "Wraith", "Static", "Mako", "Vega", "Glitch", "Comet", "Ember", "Volt", "Nyx", "Orbit"];
 export const FORMATS = {
   1: [[0], [1]],
   2: [[0], [1], [2]],
