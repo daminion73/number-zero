@@ -1692,4 +1692,6 @@ multiplayer = initMultiplayer({
 home = initHome({ root: $("#home-panel"), account: multiplayer.account, navigate: (mode) => setMode(mode, true), openGame, openLive });
 profile = initProfile({ root: $("#profile-panel"), account: multiplayer.account });
 casino = initCasino({ originalsRoot: $("#originals-panel"), liveRoot: $("#live-panel"), account: multiplayer.account, sound: tone });
+// Room invite links (?room=CODE) open the live tables.
+if (new URL(location.href).searchParams.has("room")) currentMode = "live";
 setMode(currentMode);

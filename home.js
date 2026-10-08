@@ -35,7 +35,10 @@ const games = [
   { name: "CRASH", category: "originals", target: "crash", tag: "HOT", copy: "Ride your own rocket", icon: "↗" },
   { name: "LIVE ROCKET", category: "live lobby", target: "live:live-rocket", tag: "LIVE", copy: "One round. Every player.", icon: "▲" },
   { name: "LIVE ROULETTE", category: "live lobby", target: "live:live-roulette", tag: "LIVE", copy: "Red, black or 14× green", icon: "◎" },
-  { name: "COINFLIP", category: "live lobby", target: "live:coinflip", tag: "PVP", copy: "Heads or tails, winner takes all", icon: "◐" },
+  { name: "COINFLIP ROOMS", category: "live lobby", target: "live:rooms", tag: "PVP", copy: "Heads or tails, winner takes all", icon: "◐" },
+  { name: "BLACKJACK TABLES", category: "live lobby", target: "live:rooms", tag: "NEW", copy: "Shared dealer, real players", icon: "A♠" },
+  { name: "POKER", category: "live lobby", target: "live:rooms", tag: "NEW", copy: "Texas Hold'em cash tables", icon: "♠" },
+  { name: "RUSSIAN ROULETTE", category: "live lobby", target: "live:rooms", tag: "NEW", copy: "One bullet. Last ones standing split it.", icon: "◉" },
   { name: "LIVE BATTLES", category: "case battles", target: "online", tag: "LIVE", copy: "Server-settled arenas", icon: "⚔" },
   { name: "CREATE BATTLE", category: "case battles", target: "duel", tag: "NEW", copy: "Build your showdown", icon: "+" },
 ];

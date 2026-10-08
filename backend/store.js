@@ -41,9 +41,15 @@ export async function openStore(filename, { url, authToken } = {}) {
         "CREATE TABLE IF NOT EXISTS live_roulette_bets(round_id TEXT NOT NULL REFERENCES live_roulette_rounds(id), user_id INTEGER NOT NULL REFERENCES users(id), name TEXT NOT NULL, color TEXT NOT NULL, wager_cents INTEGER NOT NULL, PRIMARY KEY(round_id,user_id,color))",
         "CREATE TABLE IF NOT EXISTS coinflips(id TEXT PRIMARY KEY, creator_id INTEGER NOT NULL REFERENCES users(id), state TEXT NOT NULL, data TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)",
         "CREATE INDEX IF NOT EXISTS coinflips_state ON coinflips(state, updated_at)",
+        "CREATE TABLE IF NOT EXISTS rooms(id TEXT PRIMARY KEY, code TEXT NOT NULL, game TEXT NOT NULL, visibility TEXT NOT NULL, host_id INTEGER NOT NULL REFERENCES users(id), state TEXT NOT NULL, data TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)",
+        "CREATE INDEX IF NOT EXISTS rooms_state ON rooms(state)",
       ],
       "write",
     );
+    // Equipped cosmetics (profile picture, frame, name colour, title); added to existing databases on boot.
+    const columns = new Set((await db.execute("PRAGMA table_info(users)")).rows.map((row) => row.name));
+    for (const column of ["avatar", "frame", "name_color", "title"])
+      if (!columns.has(column)) await db.execute(`ALTER TABLE users ADD COLUMN ${column} TEXT`);
     return db;
   } catch (error) {
     db.close();

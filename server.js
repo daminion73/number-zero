@@ -9,8 +9,10 @@ import { createCasino } from "./backend/casino.js";
 import { recordPlay } from "./backend/achievements.js";
 import { createLive } from "./backend/live.js";
 import { createLiveRoulette } from "./backend/live-roulette.js";
-import { createCoinflip } from "./backend/coinflip.js";
+import { createRooms } from "./backend/rooms.js";
+import { ROOM_ENGINES } from "./backend/rooms/index.js";
 import { loadProfile, loadWinners } from "./backend/profile.js";
+import { COLUMNS, COSMETIC_KINDS, cosmetic, lookOf, ownedKeys } from "./backend/cosmetics.js";
 import {
   BOT_NAMES,
   FORMATS,
@@ -42,6 +44,8 @@ const publicFiles = new Set([
   "multiplayer.css",
   "config.js",
   "casino-core.js",
+  "cosmetics.js",
+  "cosmetics.css",
   "casino-demo.js",
   "casino.js",
   "casino.css",
@@ -99,6 +103,7 @@ export async function createServer(options = {}) {
     balance: credits(row.balance_cents),
     battlesPlayed: row.battles_played,
     wins: row.wins,
+    look: lookOf(row),
     dailyAvailable:
       row.daily_day !== new Date(now()).toISOString().slice(0, 10),
   });
@@ -107,7 +112,14 @@ export async function createServer(options = {}) {
   const casino = createCasino({ db, now, publicUser, fail });
   const live = await createLive({ db, now, publicUser, fail });
   const liveRoulette = await createLiveRoulette({ db, now, publicUser, fail });
-  const coinflip = createCoinflip({ db, now, publicUser, fail });
+  const rooms = await createRooms({ db, now, publicUser, fail, engines: ROOM_ENGINES });
+  // Coinflips moved into rooms: refund any stake still held by the old open-flip lobby.
+  await transaction(db, async (tx) => {
+    for (const row of (await tx.execute("SELECT id, creator_id, data FROM coinflips WHERE state='open'")).rows) {
+      await tx.execute({ sql: "UPDATE users SET balance_cents=balance_cents+? WHERE id=?", args: [JSON.parse(row.data).betCents, row.creator_id] });
+      await tx.execute({ sql: "UPDATE coinflips SET state='cancelled', updated_at=? WHERE id=?", args: [now(), row.id] });
+    }
+  });
 
   async function auth(req) {
     const match = /^Bearer ([A-Za-z0-9_-]{20,})$/.exec(
@@ -168,6 +180,7 @@ export async function createServer(options = {}) {
       await casino.maintenance();
       await live.maintenance();
       await liveRoulette.maintenance();
+      await rooms.maintenance();
       const rows = (
         await db.execute(
           "SELECT id,data FROM battles WHERE state IN ('waiting','running')",
@@ -499,8 +512,13 @@ export async function createServer(options = {}) {
       const viewer = req.headers.authorization ? await auth(req) : null;
       return send(res, 200, await liveRoulette.handle(null, viewer), originValue);
     }
-    if (req.method === "GET" && url.pathname === "/api/coinflips")
-      return send(res, 200, await coinflip.list(), originValue);
+    if (req.method === "GET" && url.pathname === "/api/rooms")
+      return send(res, 200, await rooms.list(url.searchParams.get("game") || null), originValue);
+    const roomGet = /^\/api\/rooms\/([A-Za-z0-9-]{1,64})$/.exec(url.pathname);
+    if (req.method === "GET" && roomGet) {
+      const viewer = req.headers.authorization ? await auth(req).catch(() => null) : null;
+      return send(res, 200, await rooms.get(roomGet[1], viewer), originValue);
+    }
     const match =
       /^\/api\/battles\/([^/]+)(?:\/(join|bot|remove-bot|leave|cancel|start))?$/.exec(
         url.pathname,
@@ -523,11 +541,11 @@ export async function createServer(options = {}) {
       );
     if (req.method === "POST" && url.pathname === "/api/live-roulette/bet")
       return send(res, 200, await liveRoulette.handle("bet", user, await body(req)), originValue);
-    if (req.method === "POST" && url.pathname === "/api/coinflips")
-      return send(res, 201, await coinflip.create(user, await body(req)), originValue);
-    const flipAction = /^\/api\/coinflips\/([A-Za-z0-9-]{1,64})\/(join|bot|cancel)$/.exec(url.pathname);
-    if (req.method === "POST" && flipAction)
-      return send(res, 200, await coinflip.act(user, flipAction[1], flipAction[2]), originValue);
+    if (req.method === "POST" && url.pathname === "/api/rooms")
+      return send(res, 201, await rooms.create(user, await body(req)), originValue);
+    const roomAction = /^\/api\/rooms\/([A-Za-z0-9-]{1,64})\/(join|leave|bot|kick|start|close|act)$/.exec(url.pathname);
+    if (req.method === "POST" && roomAction)
+      return send(res, 200, await rooms.act(user, roomAction[1], roomAction[2], await body(req)), originValue);
     if (
       url.pathname.startsWith("/api/casino/") ||
       url.pathname.startsWith("/api/fair")
@@ -535,6 +553,19 @@ export async function createServer(options = {}) {
       const payload = req.method === "POST" ? await body(req) : {};
       const pending = casino.handle(req.method, url.pathname, user, payload);
       if (pending) return send(res, 200, await pending, originValue);
+    }
+    if (req.method === "POST" && url.pathname === "/api/profile/cosmetics") {
+      // Equip (or with id null, unequip) an owned profile picture, frame, name colour or title.
+      const { kind, id } = await body(req);
+      if (!COSMETIC_KINDS.includes(kind)) throw fail(400, "invalid_kind", "Unknown cosmetic type.");
+      if (id !== null) {
+        if (typeof id !== "string" || !cosmetic(kind, id)) throw fail(400, "invalid_cosmetic", "Unknown cosmetic.");
+        const unlocked = (await db.execute({ sql: "SELECT id FROM achievements WHERE user_id=?", args: [user.id] })).rows.map((row) => row.id);
+        if (!ownedKeys(unlocked).has(`${kind}:${id}`)) throw fail(403, "locked", "Unlock it with its achievement first.");
+      }
+      await transaction(db, (tx) => tx.execute({ sql: `UPDATE users SET ${COLUMNS[kind]}=? WHERE id=?`, args: [id, user.id] }));
+      const row = (await db.execute({ sql: "SELECT * FROM users WHERE id=?", args: [user.id] })).rows[0];
+      return send(res, 200, { profile: await loadProfile(db, row, publicUser), user: publicUser(row), serverTime: now() }, originValue);
     }
     if (req.method === "GET" && url.pathname === "/api/profile")
       return send(
@@ -673,7 +704,7 @@ export async function createServer(options = {}) {
           entryCents,
           createdAt,
           players: [
-            { seat: 0, userId: user.id, name: user.name, bot: false, team: 0 },
+            { seat: 0, userId: user.id, name: user.name, look: lookOf(user), bot: false, team: 0 },
           ],
         };
         await tx.execute({
@@ -817,6 +848,7 @@ export async function createServer(options = {}) {
               seat,
               userId: user.id,
               name: user.name,
+              look: lookOf(user),
               bot: false,
               team,
             });

@@ -14,7 +14,6 @@ import {
   crashPointFromFloat,
   crashTimeFor,
   fairFloats,
-  coinflipResult,
   liveCrashPoint,
   liveRouletteColor,
   liveRouletteRoll,
@@ -276,7 +275,8 @@ test("profile analytics, achievements once, winners and case-battle plays", asyn
   const empty = await f.profile(token);
   assert.deepEqual(empty.totals, { wagered: 0, returned: 0, net: 0, plays: 0, wins: 0 });
   assert.equal(empty.series.length, 0);
-  assert.equal(empty.achievements.length, 16);
+  assert.ok(empty.achievements.length >= 60);
+  assert.ok(empty.achievements.every((a) => a.reward === 0 && !a.unlocked), "achievements grant cosmetics, not credits");
   const first = (await f.request("/api/casino/baccarat", { bets: { banker: 100 } }, token)).data;
   assert.equal(first.achievements[0].id, "first-play");
   for (let index = 0; index < 4; index++) {
@@ -389,49 +389,4 @@ test("live roulette: shared spin, colour bets, exactly-once settlement across re
   await f.tick();
   assert.equal((await f.profile(b)).games.find((game) => game.game === "live-roulette").plays, 2);
   await f.assertConserved(b);
-});
-
-test("coinflip battles: create, join, house bot, cancel and fair result", async (t) => {
-  const f = await fixture(t);
-  const a = await f.login("Alpha");
-  const b = await f.login("Bravo");
-  assert.equal((await f.request("/api/coinflips", { bet: 100, side: "heads" })).status, 401);
-  assert.equal((await f.request("/api/coinflips", { bet: 100, side: "edge" }, a)).status, 400);
-  const created = await f.request("/api/coinflips", { bet: 500, side: "heads" }, a);
-  assert.equal(created.status, 201);
-  const flip = created.data.flip;
-  const path = `/api/coinflips/${flip.id}`;
-  assert.equal(flip.state, "open");
-  assert.equal(flip.seed, null);
-  assert.equal(created.data.user.balance, 99_500);
-  assert.equal((await f.request(`${path}/join`, {}, a)).data.error.code, "own_flip");
-  assert.equal((await f.request(`${path}/cancel`, {}, b)).status, 403);
-  assert.equal((await f.request("/api/coinflips")).data.flips[0].id, flip.id);
-
-  const joined = (await f.request(`${path}/join`, {}, b)).data.flip;
-  assert.equal(joined.state, "flipped");
-  assert.equal(joined.joiner.side, "tails");
-  assert.equal(sha256Hex(joined.seed), joined.seedHash);
-  assert.equal(coinflipResult(joined.seed, joined.id), joined.result);
-  assert.equal(joined.winner, joined.result === "heads" ? "creator" : "joiner");
-  assert.equal((await f.request(`${path}/join`, {}, b)).data.error.code, "not_open");
-  const winner = joined.winner === "creator" ? a : b;
-  const loser = winner === a ? b : a;
-  assert.equal((await f.balanceCents(winner)) - (await f.rewardsCents(winner)), START + 50_000);
-  assert.equal((await f.balanceCents(loser)) - (await f.rewardsCents(loser)), START - 50_000);
-  await f.assertConserved(a);
-  await f.assertConserved(b);
-
-  // A house bot takes the other side; cancelling refunds an open flip.
-  const botFlip = (await f.request("/api/coinflips", { bet: 100, side: "tails" }, a)).data.flip;
-  assert.equal((await f.request(`/api/coinflips/${botFlip.id}/bot`, {}, b)).status, 403);
-  const settled = (await f.request(`/api/coinflips/${botFlip.id}/bot`, {}, a)).data.flip;
-  assert.equal(settled.joiner.bot, true);
-  assert.ok(settled.joiner.name);
-  await f.assertConserved(a);
-  const open = (await f.request("/api/coinflips", { bet: 100, side: "heads" }, b)).data.flip;
-  const before = await f.balanceCents(b);
-  assert.equal((await f.request(`/api/coinflips/${open.id}/cancel`, {}, b)).status, 200);
-  assert.equal(await f.balanceCents(b), before + 10_000);
-  assert.equal((await f.request("/api/coinflips")).data.flips.some((x) => x.id === open.id), false);
 });

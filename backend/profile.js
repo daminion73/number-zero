@@ -1,5 +1,8 @@
 // Lifetime analytics and public winner feed, aggregated from the `plays` ledger.
-import { ACHIEVEMENTS } from "./achievements.js";
+import { ACHIEVEMENTS, achievementContext, progressOf } from "./achievements.js";
+import { COSMETICS, lookOf, ownedKeys } from "./cosmetics.js";
+
+const ACHIEVEMENT_NAMES = new Map(ACHIEVEMENTS.map((achievement) => [achievement.id, achievement.name]));
 
 const SERIES_LIMIT = 250;
 const WINNER_LIMIT = 12;
@@ -25,6 +28,7 @@ export async function loadProfile(db, userRow, publicUser) {
     await query(`SELECT wager_cents, payout_cents, created_at FROM plays WHERE user_id=? ORDER BY id DESC LIMIT ${SERIES_LIMIT}`)
   ).reverse();
   const unlocked = new Map((await query("SELECT id, unlocked_at FROM achievements WHERE user_id=?")).map((row) => [row.id, row.unlocked_at]));
+  const context = await achievementContext(db, userId);
 
   // The series ends at the lifetime net, even when older plays fall outside the window.
   const lifetimeNet = totals.returned - totals.wagered;
@@ -73,7 +77,19 @@ export async function loadProfile(db, userRow, publicUser) {
       ...achievement,
       unlocked: unlocked.has(achievement.id),
       unlockedAt: unlocked.get(achievement.id) ?? null,
+      progress: progressOf(achievement.id, context),
     })),
+    cosmetics: (() => {
+      const owned = ownedKeys([...unlocked.keys()]);
+      return {
+        equipped: lookOf(userRow),
+        items: COSMETICS.map((item) => ({
+          ...item,
+          owned: owned.has(`${item.kind}:${item.id}`),
+          unlock: item.source === "default" ? null : ACHIEVEMENT_NAMES.get(item.source) || item.source,
+        })),
+      };
+    })(),
   };
 }
 

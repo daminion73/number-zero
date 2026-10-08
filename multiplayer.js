@@ -1,3 +1,4 @@
+import { avatarMarkup } from "./cosmetics.js";
 import { CASES } from "./economy.js";
 import { API_BASE } from "./config.js";
 
@@ -16,6 +17,7 @@ const money = (value) =>
     maximumFractionDigits: 2,
   });
 const itemFor = (id) => CASES.find((item) => item.id === id);
+const TEAM_COLORS = ["#53e7ff", "#ff4fd8", "#ffd43b", "#c7ff36"];
 const TOKEN_KEY = `number-zero-session:${API_BASE || location.origin}`;
 const modeCopy = {
   classic: "Highest total EP wins",
@@ -124,8 +126,8 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
   }
   function renderAccount() {
     if (!user) heldBalance = null;
-    $("#account-button").textContent = user
-      ? `${user.name} · ${money(shownBalance())} ONLINE CR`
+    $("#account-button").innerHTML = user
+      ? `${avatarMarkup(user.look, user.name, 20)}<span>${esc(user.name)} · ${money(shownBalance())} ONLINE CR</span>`
       : "SIGN IN / ACCOUNT ↗";
     $("#global-balance").textContent = user ? `${money(shownBalance())} CR` : "SIGN IN";
     if ($(".online-balance") && !presentation?.controller)
@@ -354,20 +356,24 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
     if (arena) {
       const displayUser = user && b.state === "running" ? { ...user, balance: presentation.balance ?? user.balance } : user;
       room.innerHTML = renderBattle(b, opening, displayUser, !presentation.settlementDismissed) + historyHtml;
-    } else room.innerHTML = `<header class="online-room-heading"><div><p class="kicker">${esc(b.mode.toUpperCase())} · ${esc(b.format.toUpperCase())} · ${esc(b.speed.toUpperCase())}</p><h2>${b.state === "waiting" ? "YOUR SEAT IS WAITING" : "LOBBY CLOSED"}</h2><p>${esc(modeCopy[b.mode])} · ${money(b.entry)} CR entry per seat</p></div><button type="button" data-room-action="close" data-focus="close">BACK TO FEED</button></header>
+    } else room.innerHTML = `<header class="online-room-heading"><div><p class="kicker">${esc(b.mode.toUpperCase())} · ${esc(b.format.toUpperCase())} · ${esc(b.speed.toUpperCase())}</p><h2>${b.state === "waiting" ? (member ? "YOUR SEAT IS WAITING" : "PICK YOUR TEAM") : "LOBBY CLOSED"}</h2><p>${esc(modeCopy[b.mode])} · ${money(b.entry)} CR entry per seat</p></div><button type="button" data-room-action="close" data-focus="close">BACK TO FEED</button></header>
       <div class="online-room-meta"><span>${b.players.length}/${slots} SEATS FILLED</span><span>${b.caseIds.length} ROUNDS</span><button type="button" data-room-action="share" data-focus="share">COPY INVITE LINK ↗</button></div>
       <div class="online-sequence" aria-label="Battle case sequence">${b.caseIds.map((id, i) => `<span title="${esc(itemFor(id)?.name || id)}">${i + 1}. ${esc(itemFor(id)?.name || id)}</span>`).join("")}</div>
-      <div class="online-seats" style="--online-seats:${slots}">${Array.from(
-        { length: slots },
-        (_, seat) => {
-          const player = b.players.find((p) => p.seat === seat),
-            team = b.teams.findIndex((t) => t.includes(seat));
-          return `<article class="online-seat ${player ? "occupied" : "vacant"}"><div class="online-seat-label"><span>TEAM ${String.fromCharCode(65 + team)}</span><span>${player?.bot ? "HOUSE BOT" : player ? "PLAYER" : "OPEN SEAT"}</span></div><div class="online-avatar">${player ? esc(player.bot ? "◇" : player.name[0].toUpperCase()) : "+"}</div><h3>${esc(player?.name || "Join this seat")}${player?.id === user?.id && user ? " <em>YOU</em>" : ""}</h3>
-          <div class="online-reveal online-pending"><span>${player ? "READY FOR THE HOST" : "A PLAYER OR HOST-ADDED BOT"}</span></div>
-          ${b.state === "waiting" && !player ? `<div class="online-seat-actions">${!member ? `<button type="button" data-room-action="join" data-seat="${seat}" data-focus="join-${seat}">JOIN · ${money(b.entry)} CR</button>` : ""}${host ? `<button type="button" data-room-action="bot" data-seat="${seat}" data-focus="bot-${seat}">+ ADD BOT</button>` : ""}</div>` : ""}
-          ${b.state === "waiting" && host && player?.bot ? `<button type="button" data-room-action="remove-bot" data-seat="${seat}" data-focus="remove-${seat}">REMOVE BOT</button>` : ""}</article>`;
-        },
-      ).join("")}</div>
+      <div class="online-teams">${b.teams.map((seats, team) => {
+        const letter = String.fromCharCode(65 + team);
+        const open = seats.find((seat) => !b.players.some((p) => p.seat === seat));
+        const mine = member && seats.includes(member.seat);
+        const seatCards = seats.map((seat) => {
+          const player = b.players.find((p) => p.seat === seat);
+          return `<article class="online-seat ${player ? "occupied" : "vacant"}"><div class="online-avatar${player && !player.bot ? " has-look" : ""}">${player ? (player.bot ? "◇" : avatarMarkup(player.look, player.name, 45)) : "+"}</div><h3>${esc(player?.name || "Open seat")}${player?.id === user?.id && user ? " <em>YOU</em>" : ""}</h3><small class="online-seat-kind">${player?.bot ? "HOUSE BOT" : player ? "PLAYER" : "WAITING FOR A PLAYER"}</small>
+          ${b.state === "waiting" && !player ? `<div class="online-seat-actions">${!member ? `<button type="button" data-room-action="join" data-seat="${seat}" data-focus="join-${seat}">SIT HERE · ${money(b.entry)} CR</button>` : ""}${host ? `<button type="button" data-room-action="bot" data-seat="${seat}" data-focus="bot-${seat}">+ ADD BOT</button>` : ""}</div>` : ""}
+          ${b.state === "waiting" && host && player?.bot ? `<button type="button" class="online-remove-bot" data-room-action="remove-bot" data-seat="${seat}" data-focus="remove-${seat}">REMOVE BOT</button>` : ""}</article>`;
+        }).join("");
+        const join = b.state === "waiting" && !member && open !== undefined
+          ? `<button type="button" class="online-team-join" data-room-action="join" data-seat="${open}" data-focus="team-${team}">JOIN TEAM ${letter} <span>${money(b.entry)} CR</span></button>`
+          : mine ? `<span class="online-team-yours">✓ YOU'RE ON TEAM ${letter}</span>` : open === undefined ? `<span class="online-team-full">TEAM FULL</span>` : "";
+        return `${team ? `<div class="online-vs" aria-hidden="true">VS</div>` : ""}<section class="online-team ${mine ? "mine" : ""}" style="--team:${TEAM_COLORS[team % TEAM_COLORS.length]};--team-size:${seats.length}"><header><b>TEAM ${letter}</b><span>${seats.filter((seat) => b.players.some((p) => p.seat === seat)).length}/${seats.length} SEATED</span></header><div class="online-team-seats">${seatCards}</div>${join}</section>`;
+      }).join("")}</div>
       <div class="online-room-actions">${b.state === "waiting" ? (host ? `<span class="online-autostart">Starts automatically when every seat is filled · ${b.players.length}/${slots}</span><button type="button" data-room-action="cancel" data-focus="cancel">CANCEL & REFUND EVERYONE</button>` : member ? '<button type="button" data-room-action="leave" data-focus="leave">LEAVE & REFUND MY SEAT</button>' : "<span>Sign in, choose a team, and join an open seat.</span>") : "<p>All reserved human entries were refunded.</p>"}</div>
       ${b.state === "waiting" ? `<p class="online-footnote">Waiting lobby expires at ${new Date(b.expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}. Leaving this page does not cancel your seat. Reconnect from your account.</p>` : ""}
       ${historyHtml}`;
