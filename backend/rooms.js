@@ -21,11 +21,16 @@ const WAITING_TTL = 30 * 60_000;
 const FINISHED_VISIBLE = 90_000;
 const EMPTY_TABLE_TTL = 60_000;
 const MAX_HOSTED_OPEN = 5;
+// A seated player whose room stream has been closed this long has left the table (tab closed, navigated away).
+const PRESENCE_GRACE = 20_000;
 
-export async function createRooms({ db, now, fail, publicUser, engines }) {
+export async function createRooms({ db, now, fail, publicUser, engines, timers = true }) {
   const byId = new Map(engines.map((engine) => [engine.id, engine]));
   const games = engines.map((engine) => ({ id: engine.id, name: engine.name }));
   const rooms = new Map();
+  const watchers = new Map(); // room id → Set<{ viewerId, write(payload), end() }>
+  const presence = new Map(); // `${roomId}:${userId}` → { open: streams, seen: ms } (only for users who opened a stream)
+  const wakeups = new Map(); // room id → timeout that advances a watched room exactly when its next event is due
   let queue = Promise.resolve();
 
   function exclusive(fn) {
@@ -102,7 +107,58 @@ export async function createRooms({ db, now, fail, publicUser, engines }) {
       return value;
     });
     rooms.set(draft.id, draft);
+    publish(draft);
     return { room: draft, result };
+  }
+
+  /** Pushes the new state to every open stream of the room (each viewer gets their own view). */
+  function publish(room) {
+    if (room.state === "closed") return; // forget() tells the viewers
+    for (const watcher of watchers.get(room.id) || []) watcher.write({ room: snapshot(room, watcher.viewerId), serverTime: now() });
+    arm(room);
+  }
+
+  /** Drops a room from memory and tells its viewers it is gone. */
+  function forget(room) {
+    rooms.delete(room.id);
+    clearTimeout(wakeups.get(room.id));
+    wakeups.delete(room.id);
+    for (const watcher of watchers.get(room.id) || []) {
+      watcher.write({ closed: true, serverTime: now() });
+      watcher.end();
+    }
+    watchers.delete(room.id);
+    for (const key of presence.keys()) if (key.startsWith(`${room.id}:`)) presence.delete(key);
+  }
+
+  /** Watched rooms advance on their own exactly when due, so streams see bot moves and timers without polling. */
+  function arm(room) {
+    clearTimeout(wakeups.get(room.id));
+    wakeups.delete(room.id);
+    if (!timers || !watchers.get(room.id)?.size || room.state === "closed") return;
+    const due = room.state === "finished" ? room.updatedAt + FINISHED_VISIBLE : room.play?.nextAt;
+    if (due == null) return;
+    const wake = setTimeout(() => {
+      exclusive(async () => {
+        const current = rooms.get(room.id);
+        if (!current) return;
+        // advance() re-arms through publish() when it changes the room; otherwise check again later.
+        if ((await advance(current)) === current && rooms.get(room.id) === current) arm(current);
+      }).catch((error) => console.error("Room wakeup failed", error.message));
+    }, Math.max(50, due - now() + 10));
+    wake.unref?.();
+    wakeups.set(room.id, wake);
+  }
+
+  function touch(room, userId) {
+    const entry = userId == null ? null : presence.get(`${room.id}:${userId}`);
+    if (entry) entry.seen = now();
+  }
+
+  /** True only for players known to have left: they streamed this room before and no stream has been open for a while. */
+  function absent(room, userId) {
+    const entry = presence.get(`${room.id}:${userId}`);
+    return Boolean(entry) && entry.open === 0 && now() - entry.seen > PRESENCE_GRACE;
   }
 
   async function closeRoom(room, t) {
@@ -117,17 +173,35 @@ export async function createRooms({ db, now, fail, publicUser, engines }) {
     const at = now();
     if (room.state === "closed") return room;
     if (room.state === "finished") {
-      if (at - room.updatedAt > FINISHED_VISIBLE) rooms.delete(room.id);
+      const seated = humans(room);
+      if (at - room.updatedAt > FINISHED_VISIBLE || !seated.length || seated.every((seat) => absent(room, seat.userId))) forget(room);
       return room;
     }
     const engine = engineOf(room);
+    const seated = humans(room);
+    // Players who closed the page or walked off to another game no longer count as being at the table.
+    const gone = room.state === "playing" && engine.closeWhilePlaying === false ? [] : seated.filter((seat) => absent(room, seat.userId));
     const stale =
-      (room.state === "waiting" && at - room.createdAt > WAITING_TTL && !humans(room).some((seat) => seat.joinedAt > at - WAITING_TTL)) ||
-      (!humans(room).length && at - room.updatedAt > EMPTY_TABLE_TTL);
+      (room.state === "waiting" && at - room.createdAt > WAITING_TTL && !seated.some((seat) => seat.joinedAt > at - WAITING_TTL)) ||
+      (!seated.length && at - room.updatedAt > EMPTY_TABLE_TTL) ||
+      (seated.length > 0 && gone.length === seated.length);
     if (stale) {
       const { room: closed } = await mutate(room, (draft, t) => closeRoom(draft, t));
-      rooms.delete(closed.id);
+      forget(closed);
       return closed;
+    }
+    // Some (not all) players walked away: free their seats where the game allows it.
+    for (const seat of gone) {
+      try {
+        ({ room } = await mutate(room, async (draft, t) => {
+          const index = seatOf(draft, seat.userId);
+          if (index < 0) return;
+          await engine.leave(draft, index, t, {});
+          draft.seats[index] = null;
+        }));
+      } catch {
+        // Russian roulette forbids leaving mid-game; its turn timer plays for them instead.
+      }
     }
     if (room.play?.nextAt != null && room.play.nextAt <= at) return (await mutate(room, () => {})).room;
     return room;
@@ -190,8 +264,9 @@ export async function createRooms({ db, now, fail, publicUser, engines }) {
       return exclusive(async () => {
         for (const room of [...rooms.values()]) await advance(room);
         const rows = [...rooms.values()]
-          .filter((room) => room.visibility === "public" && room.state !== "closed" && (!game || room.game === game))
-          .sort((a, b) => (a.state === "finished") - (b.state === "finished") || b.createdAt - a.createdAt)
+          // Finished games drop off the feed straight away; only tables you can join or watch live are listed.
+          .filter((room) => room.visibility === "public" && (room.state === "waiting" || room.state === "playing") && (!game || room.game === game))
+          .sort((a, b) => (a.state === "playing") - (b.state === "playing") || b.createdAt - a.createdAt)
           .slice(0, 100)
           .map(summary);
         return { rooms: rows, games, serverTime: now() };
@@ -201,7 +276,49 @@ export async function createRooms({ db, now, fail, publicUser, engines }) {
     get(idOrCode, viewer) {
       return exclusive(async () => {
         const room = await advance(find(idOrCode));
+        touch(room, viewer?.id);
         return { room: snapshot(room, viewer?.id), serverTime: now() };
+      });
+    },
+
+    /**
+     * Live stream of a room: `write(payload)` gets `{ room, serverTime }` now and after every change, then
+     * `{ closed: true }` (followed by `end()`) when the room goes away. Resolves to `stop()`.
+     * An open stream is what keeps a seated player "at the table".
+     */
+    watch(idOrCode, viewer, write, end) {
+      return exclusive(async () => {
+        const room = await advance(find(idOrCode));
+        if (room.state === "closed" || !rooms.has(room.id)) throw fail(404, "room_not_found", "That room does not exist or has closed.");
+        const watcher = { viewerId: viewer?.id ?? null, write, end };
+        if (!watchers.has(room.id)) watchers.set(room.id, new Set());
+        watchers.get(room.id).add(watcher);
+        const key = viewer ? `${room.id}:${viewer.id}` : null;
+        if (key) {
+          const entry = presence.get(key) || { open: 0, seen: 0 };
+          entry.open++;
+          entry.seen = now();
+          presence.set(key, entry);
+        }
+        write({ room: snapshot(room, watcher.viewerId), serverTime: now() });
+        arm(room);
+        let stopped = false;
+        return () => {
+          if (stopped) return;
+          stopped = true;
+          const set = watchers.get(room.id);
+          set?.delete(watcher);
+          if (set && !set.size) {
+            watchers.delete(room.id);
+            clearTimeout(wakeups.get(room.id));
+            wakeups.delete(room.id);
+          }
+          const entry = key && presence.get(key);
+          if (entry) {
+            entry.open = Math.max(0, entry.open - 1);
+            entry.seen = now();
+          }
+        };
       });
     },
 
@@ -243,6 +360,7 @@ export async function createRooms({ db, now, fail, publicUser, engines }) {
         let room = await advance(find(idOrCode));
         const engine = engineOf(room);
         if (room.state === "closed") throw fail(409, "room_closed", "This room has closed.");
+        touch(room, user.id);
         const host = room.hostId === user.id;
         const mine = seatOf(room, user.id);
         ({ room } = await mutate(room, async (draft, t) => {
@@ -268,7 +386,8 @@ export async function createRooms({ db, now, fail, publicUser, engines }) {
             if (!Number.isInteger(seat) || seat < 0 || !draft.seats[seat]) throw fail(409, "not_seated", "You are not seated in this room.");
             await engine.leave(draft, seat, t, {});
             draft.seats[seat] = null;
-            if (draft.state === "waiting" && !humans(draft).length) await closeRoom(draft, t);
+            // The last human out closes the table: bots never keep a room alive on their own.
+            if (!humans(draft).length) await closeRoom(draft, t);
           } else if (action === "start") {
             if (!host) throw fail(403, "host_only", "Only the host can start.");
             if (draft.state !== "waiting" || !engine.canStart?.(draft)) throw fail(409, "cannot_start", "Not enough players to start yet.");
@@ -282,7 +401,7 @@ export async function createRooms({ db, now, fail, publicUser, engines }) {
             await engine.action(draft, mine, body, t);
           } else throw fail(404, "not_found", "Unknown room action.");
         }));
-        if (room.state === "closed") rooms.delete(room.id);
+        if (room.state === "closed") forget(room);
         return withUser({ room: snapshot(room, user.id), serverTime: now() }, user);
       });
     },
@@ -291,6 +410,14 @@ export async function createRooms({ db, now, fail, publicUser, engines }) {
       return exclusive(async () => {
         for (const room of [...rooms.values()]) await advance(room);
       });
+    },
+
+    /** Ends every stream and wakeup timer (server shutdown). */
+    shutdown() {
+      for (const wake of wakeups.values()) clearTimeout(wake);
+      wakeups.clear();
+      for (const set of watchers.values()) for (const watcher of set) watcher.end();
+      watchers.clear();
     },
   };
 }

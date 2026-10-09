@@ -196,7 +196,16 @@ export function mountRoom(root, api) {
     return `<div class="rbj-note ${net > 0 ? "won" : net < 0 ? "lost" : ""}"><b>${net > 0 ? `YOU WIN +${api.money(net)} CR` : net < 0 ? `YOU LOSE −${api.money(-net)} CR` : "PUSH · BET RETURNED"}</b><span>Next round starts automatically</span></div>`;
   }
 
+  // The fairness check re-hashes the seed, so only redo it when its inputs change (render runs several times a second).
+  let fairMemo = { key: null, html: "" };
   function fairMarkup() {
+    const play = room.play;
+    const key = JSON.stringify([play.phase, play.seed, play.seedHash, play.nonce, play.drawn, play.dealer?.cards, play.hands]);
+    if (key !== fairMemo.key) fairMemo = { key, html: computeFair() };
+    return fairMemo.html;
+  }
+
+  function computeFair() {
     const play = room.play;
     if (play.phase === "result" && play.seed) {
       const stream = fairFloats(play.seed, "number-zero-room-blackjack", play.nonce, play.drawn).map(cardFromFloat);

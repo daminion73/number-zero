@@ -163,7 +163,16 @@ export function mountRoom(root, api) {
     return `<div class="pk-note"><b>${play.phase === "hand" ? (info?.folded ? "FOLDED" : "NEXT HAND") : play.phase === "waiting" ? "WAITING FOR PLAYERS" : "HAND OVER"}</b><span>${info?.sitOut ? "You are sitting out" : play.phase === "waiting" ? "Hands deal when two or more players are seated" : "You'll be dealt in next hand"}</span>${tools}</div>`;
   }
 
+  // The fairness check re-hashes the seed, so only redo it when its inputs change (render runs several times a second).
+  let fairMemo = { key: null, html: "" };
   function fairMarkup() {
+    const play = room.play;
+    const key = JSON.stringify([play.seed, play.seedHash, play.dealOrder, play.board, play.seats?.map((seat) => seat?.cards)]);
+    if (key !== fairMemo.key) fairMemo = { key, html: computeFair() };
+    return fairMemo.html;
+  }
+
+  function computeFair() {
     const play = room.play;
     if (!play.seedHash) return "";
     if (!play.seed) return `<span>COMMITTED</span><code title="SHA-256 of this hand's seed: ${play.seedHash}">${play.seedHash.slice(0, 12)}…</code>`;

@@ -318,6 +318,8 @@ test("classic originals and slots settle online, conserve credits and resume vid
     ["/api/casino/keno", { bet: 8, picks: [3, 9, 27, 40] }, 8],
     ["/api/casino/slots", { bet: 10, machine: "neon-gems" }, 10],
     ["/api/casino/slots", { bet: 3, machine: "lucky-sevens" }, 3],
+    ["/api/casino/sic-bo", { bets: [{ type: "big", amount: 10 }, { type: "combo", value: 25, amount: 2 }, { type: "triple", value: 6, amount: 1 }] }, 13],
+    ["/api/casino/money-wheel", { bets: [{ type: "1", amount: 4 }, { type: "zero", amount: 1 }] }, 5],
   ];
   for (const [path, body, wager] of instant) {
     const response = await f.request(path, body, token);
@@ -339,6 +341,20 @@ test("classic originals and slots settle online, conserve credits and resume vid
   assert.equal(drawn.data.round.phase, "settled");
   assert.deepEqual(drawn.data.round.cards.slice(0, 2), dealt.data.round.cards.slice(0, 2));
   assert.equal(drawn.data.round.deck.length, 10);
+
+  // Hi-Lo is resumable: guess until the round ends (cash out after the first correct guess).
+  const hilo = await f.request("/api/casino/hilo/start", { bet: 10 }, token);
+  assert.equal(hilo.data.round.phase, "playing");
+  assert.equal(hilo.data.round.cards.length, 1);
+  assert.equal((await f.request("/api/casino/hilo/action", { action: "cashout" }, token)).data.error.code, "illegal_action");
+  assert.equal((await f.request("/api/casino/active", undefined, token)).data.hilo.id, hilo.data.round.id);
+  let round = hilo.data.round;
+  while (round.phase === "playing") {
+    const rank = round.cards.at(-1) % 13;
+    const action = round.history.some((step) => step.correct) ? "cashout" : rank < 6 ? "higher" : "lower";
+    round = (await f.request("/api/casino/hilo/action", { action }, token)).data.round;
+  }
+  assert.ok(round.phase === "cashed" ? round.payout > 10 : round.phase === "busted" && round.payout === 0);
   await f.assertConserved(token);
   const games = (await f.profile(token)).games.map((game) => game.game);
   assert.ok(games.includes("slots:neon-gems") && games.includes("video-poker") && games.includes("roulette"));

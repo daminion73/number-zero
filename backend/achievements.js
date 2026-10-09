@@ -6,7 +6,7 @@ import { cosmeticsFor } from "./cosmetics.js";
 
 const CENTS_PER_CREDIT = 100;
 const ORIGINALS = ["blackjack", "baccarat", "mines", "crash"];
-const CLASSICS = ["roulette", "dice", "plinko", "keno", "video-poker"];
+const CLASSICS = ["roulette", "dice", "plinko", "keno", "video-poker", "hilo", "sic-bo", "money-wheel"];
 const SLOT_GAMES = ["slots:lucky-sevens", "slots:fruit-frenzy", "slots:neon-gems"];
 const LIVE_GAMES = ["live-rocket", "live-roulette", "case-battle"];
 const TABLE_GAMES = ["coinflip", "live-blackjack", "poker", "russian-roulette"];
@@ -69,7 +69,7 @@ const DEFINITIONS = [
   ["liftoff", "Liftoff", "Cash out Crash at 10× or more", "originals", best("crash", 10)],
   ["escape-velocity", "Escape Velocity", "Cash out Crash at 100× or more", "originals", best("crash", 100)],
 
-  ["classics-tour", "Classics Tour", "Play Roulette, Dice, Plinko, Keno and Video Poker", "classics", count((ctx) => played(ctx, CLASSICS), CLASSICS.length)],
+  ["classics-tour", "Classics Tour", "Play Roulette, Dice, Plinko, Keno, Video Poker, Hi-Lo, Sic Bo and Money Wheel", "classics", count((ctx) => played(ctx, CLASSICS), CLASSICS.length)],
   ["slot-spinner", "Reel Deal", "Spin all three slot machines", "classics", count((ctx) => played(ctx, SLOT_GAMES), SLOT_GAMES.length)],
   ["one-armed-bandit", "One-Armed Bandit", "Spin the slots 500 times", "classics", count((ctx) => SLOT_GAMES.reduce((sum, id) => sum + game(ctx, id).plays, 0), 500)],
   ["lucky-sevens", "Lucky Sevens", "Line up three 7s on Lucky Sevens (250×)", "classics", best("slots:lucky-sevens", 250)],
@@ -85,6 +85,9 @@ const DEFINITIONS = [
   ["ball-caller", "Ball Caller", "Play 100 Keno draws", "classics", plays("keno", 100)],
   ["quad-squad", "Quad Squad", "Make four of a kind or better in Video Poker", "classics", best("video-poker", 25)],
   ["royal-flush", "Royal Flush", "Hit a royal flush in Video Poker (800×)", "classics", best("video-poker", 800)],
+  ["card-counter", "Card Counter", "Cash out Hi-Lo at 10× or more", "classics", best("hilo", 10)],
+  ["tai-sai", "Tai Sai", "Win 30× or more on a Sic Bo roll", "classics", best("sic-bo", 30)],
+  ["big-six", "Big Six", "Land your bet on the Joker or Zero of the Money Wheel (41×)", "classics", best("money-wheel", 41)],
 
   ["live-pilot", "Live Pilot", "Cash out in the live rocket", "live", once((ctx) => game(ctx, "live-rocket").best > 0)],
   ["live-wire", "Live Wire", "Cash out the live rocket at 10× or more", "live", best("live-rocket", 10)],

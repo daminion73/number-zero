@@ -102,3 +102,47 @@ test("cosmetics: equip owned items, refuse locked ones, show the look in rooms",
   await f.restart();
   assert.equal((await f.request("/api/me", undefined, a)).data.user.look.title, "rookie", "persisted across restarts");
 });
+
+test("rooms close once no human is left: last one out, or their stream gone for good", async (t) => {
+  const f = await roomFixture(t);
+  const a = await f.login("Alpha");
+  const b = await f.login("Bravo");
+
+  // Leaving a live table that only has bots left closes it, mid-round included.
+  const table = (await f.create(a, "blackjack", { seats: 4, minBet: 10 })).data.room;
+  for (const seat of [1, 2, 3]) await f.act(a, table.id, "bot", { seat });
+  assert.equal((await f.act(a, table.id, "act", { type: "bet", amount: 10 })).data.room.state, "playing");
+  assert.equal((await f.act(a, table.id, "leave")).data.room.state, "closed");
+  assert.equal((await f.room(table.id)).status, 404);
+  assert.equal((await f.request("/api/rooms")).data.rooms.length, 0);
+
+  // A player watching over the stream gets pushed updates; once their stream is gone past the grace period they've left.
+  const room = (await f.create(a, "blackjack", { seats: 3, minBet: 10 })).data.room;
+  await f.act(a, room.id, "bot", { seat: 1 });
+  await f.act(b, room.id, "join", { seat: 2 });
+  const abort = new AbortController();
+  const response = await fetch(`${f.base()}/api/rooms/${room.id}/stream`, { headers: { Authorization: `Bearer ${a}` }, signal: abort.signal });
+  assert.equal(response.headers.get("content-type"), "text/event-stream; charset=utf-8");
+  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+  const next = async () => {
+    let text = "";
+    while (!text.includes("\n\n")) text += (await reader.read()).value;
+    return JSON.parse(text.slice(text.indexOf("data: ") + 6, text.indexOf("\n\n")));
+  };
+  assert.equal((await next()).room.you, 0, "the first message is the viewer's own snapshot");
+  await f.act(b, room.id, "act", { type: "bet", amount: 10 });
+  assert.equal((await next()).room.play.bets[2], 10, "changes are pushed");
+  abort.abort();
+  await new Promise((resolve) => setTimeout(resolve, 300)); // let the server see the disconnect
+  f.advance(10_000);
+  await f.tick();
+  assert.equal((await f.room(room.id)).data.room.seats[0].name, "Alpha", "a reload within the grace period keeps the seat");
+  f.advance(25_000);
+  await f.tick();
+  const after = (await f.room(room.id)).data.room;
+  assert.equal(after.seats[0], null, "Alpha walked away and lost the seat");
+  assert.equal(after.seats[2].name, "Bravo", "the table stays open for the remaining human");
+  assert.equal((await f.act(b, room.id, "leave")).data.room.state, "closed");
+  await f.assertConserved(a);
+  await f.assertConserved(b);
+});

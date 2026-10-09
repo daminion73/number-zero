@@ -33,6 +33,9 @@ const games = [
   { name: "KENO", category: "originals", target: "keno", tag: "NEW", copy: "Pick 1–10 of 40", icon: "▦" },
   { name: "MINES", category: "originals", target: "mines", tag: "ORIGINAL", copy: "Reveal gems or cash out", icon: "✦" },
   { name: "CRASH", category: "originals", target: "crash", tag: "HOT", copy: "Ride your own rocket", icon: "↗" },
+  { name: "HI-LO", category: "originals", target: "hilo", tag: "NEW", copy: "Higher or lower, cash out any time", icon: "⇅" },
+  { name: "SIC BO", category: "originals", target: "sic-bo", tag: "NEW", copy: "Three dice, up to 180:1", icon: "⚅" },
+  { name: "MONEY WHEEL", category: "originals", target: "money-wheel", tag: "NEW", copy: "Big Six wheel, 40:1 jackpots", icon: "✺" },
   { name: "LIVE ROCKET", category: "live lobby", target: "live:live-rocket", tag: "LIVE", copy: "One round. Every player.", icon: "▲" },
   { name: "LIVE ROULETTE", category: "live lobby", target: "live:live-roulette", tag: "LIVE", copy: "Red, black or 14× green", icon: "◎" },
   { name: "COINFLIP ROOMS", category: "live lobby", target: "live:rooms", tag: "PVP", copy: "Heads or tails, winner takes all", icon: "◐" },
@@ -43,7 +46,7 @@ const games = [
   { name: "CREATE BATTLE", category: "case battles", target: "duel", tag: "NEW", copy: "Build your showdown", icon: "+" },
 ];
 
-const CASINO_GAMES = ["slots", "blackjack", "roulette", "baccarat", "video-poker", "dice", "plinko", "keno", "mines", "crash"];
+const CASINO_GAMES = ["slots", "blackjack", "roulette", "baccarat", "video-poker", "dice", "plinko", "keno", "mines", "crash", "hilo", "sic-bo", "money-wheel"];
 
 export function initHome({ root, account, navigate, openGame, openLive }) {
   let visible = false;

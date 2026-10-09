@@ -88,7 +88,7 @@ export function mount(container, ctx) {
   let filter = "";
   let feed = [];
   let pollTimer = 0;
-  let current = null; // { id, game, view, room }
+  let current = null; // { id, view, room, abort, streaming, viewer }
   let creating = null;
   let busy = false;
 
@@ -104,6 +104,8 @@ export function mount(container, ctx) {
     try {
       const response = await call(`/rooms/${current.id}/${action}`, body);
       applyRoom(response.room);
+      // Signed in since the stream opened: reconnect so pushes carry this player's private view.
+      if (current && current.viewer !== (ctx.user()?.id ?? null)) connect();
       return response.room;
     } catch (error) {
       ctx.toast(error.message, "loss");
@@ -225,6 +227,7 @@ export function mount(container, ctx) {
     find(".rm-room-title").innerHTML = `${icon(room.game, 22)}<b>${escapeHtml(meta?.name || room.name)}</b><small>Hosted by ${escapeHtml(room.hostName)}</small>`;
     const isHost = ctx.user() && String(ctx.user().id) === room.hostId;
     find(".rm-room-meta").innerHTML = `<span class="rm-badge ${room.visibility}">${room.visibility === "private" ? "🔒 PRIVATE" : "PUBLIC"}</span><button type="button" class="rm-copy" data-copy="${room.code}" title="Copy invite link">CODE <b>${room.code}</b> ⧉</button>${isHost && room.state === "waiting" ? '<button type="button" class="rm-close-room">CLOSE ROOM</button>' : ""}`;
+    find(".rm-back").textContent = room.you >= 0 ? "← LEAVE TABLE" : "← LOBBY";
     current.view?.update(room);
   }
 
@@ -252,6 +255,7 @@ export function mount(container, ctx) {
       body.replaceChildren(host);
       current.view = module.mountRoom(host, roomApi);
       applyRoom(room);
+      connect();
       schedule();
     } catch (error) {
       ctx.toast(error.message, "loss");
@@ -259,8 +263,12 @@ export function mount(container, ctx) {
     }
   }
 
+  /** Leaving the room view gives up the seat, so a table never lingers with only bots left. */
   function closeRoom(toLobby = true) {
-    current?.view?.destroy?.();
+    const leaving = current;
+    leaving?.abort?.abort();
+    leaving?.view?.destroy?.();
+    if (leaving?.room && leaving.room.you >= 0 && ctx.user()) call(`/rooms/${leaving.id}/leave`, {}).catch(() => {});
     current = null;
     const url = new URL(location.href);
     url.searchParams.delete("room");
@@ -273,12 +281,54 @@ export function mount(container, ctx) {
     schedule();
   }
 
+  /**
+   * Opens the room's live stream (server push on every change). While it is up there is no polling;
+   * if it drops, polling takes over and the stream is retried.
+   */
+  function connect() {
+    const room = current;
+    if (!room?.room || !shown || !ctx.stream) return;
+    room.abort?.abort();
+    const abort = new AbortController();
+    room.abort = abort;
+    room.viewer = ctx.user()?.id ?? null;
+    const lost = () => {
+      if (abort.signal.aborted || current !== room) return;
+      room.streaming = false;
+      schedule();
+      setTimeout(() => current === room && room.abort === abort && connect(), 3000);
+    };
+    ctx.stream(`/rooms/${room.id}/stream`, (data) => {
+      if (current !== room || abort.signal.aborted) return;
+      if (data.closed) {
+        abort.abort();
+        room.room = null; // nothing left to leave
+        ctx.toast("That room has closed", "info");
+        return closeRoom();
+      }
+      if (!room.streaming) {
+        room.streaming = true;
+        schedule();
+      }
+      applyRoom(data.room);
+    }, abort.signal).then(lost, (error) => {
+      if (abort.signal.aborted || current !== room) return;
+      if (error.code === "room_not_found") {
+        room.room = null;
+        ctx.toast("That room has closed", "info");
+        return closeRoom();
+      }
+      lost();
+    });
+  }
+
   async function pollRoom() {
     if (!current?.room) return;
     try {
       applyRoom((await call(`/rooms/${current.id}`)).room);
     } catch (error) {
       if (error.code === "room_not_found" || /does not exist/.test(error.message)) {
+        if (current) current.room = null;
         ctx.toast("That room has closed", "info");
         closeRoom();
       }
@@ -288,7 +338,8 @@ export function mount(container, ctx) {
   function schedule() {
     clearInterval(pollTimer);
     if (!shown) return;
-    pollTimer = current ? setInterval(pollRoom, 600) : setInterval(pollFeed, 3000);
+    if (current?.streaming) return;
+    pollTimer = current ? setInterval(pollRoom, 1000) : setInterval(pollFeed, 3000);
   }
 
   // ── Events ─────────────────────────────────────────────────────────────────
@@ -303,7 +354,11 @@ export function mount(container, ctx) {
     if (target.closest(".rm-create-open")) openCreate();
     const open = target.closest("[data-open]");
     if (open) openRoom(open.dataset.open);
-    if (target.closest(".rm-back")) closeRoom();
+    if (target.closest(".rm-back")) {
+      const room = current?.room;
+      if (room?.you >= 0 && room.state === "playing" && !confirm("Leave the table? You give up your seat and any hand in progress.")) return;
+      closeRoom();
+    }
     const copy = target.closest("[data-copy]");
     if (copy) {
       const url = new URL(location.href);
@@ -358,7 +413,10 @@ export function mount(container, ctx) {
   return {
     show() {
       shown = true;
-      if (current) pollRoom();
+      if (current) {
+        pollRoom();
+        connect();
+      }
       else if (deepLink && !this.opened) {
         this.opened = true;
         openRoom(deepLink);
@@ -368,6 +426,10 @@ export function mount(container, ctx) {
     hide() {
       shown = false;
       clearInterval(pollTimer);
+      if (current) {
+        current.abort?.abort();
+        current.streaming = false;
+      }
     },
     select(options) {
       if (options?.room) openRoom(options.room);

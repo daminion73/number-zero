@@ -133,3 +133,63 @@ test("verifier replays instant classics from their seeds", () => {
   assert.equal(verifyRound({ game: "plinko", rows: 8, ...seeds }).slot, plinkoDrop(fairFloats("srv", "cli", 7, PLINKO_FLOATS), 100, 8, "low").slot);
   assert.deepEqual(verifyRound({ game: "keno", ...seeds }).drawn, kenoPlay(fairFloats("srv", "cli", 7, KENO_FLOATS), 100, [1]).drawn);
 });
+
+test("hi-lo: chances, 1% edge per step, skips, busts and cash-outs", async () => {
+  const { hiloAction, hiloChance, hiloStart, hiloStep, HILO_FLOATS } = await import("../casino-core.js");
+  assert.equal(hiloChance(0, "higher"), 1, "anything is higher-or-same than an ace");
+  assert.equal(hiloChance(12, "lower"), 1);
+  assert.equal(hiloChance(6, "higher"), 7 / 13);
+  assert.equal(hiloStep(7 / 13), 1.8385);
+  const stream = (...ranks) => [...ranks.map((rank) => (rank + 0.5) / 52), ...Array(HILO_FLOATS).fill(0.99)]; // ♠ cards of these ranks
+  const round = hiloStart(stream(6, 9, 2, 2), 1_000);
+  assert.throws(() => hiloAction(round, stream(6, 9, 2, 2), "cashout"), /correct guess/);
+  assert.throws(() => hiloAction(hiloStart(stream(0), 100), stream(0), "higher"), /cannot lose/);
+  hiloAction(round, stream(6, 9, 2, 2), "higher"); // 7 → 10
+  assert.equal(round.multiplier, 1.8385);
+  hiloAction(round, stream(6, 9, 2, 2), "skip"); // 10 → 3, free
+  assert.equal(round.multiplier, 1.8385);
+  hiloAction(round, stream(6, 9, 2, 2), "lower"); // 3 → 3 counts as "same"
+  assert.equal(round.multiplier, Math.floor(1.8385 * hiloStep(3 / 13) * 10_000) / 10_000);
+  hiloAction(round, stream(6, 9, 2, 2), "cashout");
+  assert.equal(round.phase, "cashed");
+  assert.equal(round.payout, Math.floor(1_000 * round.multiplier));
+  const bust = hiloStart(stream(6, 2), 1_000);
+  hiloAction(bust, stream(6, 2), "higher");
+  assert.equal(bust.phase, "busted");
+  assert.equal(bust.payout, 0);
+  assert.deepEqual(clientView(bust).cards, [6, 2]);
+  assert.deepEqual(verifyRound({ game: "hilo", serverSeed: "s", clientSeed: "c", nonce: 1 }).cards.slice(0, 1), [hiloStart(fairFloats("s", "c", 1, HILO_FLOATS), 100).cards[0]]);
+});
+
+test("sic bo pays the standard table and loses even-money bets on triples", async () => {
+  const { sicBoRoll } = await import("../casino-core.js");
+  const roll = (dice, bets) => sicBoRoll(dice.map((die) => (die - 0.5) / 6), bets);
+  const bets = [
+    { type: "small", amount: 100 }, { type: "odd", amount: 100 }, { type: "total", value: 9, amount: 100 },
+    { type: "single", value: 3, amount: 100 }, { type: "double", value: 3, amount: 100 }, { type: "combo", value: 34, amount: 100 },
+  ];
+  const result = roll([3, 3, 3], bets.slice(0, 1));
+  assert.equal(result.triple, true);
+  assert.equal(result.payout, 0, "small loses on a triple");
+  const mixed = roll([3, 3, 3], [{ type: "triple", value: 3, amount: 100 }, { type: "any-triple", amount: 100 }, { type: "single", value: 3, amount: 100 }]);
+  assert.deepEqual(mixed.bets.map((bet) => bet.payout), [18_100, 3_100, 400]);
+  const hand = roll([3, 4, 2], bets);
+  assert.equal(hand.total, 9);
+  assert.deepEqual(hand.bets.map((bet) => bet.payout), [200, 200, 700, 200, 0, 600]);
+  assert.throws(() => roll([1, 2, 3], [{ type: "combo", value: 33, amount: 100 }]));
+  assert.throws(() => roll([1, 2, 3], [{ type: "total", value: 3, amount: 100 }]));
+  assert.deepEqual(verifyRound({ game: "sic-bo", serverSeed: "s", clientSeed: "c", nonce: 4 }).dice, sicBoRoll(fairFloats("s", "c", 4, 3), [{ type: "big", amount: 100 }]).dice);
+});
+
+test("money wheel: 54 segments, Big Six counts and payouts", async () => {
+  const { WHEEL_PAYS, WHEEL_SEGMENTS, wheelSpin } = await import("../casino-core.js");
+  const counts = Object.fromEntries(Object.keys(WHEEL_PAYS).map((type) => [type, WHEEL_SEGMENTS.filter((segment) => segment === type).length]));
+  assert.deepEqual(counts, { 1: 24, 2: 15, 5: 7, 10: 4, 20: 2, joker: 1, zero: 1 });
+  const at = (type) => [(WHEEL_SEGMENTS.indexOf(type) + 0.5) / 54];
+  const spin = wheelSpin(at("zero"), [{ type: "zero", amount: 100 }, { type: "1", amount: 100 }]);
+  assert.equal(spin.value, "zero");
+  assert.deepEqual(spin.bets.map((bet) => bet.payout), [4_100, 0]);
+  assert.equal(wheelSpin(at("5"), [{ type: "5", amount: 100 }]).payout, 600);
+  assert.throws(() => wheelSpin(at("5"), [{ type: "5", amount: 100 }, { type: "5", amount: 100 }]));
+  assert.throws(() => wheelSpin(at("5"), [{ type: "50", amount: 100 }]));
+});

@@ -168,7 +168,7 @@ test("russian roulette: auto-start after the countdown, turn order, timeouts, se
   await f.assertConserved(a);
   await f.assertConserved(b);
   assert.equal((await f.request("/api/profile", undefined, a)).data.profile.totals.plays, 1, "one record per human per game");
-  assert.equal((await f.request(`/api/rooms?game=${GAME}`)).data.rooms[0].detail.pulls, play.pulls);
+  assert.equal((await f.request(`/api/rooms?game=${GAME}`)).data.rooms.length, 0, "finished games leave the public feed");
 });
 
 test("russian roulette: host can start early, odd pots give the remainder to the earliest survivor", async (t) => {

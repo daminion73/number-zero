@@ -38,6 +38,7 @@ export async function roomFixture(t) {
   }
   const f = {
     request,
+    base: () => base,
     advance: (ms) => (time += Math.ceil(ms)),
     tick: () => server.tick(),
     restart: async () => {

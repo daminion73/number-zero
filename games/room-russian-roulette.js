@@ -135,7 +135,16 @@ export function mountRoom(root, api) {
     return `<div class="rr-note ${won ? "won" : mine ? "lost" : ""}"><b>${!mine ? `${api.escape(nameOf(play.shotSeat)).toUpperCase()} TOOK THE BULLET` : won ? `YOU SURVIVED · +${api.money(play.payouts[me()])} CR` : "BANG — YOU'RE OUT"}</b><button type="button" class="rr-primary" data-again>NEW TABLE · ${api.money(play.stake)} CR</button></div>`;
   }
 
+  // The fairness check re-hashes the seed, so only redo it when its inputs change (render runs several times a second).
+  let fairMemo = { key: null, html: "" };
   function fairMarkup() {
+    const play = room.play;
+    const key = JSON.stringify([play.seed, play.seedHash, play.seed && bangShown(), play.history, play.players]);
+    if (key !== fairMemo.key) fairMemo = { key, html: computeFair() };
+    return fairMemo.html;
+  }
+
+  function computeFair() {
     const play = room.play;
     if (!play.seedHash) return "";
     if (!play.seed || !bangShown()) return `<span>COMMITTED</span><code title="SHA-256 of the seed: ${play.seedHash}">${play.seedHash.slice(0, 12)}…</code>`;

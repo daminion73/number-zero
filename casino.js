@@ -13,6 +13,9 @@ const ICONS = {
   plinko: `<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="6" r="1.6" class="fill"/><circle cx="11" cy="12" r="1.6" class="fill"/><circle cx="21" cy="12" r="1.6" class="fill"/><circle cx="6" cy="18" r="1.6" class="fill"/><circle cx="16" cy="18" r="1.6" class="fill"/><circle cx="26" cy="18" r="1.6" class="fill"/><path d="M3 26h26M9 23v3m7-3v3m7-3v3"/></svg>`,
   keno: `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="4" width="24" height="24" rx="4"/><path d="M4 12h24M4 20h24M12 4v24M20 4v24"/><circle cx="8" cy="8" r="2" class="fill"/><circle cx="24" cy="16" r="2" class="fill"/><circle cx="16" cy="24" r="2" class="fill"/></svg>`,
   "video-poker": `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="7" width="7" height="11" rx="1.5"/><rect x="12.5" y="7" width="7" height="11" rx="1.5"/><rect x="22" y="7" width="7" height="11" rx="1.5"/><path d="M5 24h22"/><circle cx="16" cy="12.5" r="1.6" class="fill"/></svg>`,
+  hilo: `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="9" y="5" width="14" height="22" rx="2.5"/><path d="m4 13 3-4 3 4M4 19l3 4 3-4" /><path d="M16 11v10m-3-3 3 3 3-3" class="thin"/></svg>`,
+  "sic-bo": `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="14" width="12" height="12" rx="3"/><rect x="17" y="14" width="12" height="12" rx="3"/><rect x="10" y="3" width="12" height="12" rx="3"/><circle cx="16" cy="9" r="1.5" class="fill"/><circle cx="7" cy="18" r="1.4" class="fill"/><circle cx="11" cy="22" r="1.4" class="fill"/><circle cx="21" cy="18" r="1.4" class="fill"/><circle cx="25" cy="22" r="1.4" class="fill"/><circle cx="23" cy="20" r="1.4" class="fill"/></svg>`,
+  "money-wheel": `<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="17" r="11"/><circle cx="16" cy="17" r="3"/><path d="M16 6v8m0 6v8M5 17h8m6 0h8M8.2 9.2l5.7 5.7m4.2 4.2 5.7 5.7m0-15.6-5.7 5.7m-4.2 4.2-5.7 5.7"/><path d="m13 2 3 4 3-4z" class="fill"/></svg>`,
   slots: `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="6" width="22" height="20" rx="3"/><path d="M10.3 6v20m7.4-20v20M25 12h3v8"/><path d="M5.5 16h3m4.5 0h3m4.5 0h3" class="thin"/><circle cx="28" cy="10" r="2" class="fill"/></svg>`,
 };
 
@@ -27,6 +30,9 @@ const GAMES = [
   { id: "keno", name: "Keno", tagline: "Pick 1–10 of 40" },
   { id: "mines", name: "Mines", tagline: "5×5 grid · 1–24 mines" },
   { id: "crash", name: "Crash", tagline: "Solo rocket · Auto-bet" },
+  { id: "hilo", name: "Hi-Lo", tagline: "Higher or lower · Cash out any time" },
+  { id: "sic-bo", name: "Sic Bo", tagline: "Three dice · Up to 180:1" },
+  { id: "money-wheel", name: "Money Wheel", tagline: "Big Six · 54 segments · 40:1" },
 ];
 
 // Server-wide multiplayer games shown under the LIVE tab.
@@ -268,6 +274,8 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
     mode: () => playMode,
     request,
     server,
+    /** Live server push (rooms): `onData` gets each message after clock sync. Resolves when the stream ends. */
+    stream: (path, onData, signal) => account.stream(path, (data) => onData(absorb(data)), signal),
     balance: () => (playMode === "demo" ? Infinity : account.getUser()?.balance ?? 0),
     money: formatMoney,
     sound: (...args) => sound(...args),
@@ -425,6 +433,9 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
     if (game === "slots") return `${escapeHtml(result.machine)} reel stops <b>${result.stops.join(", ")}</b>`;
     if (game === "video-poker")
       return `Deal <b>${result.cards.map((index) => `${cardInfo(index).rank}${cardInfo(index).suit}`).join(" ")}</b> · draws <b>${result.replacements.map((index) => `${cardInfo(index).rank}${cardInfo(index).suit}`).join(" ")}</b>`;
+    if (game === "sic-bo") return `Dice <b>${result.dice.join(" · ")}</b> · total <b>${result.total}</b>`;
+    if (game === "money-wheel") return `Segment <b>${result.segment + 1}</b> of 54 · <b>${escapeHtml(result.value.toUpperCase())}</b>`;
+    if (game === "hilo") return `Card stream (start card first) <b>${result.cards.slice(0, 16).map((index) => `${cardInfo(index).rank}${cardInfo(index).suit}`).join(" ")}</b> …`;
     if (game === "mines") return `Mines at tiles <b>${result.layout.map((tile) => tile + 1).join(", ")}</b>`;
     const cards = (list) => list.map((index) => `${cardInfo(index).rank}${cardInfo(index).suit}`).join(" ");
     if (game === "baccarat")

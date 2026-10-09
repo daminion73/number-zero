@@ -124,6 +124,33 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
     }
     return result;
   }
+  /** Reads a server-sent-event stream, calling `onData` per message. Resolves when the server ends it. */
+  async function stream(path, onData, signal) {
+    const response = await fetch(`${API_BASE.replace(/\/$/, "")}/api${path}`, {
+      headers: { Accept: "text/event-stream", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      signal,
+      cache: "no-store",
+      credentials: "omit",
+    });
+    if (!response.ok || !response.body) {
+      const result = await response.json().catch(() => ({}));
+      const error = new Error(result.error?.message || `Server returned ${response.status}`);
+      error.code = result.error?.code;
+      throw error;
+    }
+    const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buffer = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) return;
+      buffer += value;
+      for (let cut = buffer.indexOf("\n\n"); cut >= 0; cut = buffer.indexOf("\n\n")) {
+        const data = buffer.slice(0, cut).split("\n").filter((line) => line.startsWith("data: ")).map((line) => line.slice(6)).join("\n");
+        buffer = buffer.slice(cut + 2);
+        if (data) onData(JSON.parse(data));
+      }
+    }
+  }
   function renderAccount() {
     if (!user) heldBalance = null;
     $("#account-button").innerHTML = user
@@ -614,6 +641,7 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
     },
     account: {
       api,
+      stream,
       getUser: () => user,
       onUser(callback) { userListeners.add(callback); callback(user); return () => userListeners.delete(callback); },
       openAccount,

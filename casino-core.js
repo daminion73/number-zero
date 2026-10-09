@@ -82,7 +82,7 @@ export const MAX_BET_CENTS = 1_000_000_000; // 10,000,000 CR
 export const BLACKJACK_FLOATS = 128;
 export const BACCARAT_FLOATS = 6;
 export const MINES_FLOATS = 24;
-export const GAMES = ["blackjack", "baccarat", "mines", "crash", "roulette", "dice", "plinko", "keno", "video-poker", "slots", "live-rocket", "live-roulette", "coinflip", "case-battle"];
+export const GAMES = ["blackjack", "baccarat", "mines", "crash", "roulette", "dice", "plinko", "keno", "video-poker", "slots", "hilo", "sic-bo", "money-wheel", "live-rocket", "live-roulette", "coinflip", "case-battle"];
 
 export function validBet(cents) {
   return Number.isInteger(cents) && cents >= MIN_BET_CENTS && cents <= MAX_BET_CENTS;
@@ -427,7 +427,7 @@ export function clientView(state) {
     const view = minesView(state);
     return { ...view, bet: credit(view.bet), wager: credit(view.wager), payout: credit(view.payout) };
   }
-  if (["roulette", "dice", "plinko", "keno", "slots", "video-poker"].includes(state.game)) {
+  if (["roulette", "dice", "plinko", "keno", "slots", "video-poker", "hilo", "sic-bo", "money-wheel"].includes(state.game)) {
     const { deck, ...rest } = state; // video poker keeps the replacement cards secret until the draw
     return {
       ...rest,
@@ -478,6 +478,15 @@ export function verifyRound({ game, serverSeed, clientSeed, nonce, mines = 3, ro
   if (game === "mines") return { layout: minesLayout(fairFloats(serverSeed, clientSeed, nonce, MINES_FLOATS), mines) };
   if (game === "crash") return { crashPoint: crashPointFromFloat(fairFloats(serverSeed, clientSeed, nonce, 1)[0]) };
   if (game === "blackjack") return { cards: fairFloats(serverSeed, clientSeed, nonce, 16).map(cardFromFloat) };
+  if (game === "hilo") return { cards: stream(HILO_FLOATS).map(cardFromFloat) };
+  if (game === "sic-bo") {
+    const dice = sicBoDice(stream(SIC_BO_FLOATS));
+    return { dice, total: dice[0] + dice[1] + dice[2] };
+  }
+  if (game === "money-wheel") {
+    const segment = wheelSegment(stream(WHEEL_FLOATS));
+    return { segment, value: WHEEL_SEGMENTS[segment] };
+  }
   throw new RangeError("unknown game");
 }
 
@@ -485,7 +494,7 @@ export function verifyRound({ game, serverSeed, clientSeed, nonce, mines = 3, ro
 // Classics: Roulette, Dice, Plinko, Keno, Video Poker — and Slots. All amounts are cents.
 // ════════════════════════════════════════════════════════════════════════════════════════
 /** Games settled by a single request (no resumable state). */
-export const INSTANT_GAMES = ["baccarat", "roulette", "dice", "plinko", "keno", "slots"];
+export const INSTANT_GAMES = ["baccarat", "roulette", "dice", "plinko", "keno", "slots", "sic-bo", "money-wheel"];
 
 // ── Roulette ── European single zero. Straight 35:1, dozen/column 2:1, even-money 1:1.
 export const ROULETTE_FLOATS = 1;
@@ -760,3 +769,128 @@ export const liveRouletteRoll = (seed, roundId) => Math.floor(fairFloats(seed, L
 export const COINFLIP_SALT = "number-zero-coinflip";
 export const COINFLIP_SIDES = ["heads", "tails"];
 export const coinflipResult = (seed, flipId) => (fairFloats(seed, COINFLIP_SALT, flipId, 1)[0] < 0.5 ? "heads" : "tails");
+
+// ════════════════════════════════════════════════════════════════════════════════════════
+// More classics: Hi-Lo, Sic Bo and the Money Wheel. All amounts are cents.
+// ════════════════════════════════════════════════════════════════════════════════════════
+
+// ── Hi-Lo ── an endless deck: every card is drawn independently from the round's float stream
+// (card k = cardFromFloat(floats[k])). Guess whether the next card is "higher" (higher or same) or
+// "lower" (lower or same); Ace is low, King high. A correct guess multiplies the stake by 0.99 / chance.
+// Skip a card for free (up to HILO_MAX_SKIPS); cash out any time after one correct guess.
+export const HILO_FLOATS = 64;
+export const HILO_MAX_SKIPS = 20;
+export const HILO_MAX_MULTIPLIER = 1_000_000;
+export const hiloRank = (card) => card % 13; // 0 = A … 12 = K
+/** Chance (0–1) that a guess wins from a card of `rank`. */
+export const hiloChance = (rank, guess) => (guess === "higher" ? (13 - rank) / 13 : (rank + 1) / 13);
+/** Multiplier one correct guess applies (1% edge). */
+export const hiloStep = (chance) => Math.floor(((1 - HOUSE_EDGE) / chance) * 10_000) / 10_000;
+
+export function hiloStart(floats, betCents) {
+  if (!validBet(betCents)) throw new RangeError("invalid hi-lo bet");
+  return { game: "hilo", phase: "playing", bet: betCents, cards: [cardFromFloat(floats[0])], history: [], skips: 0, multiplier: 1, wager: betCents, payout: 0 };
+}
+
+export function hiloCashout(state) {
+  if (state.phase !== "playing" || !state.history.some((step) => step.correct)) throw new RangeError("make a correct guess first");
+  state.phase = "cashed";
+  state.payout = Math.floor(state.bet * state.multiplier);
+  return state;
+}
+
+/** `action` = "higher" | "lower" | "skip" | "cashout". History entries: { guess, card, correct?, chance?, multiplier? }. */
+export function hiloAction(state, floats, action) {
+  if (state.phase !== "playing") throw new RangeError("round is not active");
+  if (action === "cashout") return hiloCashout(state);
+  const rank = hiloRank(state.cards.at(-1));
+  const next = cardFromFloat(floats[state.cards.length]);
+  if (action === "skip") {
+    if (state.skips >= HILO_MAX_SKIPS) throw new RangeError("no skips left");
+    state.skips++;
+    state.cards.push(next);
+    state.history.push({ guess: "skip", card: next });
+  } else if (action === "higher" || action === "lower") {
+    const chance = hiloChance(rank, action);
+    if (chance >= 1) throw new RangeError("that guess cannot lose");
+    const correct = action === "higher" ? hiloRank(next) >= rank : hiloRank(next) <= rank;
+    state.cards.push(next);
+    if (!correct) {
+      state.history.push({ guess: action, card: next, correct: false, chance });
+      state.phase = "busted";
+      state.payout = 0;
+      return state;
+    }
+    state.multiplier = Math.min(HILO_MAX_MULTIPLIER, Math.floor(state.multiplier * hiloStep(chance) * 10_000) / 10_000);
+    state.history.push({ guess: action, card: next, correct: true, chance, multiplier: state.multiplier });
+    if (state.multiplier >= HILO_MAX_MULTIPLIER) return hiloCashout(state);
+  } else throw new RangeError("unknown hi-lo action");
+  // The stream is long enough for any sane round; at its end the round cashes out automatically.
+  if (state.cards.length >= HILO_FLOATS) return hiloCashout(state);
+  return state;
+}
+
+// ── Sic Bo ── three dice. Odds are "to 1" (a winning bet returns amount × (odds + 1)).
+// Small/big/odd/even lose on any triple. Single pays 1:1, 2:1 or 3:1 for one, two or three matching dice.
+export const SIC_BO_FLOATS = 3;
+export const SIC_BO_MAX_BETS = 60;
+export const SIC_BO_TOTALS = { 4: 60, 5: 30, 6: 17, 7: 12, 8: 8, 9: 6, 10: 6, 11: 6, 12: 6, 13: 8, 14: 12, 15: 17, 16: 30, 17: 60 };
+const face = (v) => Number.isInteger(v) && v >= 1 && v <= 6;
+const comboPair = (v) => Number.isInteger(v) && face(Math.floor(v / 10)) && face(v % 10) && Math.floor(v / 10) < v % 10;
+/** Bet types → { valid?(value), odds(dice, value) → odds to 1 (0 = lose) }. Combo value is two digits, e.g. 25 = a 2 and a 5. */
+export const SIC_BO_BETS = {
+  small: { odds: (d, _v, s) => (!s.triple && s.total <= 10 ? 1 : 0) },
+  big: { odds: (d, _v, s) => (!s.triple && s.total >= 11 ? 1 : 0) },
+  odd: { odds: (d, _v, s) => (!s.triple && s.total % 2 === 1 ? 1 : 0) },
+  even: { odds: (d, _v, s) => (!s.triple && s.total % 2 === 0 ? 1 : 0) },
+  total: { valid: (v) => Number.isInteger(v) && v >= 4 && v <= 17, odds: (d, v, s) => (s.total === v ? SIC_BO_TOTALS[v] : 0) },
+  single: { valid: face, odds: (d, v) => d.filter((die) => die === v).length },
+  double: { valid: face, odds: (d, v) => (d.filter((die) => die === v).length >= 2 ? 10 : 0) },
+  triple: { valid: face, odds: (d, v) => (d.every((die) => die === v) ? 180 : 0) },
+  "any-triple": { odds: (d, _v, s) => (s.triple ? 30 : 0) },
+  combo: { valid: comboPair, odds: (d, v) => (d.includes(Math.floor(v / 10)) && d.includes(v % 10) ? 5 : 0) },
+};
+export const sicBoDice = (floats) => floats.slice(0, 3).map((float) => Math.min(5, Math.floor(float * 6)) + 1);
+
+/** `bets` = [{ type, value?, amount (cents) }]. */
+export function sicBoRoll(floats, bets) {
+  if (!Array.isArray(bets) || !bets.length || bets.length > SIC_BO_MAX_BETS) throw new RangeError("invalid sic bo bets");
+  const placed = bets.map((bet) => {
+    const rule = SIC_BO_BETS[bet?.type];
+    if (!rule || !validBet(bet.amount) || (rule.valid ? !rule.valid(bet.value) : bet.value !== undefined && bet.value !== null)) throw new RangeError("invalid sic bo bet");
+    return { type: bet.type, value: rule.valid ? bet.value : null, amount: bet.amount };
+  });
+  const wager = placed.reduce((sum, bet) => sum + bet.amount, 0);
+  if (wager > MAX_BET_CENTS) throw new RangeError("total sic bo bet too large");
+  const dice = sicBoDice(floats);
+  const summary = { total: dice[0] + dice[1] + dice[2], triple: dice[0] === dice[1] && dice[1] === dice[2] };
+  for (const bet of placed) {
+    const odds = SIC_BO_BETS[bet.type].odds(dice, bet.value, summary);
+    bet.payout = odds ? bet.amount * (odds + 1) : 0;
+  }
+  return { game: "sic-bo", phase: "settled", dice, ...summary, bets: placed, wager, payout: placed.reduce((sum, bet) => sum + bet.payout, 0) };
+}
+
+// ── Money Wheel ── a 54-segment Big Six wheel. Bet on a segment value; it pays "to 1" when it lands.
+export const WHEEL_FLOATS = 1;
+export const WHEEL_PAYS = { 1: 1, 2: 2, 5: 5, 10: 10, 20: 20, joker: 40, zero: 40 };
+/** Segments in wheel order (clockwise from the top); 24× 1, 15× 2, 7× 5, 4× 10, 2× 20, one joker, one zero. */
+export const WHEEL_SEGMENTS = ["zero", "5", "2", "10", "2", "1", "1", "2", "1", "5", "1", "2", "1", "1", "20", "2", "5", "10", "2", "1", "1", "1", "2", "1", "5", "2", "1", "joker", "1", "2", "10", "1", "5", "2", "1", "1", "2", "1", "1", "1", "5", "20", "2", "1", "10", "2", "1", "5", "2", "1", "2", "1", "1", "1"];
+export const wheelSegment = (floats) => Math.min(WHEEL_SEGMENTS.length - 1, Math.floor(floats[0] * WHEEL_SEGMENTS.length));
+
+/** `bets` = [{ type: "1"|"2"|"5"|"10"|"20"|"joker"|"zero", amount (cents) }], at most one per type. */
+export function wheelSpin(floats, bets) {
+  const types = Object.keys(WHEEL_PAYS);
+  if (!Array.isArray(bets) || !bets.length || bets.length > types.length) throw new RangeError("invalid wheel bets");
+  const placed = bets.map((bet) => {
+    if (!types.includes(String(bet?.type)) || !validBet(bet.amount)) throw new RangeError("invalid wheel bet");
+    return { type: String(bet.type), amount: bet.amount };
+  });
+  if (new Set(placed.map((bet) => bet.type)).size !== placed.length) throw new RangeError("one bet per wheel value");
+  const wager = placed.reduce((sum, bet) => sum + bet.amount, 0);
+  if (wager > MAX_BET_CENTS) throw new RangeError("total wheel bet too large");
+  const segment = wheelSegment(floats);
+  const value = WHEEL_SEGMENTS[segment];
+  for (const bet of placed) bet.payout = bet.type === value ? bet.amount * (WHEEL_PAYS[value] + 1) : 0;
+  return { game: "money-wheel", phase: "settled", segment, value, bets: placed, wager, payout: placed.reduce((sum, bet) => sum + bet.payout, 0) };
+}

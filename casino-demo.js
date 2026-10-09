@@ -2,7 +2,7 @@
 // shapes) using the shared provably-fair core, with unlimited credits and nothing recorded.
 import {
   BACCARAT_FLOATS, BLACKJACK_FLOATS, MINES_FLOATS, baccaratPlay, DICE_FLOATS, KENO_FLOATS, PLINKO_FLOATS, ROULETTE_FLOATS,
-  SLOT_FLOATS, VIDEO_POKER_FLOATS, INSTANT_GAMES, diceRoll, kenoPlay, plinkoDrop, rouletteSpin, slotsSpin, videoPokerDraw, videoPokerStart, blackjackAction, blackjackStart, clientView,
+  SLOT_FLOATS, VIDEO_POKER_FLOATS, HILO_FLOATS, SIC_BO_FLOATS, WHEEL_FLOATS, hiloAction, hiloStart, sicBoRoll, wheelSpin, INSTANT_GAMES, diceRoll, kenoPlay, plinkoDrop, rouletteSpin, slotsSpin, videoPokerDraw, videoPokerStart, blackjackAction, blackjackStart, clientView,
   crashCashout, crashSettle, crashStart, fairFloats, minesCashout, minesReveal, minesStart, roundFinished, sha256Hex,
 } from "./casino-core.js";
 
@@ -13,7 +13,7 @@ const fail = (code, message) => Object.assign(new Error(message), { code });
 export function createDemoEngine({ now = () => Date.now() } = {}) {
   let seed = { serverSeed: randomHex(32), clientSeed: randomHex(6), nonce: 0 };
   let previous = null;
-  const active = { blackjack: null, mines: null, crash: null, "video-poker": null };
+  const active = { blackjack: null, mines: null, crash: null, "video-poker": null, hilo: null };
   let sequence = 0;
 
   const fairPublic = () => ({ serverSeedHash: sha256Hex(seed.serverSeed), clientSeed: seed.clientSeed, nonce: seed.nonce, previous });
@@ -67,7 +67,7 @@ export function createDemoEngine({ now = () => Date.now() } = {}) {
     "GET /casino/active": () => {
       if (active.crash) crashSettle(active.crash.state, now());
       const open = (game) => (active[game] && !roundFinished(active[game].state) ? view(active[game]) : null);
-      return { blackjack: open("blackjack"), mines: open("mines"), crash: open("crash"), "video-poker": open("video-poker"), demo: true, serverTime: now() };
+      return { blackjack: open("blackjack"), mines: open("mines"), crash: open("crash"), "video-poker": open("video-poker"), hilo: open("hilo"), demo: true, serverTime: now() };
     },
     "POST /casino/blackjack/start": (body) => respond(begin("blackjack", BLACKJACK_FLOATS, (floats) => blackjackStart(floats, (body.bets || []).map(cents)))),
     "POST /casino/blackjack/action": (body) => apply("blackjack", (record) => blackjackAction(record.state, record.floats, body.action)),
@@ -88,6 +88,11 @@ export function createDemoEngine({ now = () => Date.now() } = {}) {
     "POST /casino/video-poker/deal": (body) => respond(begin("video-poker", VIDEO_POKER_FLOATS, (floats) => videoPokerStart(floats, cents(body.bet)))),
     "POST /casino/video-poker/draw": (body) => apply("video-poker", (record) => videoPokerDraw(record.state, body.held)),
     "POST /casino/slots": (body) => respond(begin("slots", SLOT_FLOATS, (floats) => slotsSpin(floats, cents(body.bet), body.machine))),
+    "POST /casino/hilo/start": (body) => respond(begin("hilo", HILO_FLOATS, (floats) => hiloStart(floats, cents(body.bet)))),
+    "POST /casino/hilo/action": (body) => apply("hilo", (record) => hiloAction(record.state, record.floats, body.action)),
+    "POST /casino/sic-bo": (body) =>
+      respond(begin("sic-bo", SIC_BO_FLOATS, (floats) => sicBoRoll(floats, (body.bets || []).map((bet) => ({ type: bet?.type, value: bet?.value ?? null, amount: cents(bet?.amount) }))))),
+    "POST /casino/money-wheel": (body) => respond(begin("money-wheel", WHEEL_FLOATS, (floats) => wheelSpin(floats, (body.bets || []).map((bet) => ({ type: bet?.type, amount: cents(bet?.amount) }))))),
     "GET /casino/crash": () => {
       const record = active.crash;
       if (record) crashSettle(record.state, now());

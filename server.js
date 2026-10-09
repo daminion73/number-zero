@@ -112,7 +112,7 @@ export async function createServer(options = {}) {
   const casino = createCasino({ db, now, publicUser, fail });
   const live = await createLive({ db, now, publicUser, fail });
   const liveRoulette = await createLiveRoulette({ db, now, publicUser, fail });
-  const rooms = await createRooms({ db, now, publicUser, fail, engines: ROOM_ENGINES });
+  const rooms = await createRooms({ db, now, publicUser, fail, engines: ROOM_ENGINES, timers: !options.noTimer });
   // Coinflips moved into rooms: refund any stake still held by the old open-flip lobby.
   await transaction(db, async (tx) => {
     for (const row of (await tx.execute("SELECT id, creator_id, data FROM coinflips WHERE state='open'")).rows) {
@@ -404,6 +404,47 @@ export async function createServer(options = {}) {
     });
     send(res, 200, result, originValue);
   }
+  async function roomsApi(req, res, url, originValue) {
+    const viewer = () => (req.headers.authorization ? auth(req).catch(() => null) : null);
+    if (req.method === "GET" && url.pathname === "/api/rooms")
+      return send(res, 200, await rooms.list(url.searchParams.get("game") || null), originValue);
+    const roomGet = /^\/api\/rooms\/([A-Za-z0-9-]{1,64})$/.exec(url.pathname);
+    if (req.method === "GET" && roomGet) return send(res, 200, await rooms.get(roomGet[1], await viewer()), originValue);
+    const roomStream = /^\/api\/rooms\/([A-Za-z0-9-]{1,64})\/stream$/.exec(url.pathname);
+    if (req.method === "GET" && roomStream) {
+      // Server-sent events: the room is pushed on every change instead of being polled.
+      const write = (payload) => {
+        if (res.writableEnded) return;
+        if (!res.headersSent)
+          res.writeHead(200, {
+            "Content-Type": "text/event-stream; charset=utf-8",
+            "Cache-Control": "no-store, no-transform",
+            "X-Accel-Buffering": "no",
+            "X-Content-Type-Options": "nosniff",
+            ...(originValue ? { "Access-Control-Allow-Origin": originValue, Vary: "Origin" } : {}),
+          });
+        res.write(`data: ${JSON.stringify(payload)}\n\n`);
+      };
+      const stop = await rooms.watch(roomStream[1], await viewer(), write, () => res.end());
+      const heartbeat = setInterval(() => res.writableEnded || res.write(": ping\n\n"), 20_000);
+      heartbeat.unref?.();
+      const done = () => {
+        clearInterval(heartbeat);
+        stop();
+      };
+      res.on("close", done);
+      if (res.destroyed) done();
+      return;
+    }
+    const user = await auth(req);
+    if (req.method === "POST" && url.pathname === "/api/rooms")
+      return send(res, 201, await rooms.create(user, await body(req)), originValue);
+    const roomAction = /^\/api\/rooms\/([A-Za-z0-9-]{1,64})\/(join|leave|bot|kick|start|close|act)$/.exec(url.pathname);
+    if (req.method === "POST" && roomAction)
+      return send(res, 200, await rooms.act(user, roomAction[1], roomAction[2], await body(req)), originValue);
+    throw new ApiError(404, "not_found", "Not found.");
+  }
+
   async function api(req, res, url, originValue) {
     const minute = Math.floor(now() / 60000),
       authRoute = url.pathname.startsWith("/api/auth/");
@@ -431,6 +472,8 @@ export async function createServer(options = {}) {
         .end();
       return;
     }
+    // Rooms keep their own clocks (per-room wakeups + maintenance), so table traffic skips the global sweep.
+    if (url.pathname.startsWith("/api/rooms")) return roomsApi(req, res, url, originValue);
     await tick();
     if (req.method === "GET" && url.pathname === "/api/config")
       return send(res, 200, { googleClientId, devAuth, roundMs }, originValue);
@@ -512,13 +555,6 @@ export async function createServer(options = {}) {
       const viewer = req.headers.authorization ? await auth(req) : null;
       return send(res, 200, await liveRoulette.handle(null, viewer), originValue);
     }
-    if (req.method === "GET" && url.pathname === "/api/rooms")
-      return send(res, 200, await rooms.list(url.searchParams.get("game") || null), originValue);
-    const roomGet = /^\/api\/rooms\/([A-Za-z0-9-]{1,64})$/.exec(url.pathname);
-    if (req.method === "GET" && roomGet) {
-      const viewer = req.headers.authorization ? await auth(req).catch(() => null) : null;
-      return send(res, 200, await rooms.get(roomGet[1], viewer), originValue);
-    }
     const match =
       /^\/api\/battles\/([^/]+)(?:\/(join|bot|remove-bot|leave|cancel|start))?$/.exec(
         url.pathname,
@@ -541,11 +577,6 @@ export async function createServer(options = {}) {
       );
     if (req.method === "POST" && url.pathname === "/api/live-roulette/bet")
       return send(res, 200, await liveRoulette.handle("bet", user, await body(req)), originValue);
-    if (req.method === "POST" && url.pathname === "/api/rooms")
-      return send(res, 201, await rooms.create(user, await body(req)), originValue);
-    const roomAction = /^\/api\/rooms\/([A-Za-z0-9-]{1,64})\/(join|leave|bot|kick|start|close|act)$/.exec(url.pathname);
-    if (req.method === "POST" && roomAction)
-      return send(res, 200, await rooms.act(user, roomAction[1], roomAction[2], await body(req)), originValue);
     if (
       url.pathname.startsWith("/api/casino/") ||
       url.pathname.startsWith("/api/fair")
@@ -939,8 +970,10 @@ export async function createServer(options = {}) {
   server.requestTimeout = 15000;
   server.db = db;
   server.tick = tick;
+  server.endStreams = () => rooms.shutdown();
   server.closeDatabase = async () => {
     if (timer) clearInterval(timer);
+    rooms.shutdown();
     try {
       await ticking;
     } finally {
@@ -963,10 +996,11 @@ if (
     console.log(`NUMBER//ZERO running at http://${host}:${port}`),
   );
   for (const signal of ["SIGINT", "SIGTERM"])
-    process.on(signal, () =>
+    process.on(signal, () => {
       server.close(async () => {
         await server.closeDatabase();
         process.exit(0);
-      }),
-    );
+      });
+      server.endStreams(); // open room streams would otherwise hold the server open
+    });
 }

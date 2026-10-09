@@ -1,5 +1,5 @@
 // Server-authoritative single-player originals (Blackjack, Baccarat, Mines, Crash, Roulette,
-// Dice, Plinko, Keno, Video Poker, Slots) with
+// Dice, Plinko, Keno, Video Poker, Slots, Hi-Lo, Sic Bo, Money Wheel) with
 // per-user provably-fair seeds. All game rules come from the shared casino-core.js.
 import { randomBytes, randomUUID } from "node:crypto";
 import {
@@ -12,6 +12,13 @@ import {
   ROULETTE_FLOATS,
   SLOT_FLOATS,
   VIDEO_POKER_FLOATS,
+  HILO_FLOATS,
+  SIC_BO_FLOATS,
+  WHEEL_FLOATS,
+  hiloAction,
+  hiloStart,
+  sicBoRoll,
+  wheelSpin,
   diceRoll,
   kenoPlay,
   plinkoDrop,
@@ -40,8 +47,9 @@ import { recordPlay } from "./achievements.js";
 const FLOAT_COUNTS = {
   blackjack: BLACKJACK_FLOATS, baccarat: BACCARAT_FLOATS, mines: MINES_FLOATS, crash: 1, roulette: ROULETTE_FLOATS,
   dice: DICE_FLOATS, plinko: PLINKO_FLOATS, keno: KENO_FLOATS, "video-poker": VIDEO_POKER_FLOATS, slots: SLOT_FLOATS,
+  hilo: HILO_FLOATS, "sic-bo": SIC_BO_FLOATS, "money-wheel": WHEEL_FLOATS,
 };
-const RESUMABLE = ["blackjack", "mines", "crash", "video-poker"];
+const RESUMABLE = ["blackjack", "mines", "crash", "video-poker", "hilo"];
 const MAINTENANCE_INTERVAL_MS = 1_000;
 const randomHex = (bytes) => randomBytes(bytes).toString("hex");
 const toCents = (credits) => (typeof credits === "number" && Number.isFinite(credits) ? Math.round(credits * 100) : NaN);
@@ -304,6 +312,14 @@ export function createCasino({ db, now, fail, publicUser }) {
     "POST /api/casino/video-poker/draw": (user, body) =>
       actOnRound(user, "video-poker", { run: (state) => videoPokerDraw(state, body.held) }),
     "POST /api/casino/slots": (user, body) => startRound(user, "slots", (floats) => slotsSpin(floats, toCents(body.bet), body.machine)),
+    "POST /api/casino/hilo/start": (user, body) => startRound(user, "hilo", (floats) => hiloStart(floats, toCents(body.bet))),
+    "POST /api/casino/hilo/action": (user, body) => actOnRound(user, "hilo", { run: (state, floats) => hiloAction(state, floats, body.action) }),
+    "POST /api/casino/sic-bo": (user, body) =>
+      startRound(user, "sic-bo", (floats) =>
+        sicBoRoll(floats, Array.isArray(body.bets) ? body.bets.map((bet) => ({ type: bet?.type, value: bet?.value ?? null, amount: toCents(bet?.amount) })) : []),
+      ),
+    "POST /api/casino/money-wheel": (user, body) =>
+      startRound(user, "money-wheel", (floats) => wheelSpin(floats, Array.isArray(body.bets) ? body.bets.map((bet) => ({ type: bet?.type, amount: toCents(bet?.amount) })) : [])),
   };
 
   return {

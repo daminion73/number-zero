@@ -99,6 +99,9 @@ const TITLES = [
   ["poker-face", "Poker Face", "epic", "flush-rush"],
   ["untouchable", "Untouchable", "legendary", "royal-treatment"],
   ["daredevil", "Daredevil", "epic", "daredevil"],
+  ["card-counter", "Card Counter", "rare", "card-counter"],
+  ["tai-sai", "Tai Sai", "rare", "tai-sai"],
+  ["big-six", "Big Six", "epic", "big-six"],
 ];
 
 export const COSMETICS = [
