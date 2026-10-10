@@ -46,10 +46,12 @@ export async function openStore(filename, { url, authToken } = {}) {
       ],
       "write",
     );
-    // Equipped cosmetics (profile picture, frame, name colour, title); added to existing databases on boot.
+    // Equipped cosmetics (profile picture, frame, name colour, title) and the admin flag (set at each
+    // Google sign-in from ADMIN_EMAILS; the email itself is not stored); added to existing databases on boot.
     const columns = new Set((await db.execute("PRAGMA table_info(users)")).rows.map((row) => row.name));
     for (const column of ["avatar", "frame", "name_color", "title"])
       if (!columns.has(column)) await db.execute(`ALTER TABLE users ADD COLUMN ${column} TEXT`);
+    if (!columns.has("admin")) await db.execute("ALTER TABLE users ADD COLUMN admin INTEGER NOT NULL DEFAULT 0");
     return db;
   } catch (error) {
     db.close();

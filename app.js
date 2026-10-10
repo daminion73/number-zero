@@ -80,7 +80,6 @@ function renderStats() {
   $("#inventory-balance").textContent = "∞ DEMO";
   $("#opening-balance").textContent = "∞ DEMO";
   $("#battle-balance").textContent = "∞ DEMO CR";
-  $("#admin-balance").textContent = "∞ DEMO";
   $("#admin-rolls").textContent = state.rolls.toLocaleString();
   $("#admin-cases").textContent = state.casesOpened.toLocaleString();
   $("#admin-inventory").textContent = state.inventory.length.toLocaleString();
@@ -1641,9 +1640,10 @@ $("#battle-bots").addEventListener("change", () => {
 $("#battle-new").addEventListener("click", showBattleCreator);
 $("#duel-start").addEventListener("click", startGroupBattle);
 document.addEventListener("keydown", (event) => {
-  if (event.key === "F1") {
+  // F1 opens the control room for admins only; for everyone else it keeps the browser's default.
+  if (event.key === "F1" && multiplayer?.account.getUser()?.admin) {
     event.preventDefault();
-    if (adminDialog.open) adminDialog.close(); else { renderStats(); adminDialog.showModal(); }
+    if (adminDialog.open) adminDialog.close(); else openAdmin();
     return;
   }
   if (event.code === "Space" && event.target === document.body && currentMode === "sandbox") {
@@ -1659,6 +1659,29 @@ $("#admin-case-select").innerHTML = CASES.map((item) => `<option value="${item.i
 $("#odds-button").addEventListener("click", () => dialog.showModal());
 $(".dialog-close").addEventListener("click", () => dialog.close());
 dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
+function renderAdmin() {
+  const user = multiplayer.account.getUser();
+  $("#admin-balance").textContent = user ? `${formatCredits(multiplayer.account.displayBalance())} CR` : "—";
+  $("#admin-who").textContent = user ? `● ADMIN · ${user.name}` : "● ADMIN";
+}
+function openAdmin() { renderStats(); renderAdmin(); adminDialog.showModal(); }
+document.addEventListener("nz-open-admin", () => multiplayer.account.getUser()?.admin && openAdmin());
+async function adminCredits(body, done) {
+  try {
+    const { user } = await multiplayer.account.api("/admin/credits", body);
+    multiplayer.account.setUser(user);
+    renderAdmin(); setAdminStatus(done); tone(620, 0.16, "triangle", 0.05);
+  } catch (error) { setAdminStatus(error.message); }
+}
+adminDialog.addEventListener("click", (event) => {
+  const add = event.target.closest("[data-admin-add]");
+  if (add) adminCredits({ amount: Number(add.dataset.adminAdd) }, `Added ${formatCredits(Number(add.dataset.adminAdd))} CR to your online balance.`);
+});
+$("#admin-set-balance").addEventListener("click", () => {
+  const amount = Number($("#admin-balance-input").value);
+  if ($("#admin-balance-input").value === "" || !(amount >= 0)) return setAdminStatus("Enter a balance of 0 CR or more.");
+  adminCredits({ amount, set: true }, `Online balance set to ${formatCredits(amount)} CR.`);
+});
 $(".admin-close").addEventListener("click", () => adminDialog.close());
 adminDialog.addEventListener("click", (event) => { if (event.target === adminDialog) adminDialog.close(); });
 $("#admin-grant-case").addEventListener("click", () => {
@@ -1689,9 +1712,11 @@ multiplayer = initMultiplayer({
   renderBattle: renderOnlineBattle,
   getBattleSelection: () => ({ caseIds: [...battleCaseIds], mode: $("#battle-mode").value, format: $("#battle-bots").value, speed: $("#battle-speed-select").value }),
 });
+// Losing admin (sign out, account switch) closes the control room.
+multiplayer.account.onUser((user) => { if (!user?.admin && adminDialog.open) adminDialog.close(); else if (adminDialog.open) renderAdmin(); });
 home = initHome({ root: $("#home-panel"), account: multiplayer.account, navigate: (mode) => setMode(mode, true), openGame, openLive });
 profile = initProfile({ root: $("#profile-panel"), account: multiplayer.account });
-casino = initCasino({ originalsRoot: $("#originals-panel"), liveRoot: $("#live-panel"), account: multiplayer.account, sound: tone });
+casino = initCasino({ originalsRoot: $("#originals-panel"), liveRoot: $("#live-panel"), account: multiplayer.account, sound: tone, navigate: (mode) => setMode(mode, true) });
 // Room invite links (?room=CODE) open the live tables.
 if (new URL(location.href).searchParams.has("room")) currentMode = "live";
 setMode(currentMode);

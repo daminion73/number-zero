@@ -4,7 +4,6 @@ import { COSMETICS, lookOf, ownedKeys } from "./cosmetics.js";
 
 const ACHIEVEMENT_NAMES = new Map(ACHIEVEMENTS.map((achievement) => [achievement.id, achievement.name]));
 
-const SERIES_LIMIT = 250;
 const WINNER_LIMIT = 12;
 const DAY_MS = 86_400_000;
 const credits = (cents) => cents / 100;
@@ -24,22 +23,14 @@ export async function loadProfile(db, userRow, publicUser) {
   const [biggestWin] = await query(
     "SELECT * FROM plays WHERE user_id=? AND payout_cents>wager_cents ORDER BY payout_cents-wager_cents DESC LIMIT 1",
   );
-  const recent = (
-    await query(`SELECT wager_cents, payout_cents, created_at FROM plays WHERE user_id=? ORDER BY id DESC LIMIT ${SERIES_LIMIT}`)
-  ).reverse();
   const unlocked = new Map((await query("SELECT id, unlocked_at FROM achievements WHERE user_id=?")).map((row) => [row.id, row.unlocked_at]));
   const context = await achievementContext(db, userId);
 
-  // The series ends at the lifetime net, even when older plays fall outside the window.
   const lifetimeNet = totals.returned - totals.wagered;
-  let running = lifetimeNet - recent.reduce((sum, play) => sum + play.payout_cents - play.wager_cents, 0);
-  const series = recent.map((play) => {
-    running += play.payout_cents - play.wager_cents;
-    return { at: play.created_at, net: credits(running) };
-  });
+  const publicProfile = publicUser(userRow);
 
   return {
-    user: publicUser(userRow),
+    user: publicProfile,
     totals: {
       wagered: credits(totals.wagered),
       returned: credits(totals.returned),
@@ -72,7 +63,7 @@ export async function loadProfile(db, userRow, publicUser) {
       returned: credits(game.returned),
       net: credits(game.returned - game.wagered),
     })),
-    series,
+    firstPlayAt: (await query("SELECT MIN(created_at) AS at FROM plays WHERE user_id=?"))[0].at ?? null,
     achievements: ACHIEVEMENTS.map((achievement) => ({
       ...achievement,
       unlocked: unlocked.has(achievement.id),
@@ -80,7 +71,7 @@ export async function loadProfile(db, userRow, publicUser) {
       progress: progressOf(achievement.id, context),
     })),
     cosmetics: (() => {
-      const owned = ownedKeys([...unlocked.keys()]);
+      const owned = ownedKeys([...unlocked.keys()], publicProfile.admin);
       return {
         equipped: lookOf(userRow),
         items: COSMETICS.map((item) => ({
@@ -90,6 +81,51 @@ export async function loadProfile(db, userRow, publicUser) {
         })),
       };
     })(),
+  };
+}
+
+/**
+ * Cumulative net P/L between `from` and `to` (ms), in at most `buckets` points. Each point is the
+ * running net after the last play of its time bucket; `start` is the net carried in from before `from`.
+ */
+export async function loadPerformance(db, userId, from, to, buckets) {
+  const [before] = (
+    await db.execute({ sql: "SELECT COALESCE(SUM(payout_cents-wager_cents),0) AS net FROM plays WHERE user_id=? AND created_at<?", args: [userId, from] })
+  ).rows;
+  const rows = (
+    await db.execute({
+      sql: `SELECT MIN(CAST((created_at-?)*?/? AS INTEGER), ?) AS bucket, MAX(created_at) AS at, COUNT(*) AS plays,
+        SUM(CASE WHEN payout_cents>wager_cents THEN 1 ELSE 0 END) AS wins, SUM(wager_cents) AS wagered,
+        SUM(payout_cents) AS returned, MAX(payout_cents-wager_cents) AS best
+        FROM plays WHERE user_id=? AND created_at>=? AND created_at<=? GROUP BY bucket ORDER BY bucket`,
+      args: [from, buckets, to - from, buckets - 1, userId, from, to],
+    })
+  ).rows;
+  let running = before.net;
+  const totals = { plays: 0, wins: 0, wagered: 0, returned: 0, best: null };
+  const points = rows.map((row) => {
+    running += row.returned - row.wagered;
+    totals.plays += row.plays;
+    totals.wins += row.wins;
+    totals.wagered += row.wagered;
+    totals.returned += row.returned;
+    totals.best = Math.max(totals.best ?? -Infinity, row.best);
+    return { at: row.at, net: credits(running) };
+  });
+  return {
+    from,
+    to,
+    start: credits(before.net),
+    end: credits(running),
+    points,
+    totals: {
+      plays: totals.plays,
+      wins: totals.wins,
+      wagered: credits(totals.wagered),
+      returned: credits(totals.returned),
+      net: credits(totals.returned - totals.wagered),
+      best: totals.best === null || totals.best <= 0 ? null : credits(totals.best),
+    },
   };
 }
 

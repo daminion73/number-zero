@@ -173,7 +173,7 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
     accountSignature = signature;
     const content = $("#account-content");
     if (user) {
-      content.innerHTML = `<div class="account-wallet"><small>ONLINE BALANCE</small><strong>${money(shownBalance())} <em>CR</em></strong></div><div class="account-stats"><span><b>${user.battlesPlayed}</b> BATTLES COMPLETED</span><span><b>${user.wins}</b> WINS / TIED WINS</span></div><button class="mp-primary" id="online-daily" type="button" ${user.dailyAvailable ? "" : "disabled"}>${user.dailyAvailable ? "CLAIM 100,000 DAILY CREDITS" : "DAILY CLAIMED · RESETS 00:00 UTC"}</button>${activeBattleId ? '<button id="online-resume" type="button">RETURN TO YOUR ACTIVE BATTLE →</button>' : ""}<button id="online-logout" type="button">SIGN OUT</button>`;
+      content.innerHTML = `<div class="account-wallet"><small>ONLINE BALANCE</small><strong>${money(shownBalance())} <em>CR</em></strong></div><div class="account-stats"><span><b>${user.battlesPlayed}</b> BATTLES COMPLETED</span><span><b>${user.wins}</b> WINS / TIED WINS</span></div><button class="mp-primary" id="online-daily" type="button" ${user.dailyAvailable ? "" : "disabled"}>${user.dailyAvailable ? "CLAIM 100,000 DAILY CREDITS" : "DAILY CLAIMED · RESETS 00:00 UTC"}</button>${activeBattleId ? '<button id="online-resume" type="button">RETURN TO YOUR ACTIVE BATTLE →</button>' : ""}${user.admin ? '<button id="online-admin" type="button">OPEN ADMIN CONTROL ROOM (F1)</button>' : ""}<button id="online-logout" type="button">SIGN OUT</button>`;
       $("#online-daily").onclick = () =>
         action(async () => {
           const result = await api("/daily", {});
@@ -184,6 +184,10 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
       $("#online-resume")?.addEventListener("click", () => {
         dialog.close();
         viewBattle(activeBattleId);
+      });
+      $("#online-admin")?.addEventListener("click", () => {
+        dialog.close();
+        document.dispatchEvent(new Event("nz-open-admin"));
       });
       $("#online-logout").onclick = () =>
         action(async () => {

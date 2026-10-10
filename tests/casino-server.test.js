@@ -274,19 +274,37 @@ test("profile analytics, achievements once, winners and case-battle plays", asyn
   const token = await f.login("Analyst");
   const empty = await f.profile(token);
   assert.deepEqual(empty.totals, { wagered: 0, returned: 0, net: 0, plays: 0, wins: 0 });
-  assert.equal(empty.series.length, 0);
+  assert.equal(empty.firstPlayAt, null);
   assert.ok(empty.achievements.length >= 60);
   assert.ok(empty.achievements.every((a) => a.reward === 0 && !a.unlocked), "achievements grant cosmetics, not credits");
-  const first = (await f.request("/api/casino/baccarat", { bets: { banker: 100 } }, token)).data;
-  assert.equal(first.achievements[0].id, "first-play");
-  for (let index = 0; index < 4; index++) {
-    const next = (await f.request("/api/casino/baccarat", { bets: { player: 100 } }, token)).data;
-    assert.ok(!next.achievements?.some((a) => a.id === "first-play"));
+  // One play a minute; the running net after each play comes from the wallet, not the ledger.
+  const startedAt = Date.UTC(2026, 9, 4, 12); // fixture clock
+  const netAfter = [];
+  for (let index = 0; index < 5; index++) {
+    f.advance(60_000);
+    const result = (await f.request("/api/casino/baccarat", { bets: index ? { player: 100 } : { banker: 100 } }, token)).data;
+    if (index === 0) assert.equal(result.achievements[0].id, "first-play");
+    else assert.ok(!result.achievements?.some((a) => a.id === "first-play"));
+    netAfter.push(((await f.balanceCents(token)) - START) / 100);
   }
   const profile = await f.profile(token);
   assert.equal(profile.totals.plays, 5);
-  assert.equal(profile.series.length, 5);
-  assert.equal(profile.series.at(-1).net, profile.totals.net);
+  assert.equal(profile.firstPlayAt, startedAt + 60_000);
+  const performance = async (query) => (await f.request(`/api/profile/performance?${query}`, undefined, token)).data.performance;
+  // Defaults cover all time up to now, so five plays a minute apart share one bucket.
+  const all = await performance("");
+  assert.deepEqual([all.start, all.end, all.points.length, all.totals.plays, all.totals.wagered], [0, profile.totals.net, 1, 5, 500]);
+  const fine = await performance(`from=${startedAt}&to=${startedAt + 300_000}`);
+  assert.deepEqual(fine.points.map((point) => point.net), netAfter);
+  assert.equal(fine.points[2].at, startedAt + 180_000);
+  // A zoomed window carries in the net from before it and ends at the lifetime net.
+  const zoomed = await performance(`from=${startedAt + 150_000}&to=${startedAt + 600_000}&buckets=50`);
+  assert.deepEqual([zoomed.start, zoomed.totals.plays, zoomed.end], [netAfter[1], 3, netAfter[4]]);
+  assert.equal(zoomed.totals.net, Math.round((netAfter[4] - netAfter[1]) * 100) / 100);
+  // Plays sharing a bucket collapse into one point at the bucket's running net.
+  const coarse = await performance(`from=${startedAt}&to=${startedAt + 300_000}&buckets=2`);
+  assert.deepEqual(coarse.points, [{ at: startedAt + 120_000, net: netAfter[1] }, { at: startedAt + 300_000, net: netAfter[4] }]);
+  assert.equal((await f.request("/api/profile/performance?from=10&to=5", undefined, token)).status, 400);
   assert.equal(profile.favourite.game, "baccarat");
   assert.equal(profile.games[0].plays, 5);
   assert.equal(profile.achievements.find((a) => a.id === "first-play").unlocked, true);

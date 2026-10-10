@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="home.css" />
     <link rel="stylesheet" href="profile.css" />
     <link rel="stylesheet" href="cosmetics.css" />
+    <link rel="stylesheet" href="performance.css" />
   </head>
   <body>
     <div class="noise" aria-hidden="true"></div>
@@ -178,12 +179,12 @@
       </dialog>
       <dialog id="admin-dialog" class="admin-dialog">
         <button class="admin-close" type="button" aria-label="Close">×</button>
-        <div class="admin-title"><div><p class="kicker">LOCAL OPERATIONS · F1</p><h2>CONTROL//ROOM</h2></div><span>● LOCAL SESSION</span></div>
-        <div class="admin-dashboard"><div class="admin-balance"><span>UNLIMITED DEMO</span><strong id="admin-balance">∞ DEMO</strong><small>CREDITS · NO CASH VALUE</small></div><div class="admin-live-stats"><span>ROLLS<b id="admin-rolls">0</b></span><span>CASES<b id="admin-cases">0</b></span><span>INVENTORY<b id="admin-inventory">0</b></span><span>DEMO PAY<b>NOT SAVED</b></span></div></div>
-        <section class="admin-section"><header><strong>UNLIMITED DEMO</strong><span>No credits or stats recorded</span></header><p>Demo play is always free. Online credits and stats are managed separately by the server.</p></section>
+        <div class="admin-title"><div><p class="kicker">ADMIN ONLY · F1</p><h2>CONTROL//ROOM</h2></div><span id="admin-who">● ADMIN</span></div>
+        <div class="admin-dashboard"><div class="admin-balance"><span>YOUR ONLINE BALANCE</span><strong id="admin-balance">—</strong><small>SERVER WALLET · VIRTUAL CREDITS</small></div><div class="admin-live-stats"><span>ROLLS<b id="admin-rolls">0</b></span><span>CASES<b id="admin-cases">0</b></span><span>INVENTORY<b id="admin-inventory">0</b></span><span>COSMETICS<b>ALL UNLOCKED</b></span></div></div>
+        <section class="admin-section"><header><strong>TEST CREDITS</strong><span>Your online wallet only · not counted as plays or in your stats</span></header><div class="admin-presets"><button type="button" data-admin-add="10000">+10K CR</button><button type="button" data-admin-add="100000">+100K CR</button><button type="button" data-admin-add="1000000">+1M CR</button><button type="button" data-admin-add="10000000">+10M CR</button></div><div class="admin-credit-row" style="margin-top: 8px"><input id="admin-balance-input" type="number" min="0" step="1" inputmode="numeric" placeholder="Exact balance in CR" aria-label="Exact balance in CR" /><button id="admin-set-balance" class="admin-add" type="button">SET BALANCE</button></div></section>
         <section class="admin-section"><header><strong>OPENING TEST LAB</strong><span>Configure the next sealed case</span></header><div class="admin-case-row"><select id="admin-case-select" aria-label="Case to grant"></select><button id="admin-grant-case" type="button">GRANT CASE</button></div><div class="admin-test-actions"><button id="admin-force-gold" type="button"><b>◇</b><span>FORCE BONUS<small>Gold or inner case</small></span></button><button id="admin-force-mythic" type="button"><b>◆</b><span>FORCE MYTHIC<small>Golden-tier item</small></span></button></div></section>
-        <section class="admin-section danger-zone"><header><strong>SESSION DATA</strong><span>Destructive local controls</span></header><div><button id="admin-clear-inventory" type="button">CLEAR INVENTORY</button><button id="admin-reset-profile" type="button">RESET ENTIRE PROFILE</button></div></section>
-        <p class="admin-status" id="admin-status">Controls affect this browser only. Nothing here has real-world value.</p>
+        <section class="admin-section danger-zone"><header><strong>LOCAL DEMO DATA</strong><span>Destructive controls for this browser</span></header><div><button id="admin-clear-inventory" type="button">CLEAR INVENTORY</button><button id="admin-reset-profile" type="button">RESET ENTIRE PROFILE</button></div></section>
+        <p class="admin-status" id="admin-status">Credit tools change your online account; the test lab and demo data affect this browser only. Nothing here has real-world value.</p>
       </dialog>
       <dialog id="case-builder-dialog" class="case-builder-dialog">
         <button class="case-builder-close" type="button" aria-label="Close">×</button>

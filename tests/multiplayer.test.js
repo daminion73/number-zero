@@ -154,6 +154,35 @@ test("public lobby, static allowlist, exact CORS and Google credential rejection
   );
 });
 
+test("admins are recognised by verified Google email and only manage their own test wallet", async (t) => {
+  const f = await fixture(t, {
+    env: { DEV_AUTH: "1", GOOGLE_CLIENT_ID: "test-client", ADMIN_EMAILS: "Boss@Example.test" },
+    googleVerifier: { verifyIdToken: async ({ idToken }) => ({ getPayload: () => JSON.parse(idToken) }) },
+  });
+  const login = async (payload) => (await f.request("/api/auth/google", { credential: JSON.stringify(payload) })).data;
+  const admin = await login({ sub: "boss", name: "Boss", email: "BOSS@example.test", email_verified: true });
+  const unverified = await login({ sub: "spoof", name: "Spoof", email: "boss@example.test", email_verified: false });
+  const player = await login({ sub: "player", name: "Player", email: "player@example.test", email_verified: true });
+  assert.deepEqual([admin.user.admin, unverified.user.admin, player.user.admin], [true, false, false]);
+  assert.equal(admin.user.email, undefined);
+  assert.equal((await f.request("/api/auth/dev", { name: "Boss" })).data.user.admin, false);
+
+  const credits = (body, token) => f.request("/api/admin/credits", body, token);
+  assert.equal((await credits({ amount: 5000 }, player.token)).status, 403);
+  assert.equal((await f.request("/api/me", undefined, player.token)).data.user.balance, 100000);
+  assert.equal((await credits({ amount: 250000 }, admin.token)).data.user.balance, 350000);
+  assert.equal((await credits({ amount: 42.5, set: true }, admin.token)).data.user.balance, 42.5);
+  assert.equal((await credits({ amount: -100 }, admin.token)).data.user.balance, 0);
+  assert.equal((await credits({ amount: 2e9 }, admin.token)).status, 400);
+  assert.equal((await f.request("/api/me", undefined, player.token)).data.user.balance, 100000);
+
+  // Admins own every cosmetic so they can try them; players still need the achievement.
+  const items = (await f.request("/api/profile", undefined, admin.token)).data.profile.cosmetics.items;
+  assert.ok(items.every((item) => item.owned));
+  assert.equal((await f.request("/api/profile/cosmetics", { kind: "avatar", id: "shark" }, admin.token)).data.user.look.avatar, "shark");
+  assert.equal((await f.request("/api/profile/cosmetics", { kind: "avatar", id: "shark" }, player.token)).status, 403);
+});
+
 test("Google identity is keyed by verified subject, sessions revoke and expire", async (t) => {
   const f = await fixture(t, {
     env: { GOOGLE_CLIENT_ID: "test-client" },

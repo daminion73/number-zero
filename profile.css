@@ -23,18 +23,6 @@
 .comparison-row i b { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #53e7ff, #c7ff36); }
 .comparison-row.wagered i b { background: linear-gradient(90deg, #6e55ad, #ae70ff); }
 .comparison-row strong { text-align: right; }
-.profile-chart-wrap { position: relative; height: 285px; margin: 10px 38px 0 0; }
-.profile-chart-svg { width: 100%; height: 260px; overflow: visible; }
-.zero-line { stroke: #7a849744; stroke-dasharray: 8 8; }
-.profit-line, .loss-line { fill: none; stroke-width: 3; vector-effect: non-scaling-stroke; }
-.profit-line { stroke: #c7ff36; }
-.loss-line { stroke: #ff587b; }
-.chart-crosshair { stroke: #ffffff55; stroke-width: 1; vector-effect: non-scaling-stroke; }
-.chart-point { fill: white; stroke: #53e7ff; stroke-width: 3; vector-effect: non-scaling-stroke; }
-.chart-axis { position: absolute; top: -5px; right: -58px; bottom: 19px; display: flex; flex-direction: column; justify-content: space-between; color: #69758b; font-size: 8px; }
-.chart-tooltip { position: absolute; z-index: 2; top: 15px; min-width: 145px; padding: 10px; border: 1px solid #3a4760; border-radius: 8px; background: #090d16ee; box-shadow: 0 10px 30px #0008; transform: translateX(-50%); pointer-events: none; }
-.chart-tooltip b, .chart-tooltip strong, .chart-tooltip small { display: block; margin: 3px 0; font-size: 8px; }
-.chart-tooltip strong { font-size: 13px; }
 .profile-highlights { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
 .profile-highlights article { position: relative; padding: 20px; overflow: hidden; border: 1px solid #29344a; border-radius: 14px; background: #121726; }
 .profile-highlights article > i { position: absolute; right: 14px; top: 8px; color: #ae70ff30; font-size: 55px; font-style: normal; }

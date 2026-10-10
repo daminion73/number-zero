@@ -1,4 +1,5 @@
 import { avatarMarkup, nameMarkup, titleMarkup } from "./cosmetics.js";
+import { mountPerformanceChart } from "./performance.js";
 
 const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const KINDS = [["avatar", "PROFILE PICTURES"], ["frame", "FRAMES"], ["color", "NAME COLOURS"], ["title", "TITLES"]];
@@ -10,31 +11,6 @@ const money = (value) => Number(value || 0).toLocaleString(undefined, {
 });
 const gameName = (value) => String(value || "—").replace("slots:", "slots · ").replaceAll("-", " ").toUpperCase();
 const signed = (value) => `${value >= 0 ? "+" : "−"}${money(Math.abs(value))}`;
-
-function chartMarkup(series) {
-  if (!series.length) return '<div class="chart-empty">Play a game to begin your lifetime graph.</div>';
-  const width = 1000;
-  const height = 260;
-  const maximum = Math.max(1, ...series.map((point) => Math.abs(point.net)));
-  const y = (value) => height / 2 - (value / maximum) * (height * 0.42);
-  const points = series.map((point, index) => ({
-    ...point,
-    x: series.length === 1 ? width / 2 : (index / (series.length - 1)) * width,
-    y: y(point.net),
-  }));
-  const line = points.map((point) => `${point.x},${point.y}`).join(" ");
-  const area = `M ${points[0].x} ${height / 2} L ${points.map((point) => `${point.x} ${point.y}`).join(" L ")} L ${points.at(-1).x} ${height / 2} Z`;
-  return `<div class="profile-chart-wrap">
-    <svg class="profile-chart-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-label="Cumulative net profit and loss">
-      <defs><linearGradient id="profit-fill" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#c7ff36" stop-opacity=".34"/><stop offset="1" stop-color="#c7ff36" stop-opacity="0"/></linearGradient><linearGradient id="loss-fill" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ff587b" stop-opacity="0"/><stop offset="1" stop-color="#ff587b" stop-opacity=".34"/></linearGradient><clipPath id="profit-clip"><rect width="${width}" height="${height / 2}"/></clipPath><clipPath id="loss-clip"><rect y="${height / 2}" width="${width}" height="${height / 2}"/></clipPath></defs>
-      <line class="zero-line" x1="0" x2="${width}" y1="${height / 2}" y2="${height / 2}"/>
-      <path d="${area}" fill="url(#profit-fill)" clip-path="url(#profit-clip)"/><path d="${area}" fill="url(#loss-fill)" clip-path="url(#loss-clip)"/>
-      <polyline points="${line}" class="profit-line" clip-path="url(#profit-clip)"/><polyline points="${line}" class="loss-line" clip-path="url(#loss-clip)"/>
-      <line class="chart-crosshair" y1="0" y2="${height}" hidden/><circle class="chart-point" r="6" hidden/>
-    </svg><div class="chart-tooltip" hidden></div>
-    <div class="chart-axis"><span>+${money(maximum)}</span><span>0 CR</span><span>−${money(maximum)}</span></div>
-  </div>`;
-}
 
 export function initProfile({ root, account }) {
   let requestId = 0;
@@ -52,38 +28,6 @@ export function initProfile({ root, account }) {
 
   function loading() {
     root.innerHTML = `<div class="profile-skeleton"><div></div><div class="skeleton-kpis">${"<i></i>".repeat(6)}</div><div class="skeleton-chart"></div></div>`;
-  }
-
-  function bindChart(series) {
-    const wrap = root.querySelector(".profile-chart-wrap");
-    if (!wrap || !series.length) return;
-    const svg = wrap.querySelector("svg");
-    const crosshair = wrap.querySelector(".chart-crosshair");
-    const point = wrap.querySelector(".chart-point");
-    const tooltip = wrap.querySelector(".chart-tooltip");
-    svg.addEventListener("pointermove", (event) => {
-      const bounds = svg.getBoundingClientRect();
-      const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
-      const index = Math.round(ratio * (series.length - 1));
-      const data = series[index];
-      const maximum = Math.max(1, ...series.map((item) => Math.abs(item.net)));
-      const x = series.length === 1 ? 500 : (index / (series.length - 1)) * 1000;
-      const y = 130 - (data.net / maximum) * 109.2;
-      crosshair.setAttribute("x1", x);
-      crosshair.setAttribute("x2", x);
-      point.setAttribute("cx", x);
-      point.setAttribute("cy", y);
-      crosshair.hidden = false;
-      point.hidden = false;
-      tooltip.hidden = false;
-      tooltip.style.left = `${ratio * 100}%`;
-      tooltip.innerHTML = `<b>PLAY ${index + 1}</b><strong class="${data.net >= 0 ? "positive" : "negative"}">${signed(data.net)} CR</strong><small>${new Date(data.at).toLocaleString()}</small>`;
-    });
-    svg.addEventListener("pointerleave", () => {
-      crosshair.hidden = true;
-      point.hidden = true;
-      tooltip.hidden = true;
-    });
   }
 
   function lockerMarkup(profile) {
@@ -163,12 +107,13 @@ export function initProfile({ root, account }) {
         <article><span>RTP</span><strong>${returnRate.toFixed(2)}%</strong></article>
       </section>
       <section class="profile-panel comparison"><header><div><span>CAPITAL FLOW</span><h2>Earnings vs wagered</h2></div><b>${totals.plays.toLocaleString()} SETTLED PLAYS</b></header><div class="comparison-row"><span>RETURNED</span><i><b style="width:${(totals.returned / comparisonMax) * 100}%"></b></i><strong>${money(totals.returned)} CR</strong></div><div class="comparison-row wagered"><span>WAGERED</span><i><b style="width:${(totals.wagered / comparisonMax) * 100}%"></b></i><strong>${money(totals.wagered)} CR</strong></div></section>
-      <section class="profile-panel chart-panel"><header><div><span>CUMULATIVE PERFORMANCE</span><h2>Net P/L</h2></div><b>HOVER TO INSPECT</b></header>${chartMarkup(profile.series || [])}</section>
+      <section class="profile-panel chart-panel"><header><div><span>CUMULATIVE PERFORMANCE</span><h2>Net P/L over time</h2></div><b>HOVER TO INSPECT · DRAG TO ZOOM</b></header>${profile.firstPlayAt ? '<div class="profile-performance"></div>' : '<div class="chart-empty">Play a game to begin your lifetime graph.</div>'}</section>
       <section class="profile-highlights"><article><i>×</i><span>BIGGEST WIN MULTIPLIER</span><strong>${profile.biggestMultiplier ? `${profile.biggestMultiplier.multiplier.toFixed(2)}×` : "—"}</strong><small>${gameName(profile.biggestMultiplier?.game)}</small></article><article><i>◇</i><span>BIGGEST WIN</span><strong>${profile.biggestWin ? `${money(profile.biggestWin.amount)} CR` : "—"}</strong><small>${gameName(profile.biggestWin?.game)}</small></article><article><i>★</i><span>FAVOURITE GAME</span><strong>${gameName(profile.favourite?.game)}</strong><small>${profile.favourite ? `${profile.favourite.plays} plays` : "NO DATA YET"}</small></article></section>
       <section class="profile-panel"><header><div><span>GAME INTELLIGENCE</span><h2>Per-game breakdown</h2></div></header><div class="profile-games"><div class="games-table-head"><span>GAME</span><span>PLAYS</span><span>WAGERED</span><span>RETURNED</span><span>NET</span></div>${profile.games.map((game) => `<div class="game-row"><b>${gameName(game.game)}<i style="width:${(game.wagered / Math.max(totals.wagered, 1)) * 100}%"></i></b><span>${game.plays}</span><span>${money(game.wagered)}</span><span>${money(game.returned)}</span><strong class="${game.net >= 0 ? "positive" : "negative"}">${signed(game.net)}</strong></div>`).join("") || '<p class="chart-empty">No settled games yet.</p>'}</div></section>
       ${lockerMarkup(profile)}
       ${achievementsMarkup(profile)}`;
-    bindChart(profile.series || []);
+    const chart = root.querySelector(".profile-performance");
+    if (chart) mountPerformanceChart(chart, { account, firstPlayAt: profile.firstPlayAt });
   }
 
   async function show() {

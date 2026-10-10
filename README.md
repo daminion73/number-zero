@@ -55,6 +55,8 @@ npm start
 
 The server verifies Google's signature, audience, issuer and expiration using `google-auth-library`, keys accounts by Google's `sub`, and returns a revocable seven-day opaque session. Only its hash is stored in SQLite. The browser keeps the token in sessionStorage (per tab); account data survives signing in again. Public battle data includes display names and game account IDs, not emails or Google subjects. Use HTTPS in production.
 
+Admins are the Google accounts whose verified email is listed in `ADMIN_EMAILS` (comma separated; defaults to `daminion.minion@gmail.com`). The email is checked at sign-in and only a yes/no flag is stored, so changes apply from the next sign-in. Admins press **F1** (or use the account dialog) for the control room: test credits for their own online wallet, the case test lab, and every cosmetic unlocked.
+
 ## Deploy the backend
 
 ### Render Free + Turso Free (selected hosts)

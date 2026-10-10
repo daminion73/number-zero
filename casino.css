@@ -35,6 +35,7 @@
 
 .cz-hub-head {
   display: flex;
+  flex-wrap: wrap; /* the controls drop to a second row only when the game tabs need the width */
   gap: 10px 16px;
   align-items: center;
   justify-content: space-between;
@@ -42,9 +43,70 @@
   border-bottom: 1px solid var(--cz-line);
 }
 
+.cz-exit {
+  display: inline-flex;
+  flex: none;
+  gap: 4px;
+  align-items: center;
+  align-self: stretch;
+  min-height: 38px;
+  padding: 0 12px 0 8px;
+  border: 1px solid var(--cz-line);
+  border-radius: 12px;
+  background: #080a12;
+  color: var(--cz-text);
+  font: 800 14px / 1 "Barlow Condensed", sans-serif;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: border-color 0.18s, color 0.18s;
+}
+
+.cz-exit:hover {
+  border-color: rgba(199, 255, 54, 0.5);
+  color: var(--cz-lime, #c7ff36);
+}
+
+.cz-exit svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cz-live-tabs .nz-session-toggle {
+  align-self: stretch;
+}
+
+/* The originals header is crowded: there the toggle is just its icon (the panel shows the numbers),
+   and on narrower screens the lobby button is just its house icon. */
+.cz-hub-head .nz-session-toggle {
+  align-self: stretch;
+  margin-left: auto;
+  padding: 0 11px;
+}
+
+.cz-hub-head .nz-session-toggle span,
+.cz-hub-head .nz-session-toggle b {
+  display: none;
+}
+
+@media (max-width: 1500px) {
+  .cz-hub-head .cz-exit {
+    padding: 0 10px;
+  }
+
+  .cz-hub-head .cz-exit span {
+    display: none;
+  }
+}
+
 .cz-controls {
   display: flex;
   flex: none;
+  margin-left: auto;
   gap: 8px;
   align-items: stretch;
 }
@@ -145,7 +207,7 @@
 
 .cz-tabs {
   display: flex;
-  flex: 1;
+  flex: 1 1 auto;
   gap: 6px;
   min-width: 0;
   overflow-x: auto;
@@ -373,8 +435,24 @@
   }
 
   .cz-live-tab small,
-  .cz-live-note {
+  .cz-live-note,
+  .cz-exit span {
     display: none;
+  }
+
+  .cz-exit {
+    padding: 0 8px;
+  }
+}
+
+/* Phones: the lobby button and session toggle share the live tab row, so the tabs show names only. */
+@media (max-width: 460px) {
+  .cz-live-tab svg {
+    display: none;
+  }
+
+  .cz-live-tab {
+    padding: 9px 4px;
   }
 }
 

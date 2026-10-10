@@ -1,0 +1,73 @@
+/* Performance over time: profile chart and live session panel (see performance.js). */
+.nz-chart-wrap { position: relative; }
+.nz-chart-svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.nz-chart-svg [hidden] { display: none; } /* SVG elements ignore the hidden attribute */
+.nz-chart-zero { stroke: #ffffff2e; stroke-dasharray: 4 5; vector-effect: non-scaling-stroke; }
+.nz-chart-up, .nz-chart-down { fill: none; stroke-width: 2.4; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.nz-chart-up { stroke: #c7ff36; filter: drop-shadow(0 0 6px #c7ff3666); }
+.nz-chart-down { stroke: #ff587b; filter: drop-shadow(0 0 6px #ff587b66); }
+.nz-chart-cross { stroke: #ffffff55; vector-effect: non-scaling-stroke; }
+.nz-chart-dot { fill: #08060d; stroke: #fff; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.nz-chart-tip { position: absolute; top: 6px; z-index: 2; padding: 6px 9px; transform: translateX(-50%); border: 1px solid #ffffff1f; border-radius: 9px; background: #0b0f1bf2; pointer-events: none; white-space: nowrap; }
+.nz-chart-tip strong { display: block; font: 800 16px/1 "Barlow Condensed", sans-serif; }
+.nz-chart-tip small { color: #8c93ab; font: 9px "DM Mono", monospace; }
+.nz-chart-empty { display: grid; place-items: center; height: 100%; min-height: 80px; color: #8c93ab; font: 11px "DM Mono", monospace; text-align: center; }
+.nz-perf .positive, .nz-session .positive, .nz-session-toggle .positive { color: #c7ff36; }
+.nz-perf .negative, .nz-session .negative, .nz-session-toggle .negative { color: #ff587b; }
+
+/* Profile chart */
+.nz-perf-bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin-bottom: 12px; }
+.nz-perf-presets { display: flex; padding: 3px; border: 1px solid #ffffff14; border-radius: 10px; background: #080a12; }
+.nz-perf-presets button, .nz-perf-reset { padding: 6px 11px; border: 0; border-radius: 7px; background: transparent; color: #8c93ab; font: 800 13px/1 "Barlow Condensed", sans-serif; letter-spacing: 0.1em; cursor: pointer; }
+.nz-perf-presets button:hover { color: #fff; }
+.nz-perf-presets button.active { background: #c7ff36; color: #08060d; }
+.nz-perf-window { display: flex; gap: 10px; align-items: baseline; }
+.nz-perf-window b { font: 800 20px/1 "Barlow Condensed", sans-serif; }
+.nz-perf-window span { color: #8c93ab; font: 9px "DM Mono", monospace; letter-spacing: 0.12em; }
+.nz-perf-reset { margin-left: auto; border: 1px solid #53e7ff55; color: #53e7ff; }
+.nz-perf .nz-chart-wrap { display: grid; grid-template-columns: 1fr auto; grid-template-rows: 280px auto; column-gap: 10px; }
+.nz-perf .nz-chart-wrap.loading .nz-chart-plot { opacity: 0.5; }
+.nz-chart-plot { position: relative; min-width: 0; cursor: crosshair; touch-action: pan-y; user-select: none; transition: opacity 0.15s; }
+.nz-chart-axis { display: flex; flex-direction: column; justify-content: space-between; color: #8c93ab; font: 10px "DM Mono", monospace; text-align: right; }
+.nz-chart-times { display: flex; justify-content: space-between; padding-top: 8px; color: #8c93ab; font: 10px "DM Mono", monospace; }
+.nz-chart-select { position: absolute; top: 0; height: 280px; border: 1px solid #53e7ff88; border-radius: 4px; background: #53e7ff1f; pointer-events: none; }
+.nz-perf-hint { margin: 10px 0 0; color: #5d6678; font: 9px "DM Mono", monospace; letter-spacing: 0.12em; }
+
+/* Session toggle (sits in the game headers) */
+.nz-session-toggle { display: inline-flex; flex: none; gap: 7px; align-items: center; padding: 0 12px; min-height: 38px; border: 1px solid #ffffff1c; border-radius: 11px; background: #0b0f1b; color: #dfe5f5; font: 800 13px/1 "Barlow Condensed", sans-serif; letter-spacing: 0.1em; cursor: pointer; white-space: nowrap; transition: border-color 0.18s, background 0.18s; }
+.nz-session-toggle:hover, .nz-session-toggle.open { border-color: #c7ff3688; background: #141b0c; }
+.nz-session-toggle svg { width: 17px; height: 17px; fill: none; stroke: #c7ff36; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.nz-session-toggle b { font-size: 15px; letter-spacing: 0.04em; }
+
+/* Session panel */
+.nz-session { position: fixed; z-index: 60; width: min(340px, calc(100vw - 16px)); padding: 12px; border: 1px solid #c7ff3640; border-radius: 16px; background: linear-gradient(160deg, #141b26f7, #0a0d16f7); box-shadow: 0 24px 60px #000a, 0 0 0 1px #00000080; color: #dfe5f5; backdrop-filter: blur(8px); }
+.nz-session[hidden] { display: none; }
+.nz-session > header { display: flex; align-items: center; justify-content: space-between; margin: -4px -4px 10px; padding: 4px; cursor: grab; touch-action: none; }
+.nz-session.dragging > header { cursor: grabbing; }
+.nz-session > header b { font: 800 14px/1 "Barlow Condensed", sans-serif; letter-spacing: 0.16em; }
+.nz-session > header b::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 8px; border-radius: 50%; background: #c7ff36; box-shadow: 0 0 8px #c7ff36; vertical-align: 1px; }
+.nz-session > header button { width: 28px; height: 28px; border: 0; border-radius: 8px; background: #ffffff10; color: #dfe5f5; font-size: 18px; cursor: pointer; }
+.nz-session-tabs { display: flex; gap: 4px; padding: 3px; margin-bottom: 12px; border: 1px solid #ffffff12; border-radius: 10px; background: #080a12; }
+.nz-session-tabs button { flex: 1; padding: 6px 0; border: 0; border-radius: 7px; background: transparent; color: #8c93ab; font: 800 12px/1 "Barlow Condensed", sans-serif; letter-spacing: 0.12em; cursor: pointer; }
+.nz-session-tabs button.active { background: #1f2a14; color: #c7ff36; }
+.nz-session-net small { color: #8c93ab; font: 9px "DM Mono", monospace; letter-spacing: 0.14em; }
+.nz-session-net strong { display: block; margin-top: 2px; font: 900 34px/1 "Barlow Condensed", sans-serif; letter-spacing: 0.02em; }
+.nz-session-net em { color: #8c93ab; font-size: 16px; font-style: normal; }
+.nz-session-chart { height: 90px; margin: 10px 0 12px; }
+.nz-session-chart .nz-chart-tip { top: -8px; }
+.nz-session-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0 0 12px; }
+.nz-session-stats div { padding: 7px 8px; border-radius: 9px; background: #ffffff08; }
+.nz-session-stats dt { color: #8c93ab; font: 8px "DM Mono", monospace; letter-spacing: 0.14em; }
+.nz-session-stats dd { margin: 3px 0 0; font: 800 15px/1 "Barlow Condensed", sans-serif; letter-spacing: 0.03em; }
+.nz-session footer { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+.nz-session footer span { color: #5d6678; font: 9px "DM Mono", monospace; letter-spacing: 0.12em; }
+.nz-session footer button, .nz-session-signin { padding: 8px 11px; border: 1px solid #ffffff1c; border-radius: 9px; background: #0b0f1b; color: #dfe5f5; font: 800 12px/1 "Barlow Condensed", sans-serif; letter-spacing: 0.1em; cursor: pointer; }
+.nz-session footer button[data-session-profile], .nz-session-signin { border-color: #c7ff3666; color: #c7ff36; }
+.nz-session-empty, .nz-session-loading { margin: 6px 0 12px; color: #8c93ab; font: 11px/1.5 "DM Mono", monospace; }
+
+@media (max-width: 620px) {
+  .nz-session-toggle span { display: none; }
+  .nz-session-toggle { padding: 0 9px; }
+  .nz-perf .nz-chart-wrap { grid-template-rows: 200px auto; }
+  .nz-chart-select { height: 200px; }
+}

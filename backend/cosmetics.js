@@ -118,11 +118,11 @@ export const cosmetic = (kind, id) => byKey.get(`${kind}:${id}`);
 /** Cosmetics granted by one achievement. */
 export const cosmeticsFor = (achievementId) => COSMETICS.filter((item) => item.source === achievementId);
 
-/** Set of "kind:id" keys owned by a player with the given unlocked achievement ids. */
-export function ownedKeys(achievementIds) {
+/** Set of "kind:id" keys owned by a player with the given unlocked achievement ids (admins own everything). */
+export function ownedKeys(achievementIds, admin = false) {
   const unlocked = new Set(achievementIds);
   return new Set(
-    COSMETICS.filter((item) => item.source === "default" || unlocked.has(item.source)).map((item) => `${item.kind}:${item.id}`),
+    COSMETICS.filter((item) => admin || item.source === "default" || unlocked.has(item.source)).map((item) => `${item.kind}:${item.id}`),
   );
 }
 

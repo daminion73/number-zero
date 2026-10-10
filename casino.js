@@ -2,6 +2,7 @@
 // dialog. Game modules live in games/<id>.js and receive a shared `ctx` (see casino-contract).
 import { createDemoEngine } from "./casino-demo.js";
 import { cardInfo, sha256Hex, verifyRound } from "./casino-core.js";
+import { initSessionPanel } from "./performance.js";
 
 const ICONS = {
   blackjack: `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="7" width="14" height="20" rx="2.5" transform="rotate(-12 12 17)"/><rect x="13" y="5" width="14" height="20" rx="2.5" transform="rotate(10 20 15)"/><path d="M20 11.5c-1.6 2.3-3.6 2.8-3.6 4.6a1.7 1.7 0 0 0 3 1.1l-.4 2h2l-.4-2a1.7 1.7 0 0 0 3-1.1c0-1.8-2-2.3-3.6-4.6Z" class="fill"/></svg>`,
@@ -43,6 +44,10 @@ const LIVE_GAMES = [
 ];
 const LIVE_IDS = new Set(LIVE_GAMES.map((game) => game.id));
 
+// Game screens hide the site header and nav (focus mode); this button returns to the lobby.
+const EXIT_BUTTON = `<button type="button" class="cz-exit" title="Back to the lobby" aria-label="Back to the lobby"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 3l9 8M5 9.5V21h5v-6h4v6h5V9.5"/></svg><span>LOBBY</span></button>`;
+const SESSION_TOGGLE = `<button type="button" class="nz-session-toggle" aria-expanded="false" title="Live performance"></button>`;
+
 const TOAST_ICONS = { win: "▲", loss: "▼", info: "◆", achievement: "★" };
 
 function formatMoney(value) {
@@ -79,7 +84,7 @@ function createToaster() {
   };
 }
 
-export function initCasino({ originalsRoot, liveRoot, account, sound }) {
+export function initCasino({ originalsRoot, liveRoot, account, sound, navigate }) {
   loadStylesheet("casino.css");
   const demo = createDemoEngine();
   const reducedMotionQuery = matchMedia("(prefers-reduced-motion: reduce)");
@@ -99,6 +104,7 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
   originalsRoot.innerHTML = `
     <section class="cz-hub">
       <header class="cz-hub-head">
+        ${EXIT_BUTTON}
         <nav class="cz-tabs" aria-label="Originals" role="tablist">
           ${GAMES.map(
             (game) => `
@@ -108,6 +114,7 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
             </button>`,
           ).join("")}
         </nav>
+        ${SESSION_TOGGLE}
         <div class="cz-controls">
           <div class="cz-mode" role="group" aria-label="Play mode">
             <button type="button" data-play-mode="demo">DEMO</button>
@@ -126,7 +133,7 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
     </section>`;
   liveRoot.classList.add("cz-root", "cz-live-root");
   let currentLive = new URL(location.href).searchParams.has("room") ? "rooms" : LIVE_IDS.has(localStorage.getItem("nz-live-game")) ? localStorage.getItem("nz-live-game") : "live-rocket";
-  liveRoot.innerHTML = `<nav class="cz-live-tabs" role="tablist" aria-label="Live games">${LIVE_GAMES.map((game) => `<button type="button" class="cz-live-tab" role="tab" data-live-game="${game.id}"><svg viewBox="0 0 24 24" aria-hidden="true">${game.icon}</svg><span><strong>${game.name}</strong><small>${game.tagline}</small></span></button>`).join("")}<span class="cz-live-note"><i></i>ONLINE · SHARED WITH EVERY PLAYER</span></nav><div class="cz-stage cz-live-stage">${LIVE_GAMES.map((game) => `<div class="cz-game" data-game-root="${game.id}" hidden></div>`).join("")}</div>`;
+  liveRoot.innerHTML = `<nav class="cz-live-tabs" role="tablist" aria-label="Live games">${EXIT_BUTTON}${LIVE_GAMES.map((game) => `<button type="button" class="cz-live-tab" role="tab" data-live-game="${game.id}"><svg viewBox="0 0 24 24" aria-hidden="true">${game.icon}</svg><span><strong>${game.name}</strong><small>${game.tagline}</small></span></button>`).join("")}<span class="cz-live-note"><i></i>ONLINE · SHARED WITH EVERY PLAYER</span>${SESSION_TOGGLE}</nav><div class="cz-stage cz-live-stage">${LIVE_GAMES.map((game) => `<div class="cz-game" data-game-root="${game.id}" hidden></div>`).join("")}</div>`;
   function renderLiveTabs() {
     liveRoot.querySelectorAll(".cz-live-tab").forEach((tab) => {
       const active = tab.dataset.liveGame === currentLive;
@@ -135,6 +142,10 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
     });
   }
   renderLiveTabs();
+
+  const session = initSessionPanel({ account, navigate });
+  for (const root of [originalsRoot, liveRoot])
+    root.addEventListener("click", (event) => event.target.closest(".cz-exit") && navigate("home"));
 
   const fairDialog = document.createElement("dialog");
   fairDialog.className = "cz-fair-dialog";
@@ -306,6 +317,7 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
       .then(async (module) => {
         container.innerHTML = "";
         entry.instance = await module.mount(container, LIVE_IDS.has(id) ? liveCtx : ctx);
+        session.refreshToggles(); // modules may render their own toggle (e.g. a table's header)
         if (entry.visible) entry.instance.show();
         else entry.instance.hide();
         container.hidden = !entry.visible;
@@ -357,7 +369,7 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
   };
   window.addEventListener("resize", scheduleFit);
   const fitObserver = new ResizeObserver(scheduleFit);
-  for (const element of [originalsRoot.querySelector(".cz-hub-head"), document.querySelector(".topbar"), document.querySelector(".mode-tabs")])
+  for (const element of [originalsRoot.querySelector(".cz-hub-head"), liveRoot.querySelector(".cz-live-tabs"), document.querySelector(".topbar"), document.querySelector(".mode-tabs")])
     if (element) fitObserver.observe(element);
   document.fonts?.ready.then(scheduleFit);
 
@@ -520,6 +532,7 @@ export function initCasino({ originalsRoot, liveRoot, account, sound }) {
     setMode(mode) {
       const entering = mode !== appMode && (mode === "originals" || mode === "live");
       appMode = mode;
+      session.setActive(mode === "originals" || mode === "live");
       syncVisibility();
       if (entering) window.scrollTo({ top: 0, behavior: "instant" });
       scheduleFit();

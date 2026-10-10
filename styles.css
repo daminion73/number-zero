@@ -1939,9 +1939,19 @@ body.battle-focus { overflow: hidden; }
   .game-shell { overflow: visible; }
 }
 
-/* Casino modes give the game the full screen: the battle network strip is hidden there. */
+/* Casino modes give the game the full screen (focus mode): the site header, main nav and battle network
+   strip are hidden there; the game headers carry a LOBBY button back. Seated at a table, the live tabs go too. */
 body[data-mode="originals"] .network-bar,
-body[data-mode="live"] .network-bar { display: none; }
+body[data-mode="live"] .network-bar,
+body[data-mode="originals"] .game-shell > .topbar,
+body[data-mode="live"] .game-shell > .topbar,
+body[data-mode="originals"] .game-shell > .mode-tabs,
+body[data-mode="live"] .game-shell > .mode-tabs,
+body.nz-in-room[data-mode="live"] .cz-live-tabs { display: none !important; }
+body[data-mode="originals"] .game-shell,
+body[data-mode="live"] .game-shell { padding-top: 10px; }
+body[data-mode="originals"] .cz-root,
+body[data-mode="live"] .cz-root { margin-top: 0; }
 body[data-mode="originals"] .rarity-key,
 body[data-mode="live"] .rarity-key,
 body[data-mode="originals"] > footer,

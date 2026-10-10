@@ -76,6 +76,7 @@ export function mount(container, ctx) {
         <header class="rm-room-head">
           <button type="button" class="rm-back">← LOBBY</button>
           <div class="rm-room-title"></div>
+          <button type="button" class="nz-session-toggle" aria-expanded="false" title="Live performance"></button>
           <div class="rm-room-meta"></div>
         </header>
         <div class="rm-room-body"></div>
@@ -231,8 +232,12 @@ export function mount(container, ctx) {
     current.view?.update(room);
   }
 
+  // While a table is open the live-game tabs hide too, leaving the screen to the table.
+  const inRoom = (value) => document.body.classList.toggle("nz-in-room", value);
+
   async function openRoom(key, initial = null) {
     if (current) closeRoom(false);
+    inRoom(true);
     find(".rm-lobby").hidden = true;
     find(".rm-room").hidden = false;
     find(".rm-create").hidden = true;
@@ -270,6 +275,7 @@ export function mount(container, ctx) {
     leaving?.view?.destroy?.();
     if (leaving?.room && leaving.room.you >= 0 && ctx.user()) call(`/rooms/${leaving.id}/leave`, {}).catch(() => {});
     current = null;
+    inRoom(false);
     const url = new URL(location.href);
     url.searchParams.delete("room");
     history.replaceState(null, "", url);
@@ -414,6 +420,7 @@ export function mount(container, ctx) {
     show() {
       shown = true;
       if (current) {
+        inRoom(true);
         pollRoom();
         connect();
       }
@@ -425,6 +432,7 @@ export function mount(container, ctx) {
     },
     hide() {
       shown = false;
+      inRoom(false);
       clearInterval(pollTimer);
       if (current) {
         current.abort?.abort();

@@ -11,7 +11,7 @@ import { createLive } from "./backend/live.js";
 import { createLiveRoulette } from "./backend/live-roulette.js";
 import { createRooms } from "./backend/rooms.js";
 import { ROOM_ENGINES } from "./backend/rooms/index.js";
-import { loadProfile, loadWinners } from "./backend/profile.js";
+import { loadPerformance, loadProfile, loadWinners } from "./backend/profile.js";
 import { COLUMNS, COSMETIC_KINDS, cosmetic, lookOf, ownedKeys } from "./backend/cosmetics.js";
 import {
   BOT_NAMES,
@@ -29,6 +29,7 @@ const types = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".png": "image/png",
+  ".webp": "image/webp",
   ".svg": "image/svg+xml",
   ".ttf": "font/ttf",
   ".bin": "application/octet-stream",
@@ -53,6 +54,8 @@ const publicFiles = new Set([
   "home.css",
   "profile.js",
   "profile.css",
+  "performance.js",
+  "performance.css",
 ]);
 const hash = (token) => createHash("sha256").update(token).digest("hex");
 const credits = (cents) => cents / 100;
@@ -96,6 +99,15 @@ export async function createServer(options = {}) {
       throw new Error(
         "ALLOWED_ORIGINS must contain exact origins, without paths",
       );
+  // Admins are recognised at Google sign-in by their verified email (ADMIN_EMAILS, comma separated);
+  // only the resulting flag is stored, so a removal applies from that player's next sign-in.
+  const adminEmails = new Set(
+    (env.ADMIN_EMAILS ?? "daminion.minion@gmail.com")
+      .split(",")
+      .map((x) => x.trim().toLowerCase())
+      .filter(Boolean),
+  );
+  const isAdmin = (row) => row.admin === 1;
   const rates = new Map();
   const publicUser = (row) => ({
     id: String(row.id),
@@ -104,6 +116,7 @@ export async function createServer(options = {}) {
     battlesPlayed: row.battles_played,
     wins: row.wins,
     look: lookOf(row),
+    admin: isAdmin(row),
     dailyAvailable:
       row.daily_day !== new Date(now()).toISOString().slice(0, 10),
   });
@@ -370,7 +383,7 @@ export async function createServer(options = {}) {
     }
     res.writeHead(status, headers).end(JSON.stringify(data));
   }
-  async function login(res, originValue, subject, name) {
+  async function login(res, originValue, subject, name, admin = false) {
     const result = await transaction(db, async (tx) => {
       let user = (
         await tx.execute({
@@ -389,6 +402,10 @@ export async function createServer(options = {}) {
             args: [subject],
           })
         ).rows[0];
+      }
+      if (Number(admin) !== user.admin) {
+        await tx.execute({ sql: "UPDATE users SET admin=? WHERE id=?", args: [Number(admin), user.id] });
+        user = { ...user, admin: Number(admin) };
       }
       const token = randomBytes(32).toString("base64url"),
         expiresAt = now() + 7 * 86400000;
@@ -517,6 +534,7 @@ export async function createServer(options = {}) {
         originValue,
         `google:${payload.sub}`,
         String(payload.name || "Player").slice(0, 40),
+        payload.email_verified === true && typeof payload.email === "string" && adminEmails.has(payload.email.toLowerCase()),
       );
     }
     if (req.method === "POST" && url.pathname === "/api/auth/dev") {
@@ -592,7 +610,7 @@ export async function createServer(options = {}) {
       if (id !== null) {
         if (typeof id !== "string" || !cosmetic(kind, id)) throw fail(400, "invalid_cosmetic", "Unknown cosmetic.");
         const unlocked = (await db.execute({ sql: "SELECT id FROM achievements WHERE user_id=?", args: [user.id] })).rows.map((row) => row.id);
-        if (!ownedKeys(unlocked).has(`${kind}:${id}`)) throw fail(403, "locked", "Unlock it with its achievement first.");
+        if (!ownedKeys(unlocked, isAdmin(user)).has(`${kind}:${id}`)) throw fail(403, "locked", "Unlock it with its achievement first.");
       }
       await transaction(db, (tx) => tx.execute({ sql: `UPDATE users SET ${COLUMNS[kind]}=? WHERE id=?`, args: [id, user.id] }));
       const row = (await db.execute({ sql: "SELECT * FROM users WHERE id=?", args: [user.id] })).rows[0];
@@ -605,6 +623,35 @@ export async function createServer(options = {}) {
         { profile: await loadProfile(db, user, publicUser), serverTime: now() },
         originValue,
       );
+    if (req.method === "GET" && url.pathname === "/api/profile/performance") {
+      // Cumulative net P/L over a time window, bucketed for charts (?from=&to= in ms, ?buckets=).
+      const number = (key, fallback) => {
+        const value = url.searchParams.get(key);
+        return value === null || value === "" ? fallback : Number(value);
+      };
+      const to = number("to", now());
+      const from = number("from", 0);
+      const buckets = number("buckets", 300);
+      if (![from, to].every(Number.isSafeInteger) || from < 0 || to <= from || !Number.isInteger(buckets) || buckets < 1 || buckets > 1000)
+        throw fail(400, "invalid_range", "Use whole-millisecond from < to and 1–1000 buckets.");
+      return send(res, 200, { performance: await loadPerformance(db, user.id, from, to, buckets), serverTime: now() }, originValue);
+    }
+    if (req.method === "POST" && url.pathname === "/api/admin/credits") {
+      // Admin test wallet: add (or with `set`, replace) this admin's own online balance.
+      if (!isAdmin(user)) throw fail(403, "forbidden", "Admins only.");
+      const { amount, set = false } = await body(req);
+      if (!Number.isFinite(amount) || Math.abs(amount) > 1e9 || (set && amount < 0))
+        throw fail(400, "invalid_amount", "Use an amount up to 1,000,000,000 CR.");
+      const cents = Math.round(amount * 100);
+      const fresh = await transaction(db, async (tx) => {
+        await tx.execute({
+          sql: set ? "UPDATE users SET balance_cents=? WHERE id=?" : "UPDATE users SET balance_cents=MAX(0,balance_cents+?) WHERE id=?",
+          args: [cents, user.id],
+        });
+        return (await tx.execute({ sql: "SELECT * FROM users WHERE id=?", args: [user.id] })).rows[0];
+      });
+      return send(res, 200, { user: publicUser(fresh) }, originValue);
+    }
     if (req.method === "POST" && url.pathname === "/api/auth/logout") {
       await transaction(db, (tx) =>
         tx.execute({
