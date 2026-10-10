@@ -50,6 +50,14 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
     pendingCreate = null,
     requestEpoch = 0;
   let presentation = null;
+  // Server clock minus ours, so every viewer plays a round in the server's time slot.
+  let clockOffset = 0;
+  const serverNow = () => Date.now() + clockOffset;
+  const syncClock = (result) => {
+    if (Number.isFinite(result?.serverTime)) clockOffset = result.serverTime - Date.now();
+  };
+  /** Server time at which the round after `round` is revealed (end of this round's slot). */
+  const slotEnd = (battle, round) => round.scheduledAt + battle.intervalMs;
   const userListeners = new Set();
   let notifiedUser = Symbol("initial");
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
@@ -332,6 +340,9 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
     // Polls and account refreshes must not replace a moving reel.
     if (view.controller) return;
     if (selected.state !== "settled") view.balance = user?.balance;
+    // Stay on the server's round: a round whose slot is (nearly) over is shown without its animation,
+    // so a slow device, a late poll or a backgrounded tab can never leave this viewer rounds behind.
+    while (selected.rounds[view.revealed] && slotEnd(selected, selected.rounds[view.revealed]) - serverNow() < 900) view.revealed++;
     const round = selected.rounds[view.revealed];
     if (!round) {
       paintRoom(selected, null, force);
@@ -350,7 +361,7 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
     paintRoom(snapshot, round, true);
     (async () => {
       try {
-        await animateRound(room, snapshot, round, controller.signal);
+        await animateRound(room, snapshot, round, controller.signal, slotEnd(selected, round) - serverNow());
         if (controller.signal.aborted) return;
         view.revealed++;
       } catch (error) {
@@ -417,7 +428,9 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
   async function viewBattle(id) {
     if (navigate("online") === false) return;
     await action(async () => {
-      selected = (await api(`/battles/${encodeURIComponent(id)}`)).battle;
+      const result = await api(`/battles/${encodeURIComponent(id)}`);
+      syncClock(result);
+      selected = result.battle;
       renderRoom(true);
       const url = new URL(location.href);
       url.searchParams.set("battle", id);
@@ -435,6 +448,7 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
       const me = token ? await api("/me") : null;
       const room = selectedId ? await api(`/battles/${selectedId}`) : null;
       if (epoch !== requestEpoch || selectedId !== selected?.id) return;
+      syncClock(room || result);
       battles = result.battles;
       online = true;
       if (me) {
@@ -617,15 +631,19 @@ export function initMultiplayer({ navigate, getBattleSelection, caseImage, anima
       await refresh(true);
     });
   };
+  /** Poll delay: right after the next round is revealed while watching a running battle, else 5s. */
+  function pollDelay() {
+    if (selected?.state !== "running" || currentMode !== "online") return 5000;
+    const nextReveal = selected.startedAt + (selected.rounds.length + 1) * selected.intervalMs;
+    const wait = nextReveal - serverNow() + 120;
+    return Number.isFinite(wait) ? Math.max(250, Math.min(1500, wait)) : 1500;
+  }
   function schedule() {
     clearTimeout(timer);
-    timer = setTimeout(
-      async () => {
-        if (config && !busy) await refresh();
-        schedule();
-      },
-      selected?.state === "running" && currentMode === "online" ? 1500 : 5000,
-    );
+    timer = setTimeout(async () => {
+      if (config && !busy) await refresh();
+      schedule();
+    }, pollDelay());
   }
   document.addEventListener("visibilitychange", () => {
     renderRoom();

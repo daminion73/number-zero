@@ -93,7 +93,7 @@ Run **one instance** of this Node service with either Turso or a persistent loca
 | `PORT`                | Backend HTTP port, defaults to 4173                                  |
 | `HOST`                | Bind address, defaults to `0.0.0.0`                                  |
 | `ALLOWED_ORIGINS`     | Comma-separated exact frontend origins; same-origin works without it |
-| `ROUND_MS`            | Standard reveal interval, default 4000; fast mode halves it          |
+| `ROUND_MS`            | Standard reveal interval, default 9000; fast mode halves it          |
 | `WAITING_MS`          | Waiting-lobby lifetime, default 900000 (15 minutes)                  |
 
 For GitHub Pages, set `API_BASE` in `config.js` to your deployed backend's HTTPS origin, and set backend `ALLOWED_ORIGINS=https://daminion73.github.io`. Deploy the frontend configuration separately. No backend credentials go in `config.js`. CORS includes error responses so expired sessions can be recovered. Configure provider rate limiting at the edge as well: the built-in limiter groups by socket address, so reverse-proxy clients share its budget.

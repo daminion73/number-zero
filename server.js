@@ -72,7 +72,8 @@ export async function createServer(options = {}) {
   const env = options.env || process.env,
     now = options.now || Date.now;
   const devAuth = env.DEV_AUTH === "1" && env.NODE_ENV !== "production";
-  const roundMs = Math.max(100, Number(env.ROUND_MS || 4000));
+  // Long enough for a standard round's opening animation (spin, number roll, totals).
+  const roundMs = Math.max(100, Number(env.ROUND_MS || 9000));
   const waitingMs = Math.max(1000, Number(env.WAITING_MS || 900000));
   if (!Number.isFinite(roundMs) || !Number.isFinite(waitingMs))
     throw new Error("Invalid round or waiting duration");

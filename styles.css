@@ -1207,6 +1207,13 @@ body.roll-complete .reel span { color: var(--roll-rank-color); text-shadow: 0 0 
 #battle-case-inspector-content header h2 { margin: 6px 0; font: 900 31px/1 "Barlow Condensed", sans-serif; }
 #battle-case-inspector-content header strong { color: var(--cyan); font: 900 19px/1 "Barlow Condensed", sans-serif; }
 #battle-case-inspector-content header button { padding: 11px; border: 0; border-radius: 5px; color: white; cursor: pointer; background: #ff3e6c; font-size: 8px; font-weight: 900; }
+.battle-inspector-add { display: grid; gap: 7px; text-align: center; }
+.battle-inspector-add small { color: #8996a1; font-size: 8px; font-weight: 800; letter-spacing: .1em; }
+.battle-inspector-add small.added, .battle-inspector-add small.in-battle { color: var(--cyan); }
+.battle-inspector-add small.in-battle { padding: 10px 8px; border: 1px solid color-mix(in srgb, var(--cyan) 40%, transparent); border-radius: 6px; font-size: 10px; }
+#battle-case-inspector-content header button:disabled { opacity: .45; cursor: not-allowed; }
+.timeline-case-node[data-timeline-case] { cursor: pointer; }
+.timeline-case-node[data-timeline-case]:hover, .timeline-case-node[data-timeline-case]:focus-visible { border-color: var(--case-accent); outline: none; }
 .battle-inspector-odds { display: flex; justify-content: space-between; padding: 12px 18px; color: #8996a1; font-size: 7px; letter-spacing: .14em; }
 #battle-case-inspector-content ol { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 0 14px 16px; list-style: none; }
 #battle-case-inspector-content li { --accent: #9ba5ae; display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 8px; border: 1px solid color-mix(in srgb, var(--accent) 35%, #303944); border-radius: 5px; background: #121720; }
@@ -1243,7 +1250,7 @@ body.roll-complete .reel span { color: var(--roll-rank-color); text-shadow: 0 0 
   .duel-arena[data-player-count="6"] { grid-template-columns: 1fr; }
   #battle-case-inspector-content > header { grid-template-columns: 90px minmax(0, 1fr); }
   .battle-inspector-art { width: 80px; height: 74px; }
-  #battle-case-inspector-content header button { grid-column: 1 / -1; }
+  #battle-case-inspector-content header .battle-inspector-add { grid-column: 1 / -1; }
   #battle-case-inspector-content ol { grid-template-columns: 1fr; }
   .battle-winner-banner { padding: 13px; }
   .battle-winner-banner > b { position: static; display: block; margin-top: 8px; transform: none; }

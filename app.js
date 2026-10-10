@@ -683,11 +683,19 @@ async function animateRouletteTrack(track, viewport, targetIndex, seed, audioTra
 }
 
 // These reels decorate an already-authoritative server round. Never draw a result here.
-async function animateOnlineRound(room, battle, round, signal) {
+/**
+ * Plays one server round. `budgetMs` is the time left before the server reveals the next round;
+ * the spins and number roll are shortened to finish inside it (no budget = full length).
+ */
+async function animateOnlineRound(room, battle, round, signal, budgetMs = Infinity) {
   const item = CASES.find((candidate) => candidate.id === round.caseId);
   const target = 34;
   const turbo = battle.speed === "turbo" || fastReveal;
   const bonus = round.results.filter((result) => result.bonus);
+  const spinMs = turbo ? 950 : 5200, bonusSpinMs = turbo ? 950 : 3900, pauseMs = turbo ? 180 : 520;
+  // Fixed costs per spin (shock + settle) and after the spins (number reveal + totals count-up).
+  const nominal = 800 + spinMs + (bonus.length ? pauseMs + 800 + bonusSpinMs : 0) + (turbo ? 720 : 2000) + 750;
+  const scale = Number.isFinite(budgetMs) ? Math.max(0.15, Math.min(1, (budgetMs - 400) / nominal)) : 1;
   const status = room.querySelector(".online-playback-status");
   status.textContent = `ROUND ${round.index + 1} · OPENING ${item.name.toUpperCase()}`;
   const spin = async (results, bonusSpin = false) => {
@@ -708,14 +716,14 @@ async function animateOnlineRound(room, battle, round, signal) {
         viewport.classList.add(item.bonusType === "nested" ? "nested-bonus-active" : "gold-bonus-active");
         viewport.insertAdjacentHTML("beforeend", item.bonusType === "nested" ? `<div class="battle-gold-trigger battle-nested-trigger"><b>${caseImage(item)}</b><span>INNER CASE<small>BONUS SPIN</small></span></div>` : '<div class="battle-gold-trigger"><b class="gold-medallion">G</b><span>GOLD COIN<small>BONUS SPIN</small></span></div>');
       }
-      const duration = turbo ? 950 : bonusSpin ? 3900 : 5200;
+      const duration = Math.round((bonusSpin ? bonusSpinMs : spinMs) * scale);
       return animateRouletteTrack(track, viewport, target, `${battle.id}:${round.index}:${result.seat}:${bonusSpin}`, index === 0, duration, signal);
     }));
   };
   await spin(round.results);
   if (signal.aborted) return;
   if (bonus.length) {
-    await new Promise((resolve) => setTimeout(resolve, turbo ? 180 : 520));
+    await new Promise((resolve) => setTimeout(resolve, pauseMs * scale));
     if (signal.aborted) return;
     await spin(bonus, true);
   }
@@ -728,7 +736,7 @@ async function animateOnlineRound(room, battle, round, signal) {
   });
   status.textContent = "TRAITS LOCKED · ROLLING NUMBERS";
   const nodes = round.results.map((result) => room.querySelector(`#online-duel-number-${result.seat + 1}`));
-  await animateBattleDigits(nodes, round.results.map((result) => result.number), turbo, signal);
+  await animateBattleDigits(nodes, round.results.map((result) => result.number), turbo, signal, scale);
   if (signal.aborted) return;
   const counts = round.results.flatMap((result) => {
     const n = result.seat + 1;
@@ -744,13 +752,13 @@ async function animateOnlineRound(room, battle, round, signal) {
   await Promise.all(counts);
 }
 
-async function animateBattleDigits(numberNodes, numbers, turbo, signal) {
+async function animateBattleDigits(numberNodes, numbers, turbo, signal, scale = 1) {
   const cells = numberNodes.map((node) => [...node.children]);
   const timer = setInterval(() => cells.forEach((row) => row.slice(0, 6).forEach((cell) => { cell.textContent = Math.floor(Math.random() * 10); })), turbo ? 48 : 60);
   const stop = () => clearInterval(timer);
   signal?.addEventListener("abort", stop, { once: true });
   try {
-    await new Promise((resolve) => setTimeout(resolve, turbo ? 420 : 1200));
+    await new Promise((resolve) => setTimeout(resolve, (turbo ? 420 : 1200) * scale));
     stop();
     if (signal?.aborted) return;
     const targets = numbers.map(String);
@@ -765,7 +773,7 @@ async function animateBattleDigits(numberNodes, numbers, turbo, signal) {
         numberNodes[player].style.setProperty("--duel-count", target.length);
       });
       tone(170 + digit * 38, .08, "triangle", .035);
-      await new Promise((resolve) => setTimeout(resolve, turbo ? 50 : 130));
+      await new Promise((resolve) => setTimeout(resolve, (turbo ? 50 : 130) * scale));
     }
     if (signal?.aborted) return;
     cells.forEach((row, player) => {
@@ -1088,7 +1096,7 @@ function renderOnlineBattle(battle, opening, user, showSettlement) {
   return `<div class="battle-live-shell">
     <div class="battle-active-header"><div class="battle-round-counter"><span class="label">MATCH PROGRESS</span><strong class="count">${battle.state === "settled" ? "BATTLE COMPLETE" : `ROUND ${currentIndex + 1} / ${battle.caseIds.length}`}</strong><small>${escapeHtml(current.name.toUpperCase())}</small></div><div class="battle-cases-timeline" aria-label="Battle case timeline">${groups.map((group) => {
       const item = CASES.find((item) => item.id === group.id);
-      return `<div class="timeline-case-node ${battle.rounds.length > group.end ? "is-completed" : currentIndex >= group.start && currentIndex <= group.end ? "is-active" : ""}" style="--case-accent:${item.accent};--case-secondary:${item.secondary}" title="${escapeHtml(item.name)}"><div class="timeline-case-art">${caseImage(item)}</div><b class="case-multiplier-pill">×${group.quantity}</b><small>${escapeHtml(item.name)}</small></div>`;
+      return `<div class="timeline-case-node ${battle.rounds.length > group.end ? "is-completed" : currentIndex >= group.start && currentIndex <= group.end ? "is-active" : ""}" data-timeline-case="${item.id}" data-quantity="${battle.caseIds.filter((id) => id === item.id).length}" role="button" tabindex="0" style="--case-accent:${item.accent};--case-secondary:${item.secondary}" title="View contents of ${escapeHtml(item.name)}"><div class="timeline-case-art">${caseImage(item)}</div><b class="case-multiplier-pill">×${group.quantity}</b><small>${escapeHtml(item.name)}</small></div>`;
     }).join("")}</div><div class="battle-header-total"><span>TOTAL CASE VALUE</span><strong>${formatCredits(battle.entry)} CR</strong></div></div>
     <div class="battle-command online-room-meta"><div><span>ROUND</span><strong>${battle.rounds.length}/${battle.caseIds.length} REVEALED</strong></div><div><span>${battle.state === "settled" ? "FINAL POT" : "LIVE POT"}</span><strong class="online-pot">${formatCredits(pot)} CR</strong></div><div><span>MODE</span><strong>${escapeHtml(BATTLE_FORMATS[battle.format].label)} · ${battle.mode.toUpperCase()}</strong></div><div><span>SPEED</span><strong>${battle.speed.toUpperCase()}</strong></div><div class="battle-wallet"><span>YOUR ONLINE CREDITS</span><strong class="online-balance">${user ? `${formatCredits(user.balance)} CR` : "SPECTATING"}</strong></div></div>
     <div class="battle-ledger"><span>ENTRY <b>${formatCredits(battle.entry)} CR · ${battle.players.length} PLAYERS</b></span><span>SETTLEMENT <b>AUTOMATIC · SERVER VERIFIED</b></span></div>
@@ -1527,6 +1535,7 @@ function renderBattleBasket() {
     badge.hidden = count === 0;
   });
   $("#battle-clear-cases").disabled = !battleCaseIds.length;
+  renderInspectorCount();
   renderBattleCost();
 }
 
@@ -1544,11 +1553,30 @@ function renderBattleCreatorCases() {
   renderBattleBasket();
 }
 
-function inspectBattleCase(caseId) {
+/**
+ * Case contents and odds. From the creator it can add the case and shows how many are in the
+ * battle being built; from a running battle's timeline (`inBattle` = copies in that battle) it is read-only.
+ */
+function inspectBattleCase(caseId, { inBattle = null } = {}) {
   const item = CASES.find((candidate) => candidate.id === caseId);
   if (!item) return;
-  $("#battle-case-inspector-content").innerHTML = `<header style="--case-accent:${item.accent};--case-secondary:${item.secondary}"><div class="battle-inspector-art">${caseImage(item)}</div><div><span>${item.category} · ${item.risk.toUpperCase()} RISK</span><h2>${escapeHtml(item.name)}</h2><strong>${formatCredits(item.cost)} CR</strong></div><button type="button" data-add-battle-case="${item.id}">+ ADD TO BATTLE</button></header><div class="battle-inspector-odds"><span>CASE CONTENTS</span><b>FINAL ODDS</b></div><ol>${item.drops.map((drop) => `<li class="${drop.rarity}"><img src="${traitImage(drop.id)}" alt="" /><span><strong>${escapeHtml(drop.name)}</strong><small>${drop.rarity} · ${Math.round(drop.expectedEp).toLocaleString()} AVG EP</small></span><b>${formatChance(drop.finalChance)}%</b></li>`).join("")}</ol>`;
-  $("#battle-case-inspector").showModal();
+  const side = inBattle === null
+    ? `<div class="battle-inspector-add"><button type="button" data-add-battle-case="${item.id}">+ ADD TO BATTLE</button><small data-inspector-count="${item.id}"></small></div>`
+    : `<div class="battle-inspector-add"><small class="in-battle">×${inBattle} IN THIS BATTLE</small></div>`;
+  $("#battle-case-inspector-content").innerHTML = `<header style="--case-accent:${item.accent};--case-secondary:${item.secondary}"><div class="battle-inspector-art">${caseImage(item)}</div><div><span>${item.category} · ${item.risk.toUpperCase()} RISK</span><h2>${escapeHtml(item.name)}</h2><strong>${formatCredits(item.cost)} CR</strong></div>${side}</header><div class="battle-inspector-odds"><span>CASE CONTENTS</span><b>FINAL ODDS</b></div><ol>${item.drops.map((drop) => `<li class="${drop.rarity}"><img src="${traitImage(drop.id)}" alt="" /><span><strong>${escapeHtml(drop.name)}</strong><small>${drop.rarity} · ${Math.round(drop.expectedEp).toLocaleString()} AVG EP</small></span><b>${formatChance(drop.finalChance)}%</b></li>`).join("")}</ol>`;
+  renderInspectorCount();
+  if (!$("#battle-case-inspector").open) $("#battle-case-inspector").showModal();
+}
+
+/** "×2 IN THIS BATTLE" under the inspector's add button, kept in step with the basket. */
+function renderInspectorCount() {
+  const label = $("[data-inspector-count]");
+  if (!label) return;
+  const count = battleCaseIds.filter((id) => id === label.dataset.inspectorCount).length;
+  const full = battleCaseIds.length >= 20;
+  label.textContent = full ? `BATTLE FULL · ${count ? `×${count} OF THIS CASE` : "20 / 20 CASES"}` : count ? `×${count} IN THIS BATTLE · ${battleCaseIds.length} / 20 CASES` : "NOT IN THIS BATTLE YET";
+  label.classList.toggle("added", count > 0);
+  $("#battle-case-inspector [data-add-battle-case]").disabled = full;
 }
 
 function renderBattleTimeline() {
@@ -1561,7 +1589,7 @@ function renderBattleTimeline() {
     timeline.dataset.signature = signature;
     timeline.innerHTML = groups.map((group, index) => {
       const item = duelMatch.cases[group.start];
-      return `<div class="timeline-case-node" data-timeline-group="${index}" style="--case-accent:${item.accent};--case-secondary:${item.secondary}" title="${escapeHtml(item.name)}"><div class="timeline-case-art">${caseImage(item)}</div><b class="case-multiplier-pill">×${group.quantity}</b><small>${escapeHtml(item.name)}</small></div>`;
+      return `<div class="timeline-case-node" data-timeline-group="${index}" data-timeline-case="${item.id}" data-quantity="${ids.filter((id) => id === item.id).length}" role="button" tabindex="0" style="--case-accent:${item.accent};--case-secondary:${item.secondary}" title="View contents of ${escapeHtml(item.name)}"><div class="timeline-case-art">${caseImage(item)}</div><b class="case-multiplier-pill">×${group.quantity}</b><small>${escapeHtml(item.name)}</small></div>`;
     }).join("");
   }
   groups.forEach((group, index) => {
@@ -1613,6 +1641,17 @@ $("#battle-case-inspector").addEventListener("click", (event) => {
   if (event.target === $("#battle-case-inspector")) $("#battle-case-inspector").close();
 });
 $(".battle-inspector-close").addEventListener("click", () => $("#battle-case-inspector").close());
+// The inspector also opens during a battle, when the creator (its original parent) is hidden.
+document.body.append($("#battle-case-inspector"));
+const openTimelineCase = (node) => inspectBattleCase(node.dataset.timelineCase, { inBattle: Number(node.dataset.quantity) });
+document.addEventListener("click", (event) => {
+  const node = event.target.closest("[data-timeline-case]");
+  if (node) openTimelineCase(node);
+});
+document.addEventListener("keydown", (event) => {
+  const node = event.target.closest?.("[data-timeline-case]");
+  if (node && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); openTimelineCase(node); }
+});
 $("#battle-case-accumulator").addEventListener("click", (event) => {
   const button = event.target.closest("[data-remove-battle-case]");
   if (!button) return;

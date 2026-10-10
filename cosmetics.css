@@ -43,6 +43,9 @@
   z-index: -1;
   border-radius: 50%;
   background: conic-gradient(#ff4d6d, #ffd43b, #c7ff36, #53e7ff, #ae70ff, #ff4fd8, #ff4d6d);
+  /* Only the 4px ring shows; the picture underneath stays visible. */
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4.5px), #000 calc(100% - 4px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4.5px), #000 calc(100% - 4px));
   animation: nz-spin 3s linear infinite;
 }
 .nz-avatar[data-frame="rainbow"], .nz-avatar[data-frame="holo"] { box-shadow: 0 0 0 1px #0b0e17; }
